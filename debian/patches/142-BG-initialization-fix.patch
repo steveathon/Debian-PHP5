@@ -1,0 +1,44 @@
+proper initialization for uid/gid in apache sapis.
+downloaded from
+http://cvs.php.net/viewvc.cgi/php-src/ext/standard/basic_functions.c?r1=1.725.2.31.2.78&r2=1.725.2.31.2.79&view=patch
+http://cvs.php.net/viewvc.cgi/php-src/sapi/apache/mod_php5.c?r1=1.19.2.7.2.15&r2=1.19.2.7.2.16&view=patch
+--- old/ext/standard/basic_functions.c
++++ new/ext/standard/basic_functions.c
+@@ -3919,6 +3919,8 @@ static void basic_globals_ctor(php_basic
+ 	memset(&BG(mblen_state), 0, sizeof(BG(mblen_state)));
+ #endif
+ 	BG(incomplete_class) = incomplete_class_entry;
++	BG(page_uid) = -1;
++	BG(page_gid) = -1;
+ }
+ 
+ 
+@@ -4221,6 +4223,8 @@ PHP_RSHUTDOWN_FUNCTION(basic)
+ 
+ 	PHP_RSHUTDOWN(user_filters)(SHUTDOWN_FUNC_ARGS_PASSTHRU);
+ 	
++	BG(page_uid) = -1;
++	BG(page_gid) = -1;
+ 	return SUCCESS;
+ }
+ 
+--- old/sapi/apache/mod_php5.c	2008/11/24 22:18:25	1.19.2.7.2.15
++++ new/sapi/apache/mod_php5.c	2008/11/28 23:22:39	1.19.2.7.2.16
+@@ -597,6 +597,8 @@
+ 		return OK;
+ 	}
+ 
++	SG(server_context) = r;
++
+ 	zend_first_try {
+ 
+ 		/* Make sure file exists */
+@@ -654,8 +656,6 @@
+ 		/* Init timeout */
+ 		hard_timeout("send", r);
+ 
+-		SG(server_context) = r;
+-		
+ 		php_save_umask();
+ 		add_common_vars(r);
+ 		add_cgi_vars(r);

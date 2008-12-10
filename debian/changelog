@@ -1,6 +1,8 @@
 php5 (5.2.0-8+etch14) UNRELEASED; urgency=low
 
   * NOT RELEASED YET
+  * Include backported fixes for uid/gid initialization in apache/apache2
+    modules.
 
  -- Sean Finney <seanius@debian.org>  Tue, 30 Sep 2008 20:38:57 +0200
 
