@@ -103,7 +103,8 @@ COMMON_CONFIG=--build=$(PHP5_BUILD_GNU_TYPE)-gnu \
 		--enable-soap \
 		--enable-zip \
 		--with-mime-magic=$(MAGIC_MIME) \
-		--with-exec-dir=/usr/lib/php5/libexec
+		--with-exec-dir=/usr/lib/php5/libexec \
+		--with-system-tzdata
 
 BUILTIN_EXTENSION_CHECK=$$e=get_loaded_extensions(); natcasesort($$e); \
 			$$s="The following extensions are built in:"; \
