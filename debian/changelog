@@ -1,8 +1,9 @@
 php5 (5.2.0-8+etch14) UNRELEASED; urgency=low
 
   * NOT RELEASED YET
-  * Include backported fixes for uid/gid initialization in apache/apache2
-    modules.
+  * The following security issues are addressed with this update:
+    - CVE-2008-5624: proper initialization of uid/gid for apache2 sapi.
+      Patch: 142-CVE-2008-5624.patch
 
  -- Sean Finney <seanius@debian.org>  Tue, 30 Sep 2008 20:38:57 +0200
 
