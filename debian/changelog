@@ -4,6 +4,8 @@ php5 (5.2.0-8+etch14) UNRELEASED; urgency=low
   * The following security issues are addressed with this update:
     - CVE-2008-5624: proper initialization of uid/gid for apache2 sapi.
       Patch: 142-CVE-2008-5624.patch
+    - CVE-2008-5557: heap overflows in the mbstring extension.
+      Patch: 144-CVE-2008-5557.patch (closes: #511493).
   * Backport the patch from lenny/sid to use the system timezone database
     instead of the embedded php timezone database which is out of date.
     Patch: 143-use_embedded_timezonedb.patch (closes: #471104).
