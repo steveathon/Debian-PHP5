@@ -6,6 +6,8 @@ php5 (5.2.0.dfsg-1+etch1) UNRELEASED; urgency=low
       Patch: 142-CVE-2008-5624.patch
     - CVE-2008-5557: heap overflows in the mbstring extension.
       Patch: 144-CVE-2008-5557.patch (closes: #511493).
+    - (no CVE): file truncation via inifile handler for the dba functions.
+      Patch: 145-dba-inifile-truncation.patch (closes: #507101).
   * Backport the patch from lenny/sid to use the system timezone database
     instead of the embedded php timezone database which is out of date.
     Patch: 143-use_embedded_timezonedb.patch (closes: #471104).
