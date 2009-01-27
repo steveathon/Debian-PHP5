@@ -1,4 +1,4 @@
-php5 (5.2.0.dfsg-1+etch1) UNRELEASED; urgency=low
+php5 (5.2.0+dfsg-8+etch14) UNRELEASED; urgency=low
 
   * NOT RELEASED YET
   * The following security issues are addressed with this update:
