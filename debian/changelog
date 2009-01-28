@@ -12,7 +12,7 @@ php5 (5.2.0+dfsg-8+etch14) UNRELEASED; urgency=low
     instead of the embedded php timezone database which is out of date.
     Patch: 143-use_embedded_timezonedb.patch (closes: #471104).
   * Repack the etch version of php5, stripping out the (unused) dbase
-    module which contained licensing problems (closes: #498621).
+    module which contained licensing problems (closes: #341420).
 
  -- Sean Finney <seanius@debian.org>  Tue, 30 Sep 2008 20:38:57 +0200
 
