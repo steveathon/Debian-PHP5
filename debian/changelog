@@ -3,7 +3,7 @@ php5 (5.2.0+dfsg-8+etch14) UNRELEASED; urgency=low
   * NOT RELEASED YET
   * The following security issues are addressed with this update:
     - CVE-2008-5624: proper initialization of uid/gid for apache2 sapi.
-      Patch: 142-CVE-2008-5624.patch
+      Patch: 142-CVE-2008-5624.patch (closes: #508021).
     - CVE-2008-5557: heap overflows in the mbstring extension.
       Patch: 144-CVE-2008-5557.patch (closes: #511493).
     - (no CVE): file truncation via inifile handler for the dba functions.
