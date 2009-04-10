@@ -1,0 +1,10 @@
+--- php5-5.2.0/ext/session/session.c.orig	2007-12-29 02:23:37.000000000 +0000
++++ php5-5.2.0/ext/session/session.c	2007-12-29 02:24:44.000000000 +0000
+@@ -46,6 +46,7 @@
+ #include "ext/standard/php_rand.h"                   /* for RAND_MAX */
+ #include "ext/standard/info.h"
+ #include "ext/standard/php_smart_str.h"
++#include "ext/standard/url.h"
+ 
+ #include "mod_files.h"
+ #include "mod_user.h"

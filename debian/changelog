@@ -1,3 +1,19 @@
+php5 (5.2.0-8+etch10) stable-security; urgency=high
+
+  * Drop the patch for CVE-2007-4659 for now, since it causes
+    regressions in some environments.
+
+ -- Moritz Muehlenhoff <jmm@debian.org>  Fri, 18 Jan 2008 17:34:37 +0100
+
+php5 (5.2.0-8+etch9) stable-security; urgency=high
+
+  * Fix previous patch / compilation on 64 bit archs
+  * Add more patches by Sean from SVN:
+    - CVE-2007-5898: Fix insecure handling of htmlentities() and htmlspecialchars()
+    - CVE-2007-5899: Fix information leak in output_add_rewrite_var()
+
+ -- Moritz Muehlenhoff <jmm@debian.org>  Wed, 26 Dec 2007 15:50:55 +0000
+
 php5 (5.2.0-8+etch8) stable-security; urgency=low
 
   * NMU prepared for the security team by the package maintainer.
