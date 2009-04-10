@@ -1,3 +1,9 @@
+php5 (5.2.0-8+etch5~pu1) proposed-updates; urgency=low
+
+  * fix for regression in single quote escaping (closes: #422567).
+
+ -- sean finney <seanius@debian.org>  Wed, 23 May 2007 21:55:51 +0200
+
 php5 (5.2.0-8+etch4) stable-security; urgency=high
 
   * NMU prepared for the security team by the package maintainer.

@@ -1,0 +1,50 @@
+fix for single quote escaping regression
+--- old/ext/standard/string.c	2007/02/24 02:17:27	1.445.2.14.2.42
++++ new/ext/standard/string.c	2007/03/03 15:46:29	1.445.2.14.2.45
+@@ -4211,7 +4211,7 @@
+ 				switch (state) {
+ 					case 1: /* HTML/XML */
+ 						lc = '>';
+-						state = 0;
++						in_q = state = 0;
+ 						if (allow) {
+ 							tp = ((tp-tbuf) >= PHP_TAG_BUF_SIZE ? tbuf: tp);
+ 							*(tp++) = '>';
+@@ -4226,19 +4226,19 @@
+ 						
+ 					case 2: /* PHP */
+ 						if (!br && lc != '\"' && *(p-1) == '?') {
+-							state = 0;
++							in_q = state = 0;
+ 							tp = tbuf;
+ 						}
+ 						break;
+ 						
+ 					case 3:
+-						state = 0;
++						in_q = state = 0;
+ 						tp = tbuf;
+ 						break;
+ 
+ 					case 4: /* JavaScript/CSS/etc... */
+ 						if (p >= buf + 2 && *(p-1) == '-' && *(p-2) == '-') {
+-							state = 0;
++							in_q = state = 0;
+ 							tp = tbuf;
+ 						}
+ 						break;
+@@ -4263,8 +4263,12 @@
+ 					tp = ((tp-tbuf) >= PHP_TAG_BUF_SIZE ? tbuf: tp);
+ 					*(tp++) = c;
+ 				}
+-				if (p != buf && *(p-1) != '\\') {
+-					in_q = !in_q;
++				if (state && p != buf && *(p-1) != '\\' && (!in_q || *p == in_q)) {
++					if (in_q) {
++						in_q = 0;
++					} else {
++						in_q = *p;
++					}
+ 				}
+ 				break;
+ 			
