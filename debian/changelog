@@ -1,3 +1,17 @@
+php5 (5.2.0-8+etch8) stable-security; urgency=low
+
+  * NMU prepared for the security team by the package maintainer.
+  * The following security issues are addressed with this update:
+    - CVE-2007-3799: vulnerabilities in session_start
+    - CVE-2007-3998: vulnerabilities in wordwrap
+    - CVE-2007-4657: vulnerabilities in strspn/strcspn
+    - CVE-2007-4658: vulnerability in money_format
+    - CVE-2007-4659: race condition in zend_alter_ini_entry
+    - CVE-2007-4660: vulnerability in chunk_split
+    - CVE-2007-4662: buffer overflow in php_openssl_make_REQ
+
+ -- sean finney <seanius@debian.org>  Thu, 20 Sep 2007 20:44:22 +0200
+
 php5 (5.2.0-8+etch7) stable-security; urgency=low
 
   * An addendum to the previous security NMU, the following vulnerability
