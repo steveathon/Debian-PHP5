@@ -1,3 +1,12 @@
+php5 (5.2.0-8+etch7) stable-security; urgency=low
+
+  * An addendum to the previous security NMU, the following vulnerability
+    is also fixed:
+    - CVE-2007-1864: Buffer overflow in the bundled libxmlrpc library.
+  * Thanks to Joe Orton from redhat for sharing the patch.
+
+ -- sean finney <seanius@debian.org>  Mon, 02 Jul 2007 22:00:09 +0200
+
 php5 (5.2.0-8+etch6) stable-security; urgency=low
 
   * NMU prepared for the security team by the package maintainer.
