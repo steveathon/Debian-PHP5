@@ -1,3 +1,40 @@
+php5 (5.2.0-8+etch13) stable-security; urgency=high
+
+  * Upload to etch for security issues
+  * The following security issues are addressed with this update:
+    - CVE-2008-3658: Buffer overflow in the imageloadfont function.
+      Patch: 140-CVE-2008-3658.patch (closes: #499989)
+    - CVE-2008-3659: Buffer overflow in the memnstr function.
+      Patch: 139-CVE-2008-3659.patch (closes: #499988)
+    - CVE-2008-3660: Remote DoS in fastcgi module
+      Patch: CVE-2008-3660.patch (closes: #499987)
+  * Revert previous security patch for CVE-2008-2829.  A fix for this
+    will not be possible without an updated version of the UW c-client 
+    libraries.
+
+ -- Sean Finney <seanius@debian.org>  Tue, 30 Sep 2008 20:19:42 +0200
+
+php5 (5.2.0-8+etch12) stable-security; urgency=high
+
+  * Upload to etch for security issues.
+  * The following security issues are addressed with this update:
+    - CVE-2008-2829: unsafe usage of deprecated imap functions.
+      Patch: 138-CVE-2008-2829.patch
+
+ -- Sean Finney <seanius@debian.org>  Mon, 30 Jun 2008 22:09:53 +0200
+
+php5 (5.2.0-8+etch11) stable-security; urgency=high
+
+  * Upload to etch for security issues.
+  * The following security issues are addressed with this update:
+    - CVE-2007-3806: glob denial of service
+    - CVE-2008-1384: integer overflow in printf() 
+    - CVE-2008-2050: possible stack buffer overflow in the FastCGI SAPI
+    - CVE-2008-2051: incomplete multibyte chars inside escapeshellcmd()
+    closes: #479723
+
+ -- sean finney <seanius@debian.org>  Thu, 21 Feb 2008 07:09:01 +0100
+
 php5 (5.2.0-8+etch11~p1) stable; urgency=high
 
   * zend_parse_parameters does not handle size_t's, causing issues with
