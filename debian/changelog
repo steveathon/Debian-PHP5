@@ -1,3 +1,13 @@
+php5 (5.2.0-8+etch6) stable-security; urgency=low
+
+  * NMU prepared for the security team by the package maintainer.
+  * The following security issue is addressed with this update:
+    - CVE-2007-1399/MOPB-16: zip stream stack overflow.
+  * also, this update contains a merge from the proposed-updates
+    branch to fix a regression from the previous security update.
+
+ -- sean finney <seanius@debian.org>  Sat, 30 Jun 2007 20:54:33 +0200
+
 php5 (5.2.0-8+etch5~pu1) proposed-updates; urgency=low
 
   * fix for regression in single quote escaping (closes: #422567).
