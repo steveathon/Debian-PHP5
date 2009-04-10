@@ -1,10 +1,12 @@
-php5 (5.2.6.dfsg.1-1) unstable; urgency=high
+php5 (5.2.6.dfsg.1-1+lenny1) testing; urgency=low
 
   [ Sean Finney ]
-  * Incorporate previous NMU.
+  * Incorporate changes from NMU
   * Updated system tzdata patch from Joe Orton.
   * Removed tzdb-nofree_ents_ifnotzdata.patch, which is now incorporated
     into Joe's patch.
+  * Make sure a file used to track state is properly removed in the 
+    postinst, thanks Raphael (closes: #511049).
   * Two backported fixes from 5.2.8, thanks to Olivier Bonvalet for looking
     them up.
     - Upstream bug #46157 (PDOStatement::fetchObject prototype error)
@@ -14,16 +16,20 @@ php5 (5.2.6.dfsg.1-1) unstable; urgency=high
   * Security related fixes:
     - Incorporate fix from 5.3 for proper initialization of uid/gid for
       apache2 sapi.
-      Patch: BG-initializing-fix.patch
     - CVE-2008-5557: heap overflows in the mbstring extension.
       Patch: CVE-2008-5557.patch (closes: #511493).
 
+  [ Raphael Geissert ]
+  * Ship script used to take an upstream tarball and remove the non
+    DFSG-free stuff, update watch file accordingly.
+
   [ Thijs Kinkhorst ]
   * Correct description typo, thanks Mathias Brodala (Closes: #508989).
+  * Fix watch file to mangle version.
 
- -- Sean Finney <seanius@debian.org>  Mon, 12 Jan 2009 12:12:36 +0100
+ -- Sean Finney <seanius@debian.org>  Tue, 13 Jan 2009 21:44:48 +0100
 
-php5 (5.2.6.dfsg.1-0.1) unstable; urgency=low
+php5 (5.2.6.dfsg.1-0.1~lenny1) testing; urgency=low
 
   * Non-maintainer upload.
   * Remove exts/dbase from orig tarball (Closes: #341420)
@@ -217,6 +223,26 @@ php5 (5.2.6-1) unstable; urgency=medium
     So long, and thanks for all the fish!
 
  -- Sean Finney <seanius@debian.org>  Sun, 04 May 2008 21:15:47 +0200
+
+php5 (5.2.5-3+lenny2) testing-security; urgency=low
+
+  * Security upload for testing to bypass current blockage in unstable.
+  * The following security issues are addressed with this update:
+    - CVE-2008-2829: unsafe usage of deprecated imap functions.
+      Patch: 138-CVE-2008-2829.patch
+
+ -- Sean Finney <seanius@debian.org>  Tue, 01 Jul 2008 23:34:48 +0200
+
+php5 (5.2.5-3+lenny1) testing-security; urgency=high
+
+  * Security upload for testing to bypass current blockage in unstable.
+  * The following security issues are addressed with this update:
+    - CVE-2008-0599: cgi sapi PATH_TRANSLATED buffer overflow
+    - CVE-2008-1384: integer overflow in printf() 
+    - CVE-2008-2050: possible stack buffer overflow in the FastCGI SAPI
+    - CVE-2008-2051: incomplete multibyte chars inside escapeshellcmd()
+
+ -- Sean Finney <seanius@debian.org>  Tue, 27 May 2008 19:33:22 +0200
 
 php5 (5.2.5-3) unstable; urgency=high
 
