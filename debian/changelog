@@ -1,3 +1,13 @@
+php5 (5.2.0-8+etch11~p1) stable; urgency=high
+
+  * zend_parse_parameters does not handle size_t's, causing issues with
+    043-recode_size_t.patch and segmentation faults for recode-using pages.
+    changed problematic parameters back to "int" and added an overflow check.
+    thanks to Thomas Stegbauer, Tim Dijkstra, Bart Cortooms, Sebastian Göbel,
+    and Vincent Tondellier for their reports.  closes: #459020.
+
+ -- Sean Finney <seanius@debian.org>  Thu, 21 Feb 2008 06:46:02 +0100
+
 php5 (5.2.0-8+etch10) stable-security; urgency=high
 
   * Drop the patch for CVE-2007-4659 for now, since it causes
