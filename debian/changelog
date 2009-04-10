@@ -1,3 +1,99 @@
+php5 (5.2.0-8+etch4) stable-security; urgency=high
+
+  * NMU prepared for the security team by the package maintainer.
+  * The following security issue is addressed with this update:
+    - CVE-2007-2509: CRLF injection in the ftp module
+    - CVE-2007-2510: Buffer overflow in the make_http_soap_request function
+    - CVE-2007-2511: Buffer overflow in the user_filter_factory_create function
+
+ -- sean finney <seanius@debian.org>  Sun, 13 May 2007 18:01:56 +0200
+
+php5 (5.2.0-8+etch3) stable-security; urgency=high
+
+  [ sean finney ]
+  * The following security issues are addressed with this update:
+    - CVE-2007-0910/MOPB-32 session_decode() Double Free Vulnerability
+      * note that this is an update to the previous version of the upstream
+        fix for CVE-2007-0910, which introduced a seperate exploit path.
+    - CVE-2007-1286/MOPB-04 unserialize() ZVAL Reference Counter Overflow
+    - CVE-2007-1380/MOPB-10 php_binary Session Deserialization Information Leak
+    - CVE-2007-1375/MOPB-14 substr_compare() Information Leak Vulnerability
+    - CVE-2007-1376/MOPB-15 shmop Functions Resource Verification Vulnerability
+    - CVE-2007-1453/MOPB-18 ext/filter HTML Tag Stripping Bypass Vulnerability
+    - CVE-2007-1453/MOPB-19 ext/filter Space Trimming Buffer Underflow Vuln.
+    - CVE-2007-1521/MOPB-22 session_regenerate_id() Double Free Vulnerability
+    - CVE-2007-1583/MOPB-26 mb_parse_str() register_globals Activation Vuln.
+    - CVE-2007-1700/MOPB-30 _SESSION unset() Vulnerability
+    - CVE-2007-1718/MOPB-34 mail() Header Injection
+    - CVE-2007-1777/MOPB-35 zip_entry_read() Integer Overflow Vulnerability
+    - CVE-2007-1887-1888/MOPB-41 sqlite_udf_decode_binary() Buffer Overflow
+    - CVE-2007-1824/MOPB-42 php_stream_filter_create() Off By One Vulnerablity
+    - CVE-2007-1889/MOPB-44 Memory Manager Signed Comparision Vulnerability
+    - CVE-2007-1900/MOPB-45 ext/filter Email Validation Vulnerability
+  * The other security issues resulting from the "Month of PHP bugs" either
+    did not affect the version of php5 shipped in etch, or did not merit
+    a security update according to the established security policy for php
+    in debian.  You are encouraged to verify that your configuration is not
+    affected by any of the other vulnerabilities by visiting:
+        http://www.php-security.org/
+
+ -- sean finney <seanius@debian.org>  Tue, 24 Apr 2007 00:11:22 +0200
+
+php5 (5.2.0-8+etch1) testing-proposed-updates; urgency=high
+
+  [ sean finney ]
+  * Rebuild of 5.2.0-10 targeted at etch.
+  * The following security issues are addressed with this update:
+    - CVE-2007-0906: Multiple buffer overflows in various code:
+      * session (116-CVE-2007-0906_session.patch)
+      * streams (116-CVE-2007-0906_streams.patch)
+      * imap (116-CVE-2007-0906_imap.patch)
+      * str_replace: (116-CVE-2007-0906_string.patch)
+      * interbase: (116-CVE-2007-0906_interbase.patch)
+      * zip: (116-CVE-2007-0906_zip.patch)
+      * the sqlite and mail related vulnerabilities in this CVE do not
+        affect the php5 source packages.
+    - CVE-2007-0907: sapi_header_op buffer underflow (116-CVE-2007-0907.patch)
+    - CVE-2007-0908: wddx information disclosure (116-CVE-2007-0908.patch)
+    - CVE-2007-0909: More buffer overflows:
+      * the odbc_result_all function (116-CVE-2007-0909_odbc.patch)
+      * various formatted print functions (116-CVE-2007-0909_print.patch)
+    - CVE-2007-0910: Clobbering of super-globals (116-CVE-2007-0910.patch)
+    - CVE-2007-0988: 64bit unserialize DoS (116-CVE-2007-0988.patch)
+  * The package maintainers would like to thank Joe Orton from redhat and
+    Martin Pitt from ubuntu for their help in preparation of this update.
+  * backport upstream fix for AUTH PLAIN support in imap extension
+
+ -- sean finney <seanius@debian.org>  Thu, 08 Mar 2007 00:03:22 +0100
+
+php5 (5.2.0-8) unstable; urgency=high
+
+  [ sean finney ]
+  * Update package information to say simply "Apache 2" instead
+    of "Apache 2.0" (ref: #400306).
+  * Update package description for php-pear to mention needing
+    phpN-dev for building PECL extensions (closes: #401825).
+  * Add mention of Freetype fonts to php5-gd package description,
+    thanks to Ole Laursen for the suggestion (closes: #387881).
+  * Include a backported version of upstream's fix for
+    alignment calculatations which cause FTBFS problems for
+    some arches.  Thanks to Roman Zippel for finding this (closes: #401129).
+    patch: 114-zend_alloc.c_m68k_alignment.patch
+  * Remove --enable-yp, as it's no longer used and seperately
+    packaged.  Thanks to Martijn Grendelman for mentioning this
+    (closes: #402161).
+  * Add mention to README.Debian of needing to restart apache when
+    installing modules (closes: #392249).
+  * Don't strip the DSO modules if building with DEB_BUILD_OPTIONS
+    containing nostrip
+  * Backported a patch from upstream CVS to fix a rather nasty
+    memory leak in zend_alloc (closes: #402506).
+    patch: 115-zend_alloc.c_memleak.patch
+  * The memleak and FTBFS are targeted at etch, and there aren't
+    any other significant changes, so priority=high. 
+
+ -- sean finney <seanius@debian.org>  Sun, 17 Dec 2006 16:49:35 +0100
+
 php5 (5.2.0-7) unstable; urgency=high
 
   [ Steve Langasek ]
