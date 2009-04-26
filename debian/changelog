@@ -1,8 +1,16 @@
-php5 (5.2.6.dfsg.1-1+lenny3) UNRELEASED; urgency=low
+php5 (5.2.6.dfsg.1-1+lenny3) stable-security; urgency=low
 
-  * NOT RELEASED YET
+  [ Sean Finney ]
+  * CVE-2008-5814: XSS vulnerability via display_errors (Closes: #523028)
+  * CVE-2009-0754.patch: mbstring.func_overload leakage between apache2
+    vhosts (Closes: #523049)
+  * CVE-2009-1271: remote DoS in json_decode()
+  * add note about CVE-2009-1272 in previous version's changelog entry
 
- -- Sean Finney <seanius@debian.org>  Mon, 26 Jan 2009 00:19:46 +0100
+  [ Mark A. Hershberger ]
+  * fix clean target to keep source in a consistant state for multiple builds
+
+ -- Sean Finney <seanius@debian.org>  Sun, 26 Apr 2009 21:37:57 +0200
 
 php5 (5.2.6.dfsg.1-1+lenny2) testing-security; urgency=low
 
