@@ -52,3 +52,4 @@ gentoo/007_dom-setAttributeNode-crash.patch
 gentoo/006_PDORow-crash.patch
 gentoo/005_stream_context_set_params-crash.patch
 CVE-2008-5658.patch
+CVE-2008-5814.patch
