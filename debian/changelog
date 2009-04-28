@@ -6,6 +6,14 @@ php5 (5.2.0+dfsg-8+etch14) UNRELEASED; urgency=low
       Patch: 142-CVE-2008-5624.patch (closes: #508021).
     - CVE-2008-5557: heap overflows in the mbstring extension.
       Patch: 144-CVE-2008-5557.patch (closes: #511493).
+    - CVE-2008-5658: directory traversal in the zip extension
+      Patch: 148-CVE-2008-5658.patch (closes: #507857).
+    - CVE-2008-2107/CVE-2008-2108: crypto weaknesses in php_rand module
+      Patch: 212-CVE-2008-2107+2108.patch (borrowed from dapper).
+    - CVE-2009-0754.patch: mbstring.func_overload leakage between vhosts
+      Patch: 147-CVE-2009-0754.patch (closes: #523049).
+    - CVE-2008-5814: XSS vulnerability via display_errors
+      Patch: 146-CVE-2008-5814.patch (closes: #523028).
     - (no CVE): file truncation via inifile handler for the dba functions.
       Patch: 145-dba-inifile-truncation.patch (closes: #507101).
   * Backport the patch from lenny/sid to use the system timezone database
