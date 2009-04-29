@@ -1,3 +1,12 @@
+php5 (5.2.0+dfsg-8+etch15) oldstable-security; urgency=high
+
+  * The previous security upload was missing one fix.
+  * The following security issues are addressed with this update:
+    - CVE-2009-1271: remote DoS in json_decode()
+      Patch: 149-CVE-2009-1271.patch
+
+ -- Sean Finney <seanius@debian.org>  Wed, 29 Apr 2009 17:55:41 +0200
+
 php5 (5.2.0+dfsg-8+etch14) oldstable-security; urgency=high
 
   * The following security issues are addressed with this update:
