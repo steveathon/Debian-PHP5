@@ -1,4 +1,4 @@
-php5 (5.2.0+dfsg-8+etch14) stable-security; urgency=low
+php5 (5.2.0+dfsg-8+etch14) oldstable-security; urgency=high
 
   * The following security issues are addressed with this update:
     - CVE-2008-5624: proper initialization of uid/gid for apache2 sapi.
@@ -21,7 +21,7 @@ php5 (5.2.0+dfsg-8+etch14) stable-security; urgency=low
   * Repack the etch version of php5, stripping out the (unused) dbase
     module which contained licensing problems (closes: #341420).
 
- -- Sean Finney <seanius@debian.org>  Tue, 28 Apr 2009 23:43:03 +0200
+ -- Sean Finney <seanius@debian.org>  Wed, 29 Apr 2009 16:16:10 +0200
 
 php5 (5.2.0-8+etch13) stable-security; urgency=high
 
