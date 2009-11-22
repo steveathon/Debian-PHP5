@@ -1,3 +1,17 @@
+php5 (5.2.6.dfsg.1-1+lenny4) stable-security; urgency=high
+
+  * CVE-2009-2687: DoS via malformed JPEG images with invalid offset fields
+      (Closes: #535888)
+  * CVE-2009-2626: remote memory disclosure via ini_* functions
+      (Closes: #540605)
+  * CVE-2009-3292: multiple missing checks processing exif image data
+  * CVE-2009-3291: improper handling of nul character in CommonName fields
+      of X509 certificates
+  * max_file_uploads: prevent, by limiting, temporary files exhaustion DoS
+  * Add an entry to debian/NEWS about the new per-request file uploads limit
+
+ -- Raphael Geissert <geissert@debian.org>  Sat, 21 Nov 2009 18:28:12 -0600
+
 php5 (5.2.6.dfsg.1-1+lenny3) stable-security; urgency=low
 
   [ Sean Finney ]
