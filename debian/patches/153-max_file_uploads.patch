@@ -1,0 +1,76 @@
+diff --git a/main/main.c b/main/main.c
+index 66553ef..72177fe 100644
+--- a/main/main.c
++++ b/main/main.c
+@@ -320,6 +320,7 @@ PHP_INI_BEGIN()
+ 	PHP_INI_ENTRY("mail.force_extra_parameters",NULL,		PHP_INI_SYSTEM|PHP_INI_PERDIR,		NULL)
+ 	PHP_INI_ENTRY("disable_functions",			"",			PHP_INI_SYSTEM,		NULL)
+ 	PHP_INI_ENTRY("disable_classes",			"",			PHP_INI_SYSTEM,		NULL)
++	PHP_INI_ENTRY("max_file_uploads",			"50",			PHP_INI_SYSTEM,		NULL)
+ 
+ 	STD_PHP_INI_BOOLEAN("allow_url_fopen",		"1",		PHP_INI_SYSTEM,		OnUpdateBool,			allow_url_fopen,			php_core_globals,	core_globals)
+ 	STD_PHP_INI_BOOLEAN("allow_url_include",		"0",		PHP_INI_SYSTEM,		OnUpdateBool,			allow_url_include,			php_core_globals,	core_globals)
+diff --git a/main/rfc1867.c b/main/rfc1867.c
+index edca8f9..0d97473 100644
+--- a/main/rfc1867.c
++++ b/main/rfc1867.c
+@@ -32,6 +32,7 @@
+ #include "php_globals.h"
+ #include "php_variables.h"
+ #include "rfc1867.h"
++#include "php_ini.h"
+ 
+ #define DEBUG_FILE_UPLOAD ZEND_DEBUG
+ 
+@@ -797,6 +798,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler)
+ 	int fd=-1;
+ 	zend_llist header;
+ 	void *event_extra_data = NULL;
++	int upload_cnt = INI_INT("max_file_uploads");
+ 
+ 	if (SG(request_info).content_length > SG(post_max_size)) {
+ 		sapi_module.sapi_error(E_WARNING, "POST Content-Length of %ld bytes exceeds the limit of %ld bytes", SG(request_info).content_length, SG(post_max_size));
+@@ -975,6 +977,9 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler)
+ 			/* If file_uploads=off, skip the file part */
+ 			if (!PG(file_uploads)) {
+ 				skip_upload = 1;
++			} else if (upload_cnt <= 0) {
++				skip_upload = 1;
++				sapi_module.sapi_error(E_WARNING, "Maximum number of allowable file uploads has been exceeded");
+ 			}
+ 
+ 			/* Return with an error if the posted data is garbled */
+@@ -1017,6 +1022,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler)
+ 			total_bytes = cancel_upload = 0;
+ 
+ 			if (!skip_upload) {
++				upload_cnt--;
+ 				/* Handle file */
+ 				fd = php_open_temporary_fd(PG(upload_tmp_dir), "php", &temp_filename TSRMLS_CC);
+ 				if (fd==-1) {
+diff --git a/php.ini-dist b/php.ini-dist
+index 4fee3fe..ad06a6c 100644
+--- a/php.ini-dist
++++ b/php.ini-dist
+@@ -527,6 +527,8 @@ file_uploads = On
+ ; Maximum allowed size for uploaded files.
+ upload_max_filesize = 2M
+ 
++; Maximum number of files that can be uploaded via a single request
++max_file_uploads = 50
+ 
+ ;;;;;;;;;;;;;;;;;;
+ ; Fopen wrappers ;
+diff --git a/php.ini-recommended b/php.ini-recommended
+index b2a640a..ba5d73d 100644
+--- a/php.ini-recommended
++++ b/php.ini-recommended
+@@ -572,6 +572,8 @@ file_uploads = On
+ ; Maximum allowed size for uploaded files.
+ upload_max_filesize = 2M
+ 
++; Maximum number of files that can be uploaded via a single request
++max_file_uploads = 50
+ 
+ ;;;;;;;;;;;;;;;;;;
+ ; Fopen wrappers ;
