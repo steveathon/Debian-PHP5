@@ -1,3 +1,22 @@
+php5 (5.2.0+dfsg-8+etch16) oldstable-security; urgency=high
+
+  * Maximum number of file uploads per request limited
+
+  To prevent Denial of Service attacks by exhausting the number of
+  available temporary file names, the max_file_uploads option
+  introduced in PHP 5.3.1 has been backported.
+
+  Due to the nature of this new option a default limit has been set
+  to 50, hoping it is sensible enough to not to cause disruptions on
+  existing services.
+  The value of this new limit can be changed in the php.ini file.
+
+  If you installed the php5-suhosin extension there was a limiting
+  mechanism in place already. In this case you may want to make sure
+  the new limit imposed by PHP itself is not smaller than suhosin's.
+
+ -- Raphael Geissert <geissert@debian.org>  Tue, 24 Nov 2009 00:09:52 -0600
+
 php5 (5.1.6-5) unstable; urgency=low
 
   the debian php packages now support a modular configuration layout.
