@@ -1,9 +1,19 @@
-php5 (5.2.0+dfsg-8+etch16) oldstable-security; urgency=low
+php5 (5.2.0+dfsg-8+etch16) oldstable-security; urgency=high
 
+  [ Sean Finney ]
   * fix for double-free regression in patch CVE-2008-5658 (Closes: #527560) 
     - thanks to Sébastien Le Ray <s.le_ray@eutech-ssii.com>
 
- -- Sean Finney <seanius@debian.org>  Fri, 08 May 2009 10:09:40 +0200
+  [ Raphael Geissert ]
+  * CVE-2009-2687: DoS via malformed JPEG images with invalid offset fields
+     (Closes: #535888)
+  * CVE-2009-3292: multiple missing checks processing exif image data
+  * CVE-2009-3291: improper handling of nul character in CommonName fields
+      of X509 certificates
+  * max_file_uploads: prevent, by limiting, temporary files exhaustion DoS
+  * Add an entry to debian/NEWS about the new per-request file uploads limit
+
+ -- Raphael Geissert <geissert@debian.org>  Tue, 24 Nov 2009 00:16:19 -0600
 
 php5 (5.2.0+dfsg-8+etch15) oldstable-security; urgency=high
 
