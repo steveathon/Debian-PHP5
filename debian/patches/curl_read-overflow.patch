@@ -1,0 +1,13 @@
+Index: php/ext/curl/interface.c
+===================================================================
+--- php.orig/ext/curl/interface.c
++++ php/ext/curl/interface.c
+@@ -786,7 +786,7 @@ static size_t curl_read(char *data, size
+ {
+ 	php_curl       *ch = (php_curl *) ctx;
+ 	php_curl_read  *t  = ch->handlers->read;
+-	int             length = -1;
++	int             length = 0;
+ 
+ 	switch (t->method) {
+ 		case PHP_CURL_DIRECT:
