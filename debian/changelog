@@ -1,3 +1,12 @@
+php5 (5.2.6.dfsg.1-1+lenny5) stable; urgency=low
+
+  * Fix an integer overflow on the curl_read callback (Closes: #529278)
+  * Recognise ? and = in email addresses as valid (Closes: #556459)
+  * Fix a heap overflow in the odbc extension (Closes: #565387)
+  * Add missing sybase aliases (Closes: #523073)
+
+ -- Raphael Geissert <geissert@debian.org>  Fri, 05 Feb 2010 14:29:56 -0600
+
 php5 (5.2.6.dfsg.1-1+lenny4) stable-security; urgency=high
 
   * CVE-2009-2687: DoS via malformed JPEG images with invalid offset fields
