@@ -64,3 +64,4 @@ curl_read-overflow.patch
 filter-valid-email-characters.patch
 odbc-64bits-len.patch
 sybase-alias.patch
+CVE-2009-4142.patch
