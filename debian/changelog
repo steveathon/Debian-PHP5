@@ -1,3 +1,11 @@
+php5 (5.2.6.dfsg.1-1+lenny6) stable-security; urgency=high
+
+  * Fix CVE-2009-4142: incorrect handling of invalid multi-byte
+    sequences
+  * Fix CVE-2009-4143: session interruption memory corruption
+
+ -- Raphael Geissert <geissert@debian.org>  Mon, 08 Feb 2010 19:41:35 -0600
+
 php5 (5.2.6.dfsg.1-1+lenny5) stable; urgency=low
 
   * Fix an integer overflow on the curl_read callback (Closes: #529278)
