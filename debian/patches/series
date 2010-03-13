@@ -66,3 +66,4 @@ odbc-64bits-len.patch
 sybase-alias.patch
 CVE-2009-4142.patch
 CVE-2009-4143.patch
+CVE-2010-0397.patch
