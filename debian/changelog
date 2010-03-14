@@ -1,3 +1,10 @@
+php5 (5.2.6.dfsg.1-1+lenny8) stable-security; urgency=high
+
+  * Fix CVE-2010-0397: null pointer dereference when processing invalid
+    XML-RPC requests (Closes: #573573)
+
+ -- Raphael Geissert <geissert@debian.org>  Sun, 14 Mar 2010 01:05:03 -0600
+
 php5 (5.2.6.dfsg.1-1+lenny6) stable-security; urgency=high
 
   * Fix CVE-2009-4142: incorrect handling of invalid multi-byte
