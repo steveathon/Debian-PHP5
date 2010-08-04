@@ -1,3 +1,12 @@
+php5 (5.2.6.dfsg.1-1+lenny9) stable-security; urgency=high
+
+  * Fix CVE-2010-1917: stack consumption on the fnmatch() function
+  * Fix CVE-2010-2225: use-after-free in the SplObjectStorage
+    unserializer
+  * Fix MOPS-2010-60: arbitrary session variables injection
+
+ -- Raphael Geissert <geissert@debian.org>  Tue, 03 Aug 2010 21:37:14 -0400
+
 php5 (5.2.6.dfsg.1-1+lenny8) stable-security; urgency=high
 
   * Fix CVE-2010-0397: null pointer dereference when processing invalid
