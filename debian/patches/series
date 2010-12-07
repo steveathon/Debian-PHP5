@@ -70,3 +70,10 @@ CVE-2010-0397.patch
 CVE-2010-1917.patch
 CVE-2010-2225.patch
 MOPS-60.patch
+php-5.2-CVE-2010-1128.patch
+php-5.2-CVE-2010-2531.patch
+php-5.2-CVE-2010-3709.patch
+php-5.2-CVE-2010-3710.patch
+php-5.2-CVE-2010-3870.patch
+php-5.2-CVE-2010-4150.patch
+php-5.2-CWE-170.patch
