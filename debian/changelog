@@ -1,3 +1,9 @@
+php5 (5.3.3-7+squeeze1) squeeze-security; urgency=high
+
+  * Fix CVE-2011-0441: arbitrary files removal via cronjob (Closes #618489)
+
+ -- Raphael Geissert <geissert@debian.org>  Thu, 17 Mar 2011 21:06:26 -0600
+
 php5 (5.3.3-7) unstable; urgency=low
 
   * Cherry pick patches for:
