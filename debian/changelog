@@ -1,3 +1,23 @@
+php5 (5.2.6.dfsg.1-1+lenny10) lenny-security; urgency=high
+
+  [ Ondřej Surý ]
+  * Include upstream's fix for CVE-2010-1128: Weak seed for the
+    Linear Congruential Generator (LCG)
+  * Fix CVE-2010-3709: NULL pointer dereference in
+    ZipArchive::getArchiveComment
+  * Fix CVE-2010-3710: stack consumption when using the
+    FILTER_VALIDATE_EMAIL filter
+  * Fix CVE-2010-3870: incorrect handling of ill-formed subsequences in
+    UTF-8 data
+  * Fix CVE-2010-4150: Double free in imap_do_open
+  * Fix a NULL pointer dereference in the zip extract method
+
+  [ Raphael Geissert ]
+  * Include a test for CVE-2010-4645
+  * Fix CVE-2011-0441: arbitrary files removal via cronjob (Closes #618489)
+
+ -- Raphael Geissert <geissert@debian.org>  Fri, 18 Mar 2011 18:34:11 -0600
+
 php5 (5.2.6.dfsg.1-1+lenny9) stable-security; urgency=high
 
   * Fix CVE-2010-1917: stack consumption on the fnmatch() function
