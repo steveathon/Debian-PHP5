@@ -89,3 +89,4 @@ fix-segfault-when-extending-SplFixedArray.patch
 fix-segfault-when-node-is-NULL-in-simplexml.patch
 fix-segfault-when-using-several-cloned-intl-objects.patch
 fix-sqlite3-columnName-segfaults-on-bad-column_number.patch
+CVE-2011-0421.patch
