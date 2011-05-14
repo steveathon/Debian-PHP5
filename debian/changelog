@@ -1,3 +1,18 @@
+php5 (5.3.3-7+squeeze2) squeeze-security; urgency=low
+
+  * Fix regression with missing CRYPT_SALT_LENGTH symbol
+  * Fix CVE-2011-0420: a NULL pointer dereference in grapheme_extract
+  * Fix CVE-2011-0421: _zip_name_locate function in zip_name_locate.c
+  * Fix CVE-2011-0708: incorrect cast on 64-bit platforms in exif.c
+  * Fix CVE-2011-1153: multiple format string vulnerabilities in phar_object.c
+  * Fix CVE-2011-1467: Already fixed in 5.3.3-7; just rename patch
+  * Fix CVE-2011-1466: Already fixed in 5.3.3-7; just rename patch
+  * Fix CVE-2011-1471: for integer signedness error in zip_stream.c
+  * Fix reject-filenames-with-null-r305507.patch to not break oci8
+    extension (doesn't affect any built code)
+
+ -- Ondřej Surý <ondrej@debian.org>  Sat, 14 May 2011 11:29:48 +0200
+
 php5 (5.3.3-7+squeeze1) squeeze-security; urgency=high
 
   * Fix CVE-2011-0441: arbitrary files removal via cronjob (Closes #618489)
