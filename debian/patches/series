@@ -78,3 +78,4 @@ php-5.2-CVE-2010-4150.patch
 php-5.2-CWE-170.patch
 CVE-2010-4645-test.patch
 CVE-2011-0421.patch
+CVE-2011-1466.patch
