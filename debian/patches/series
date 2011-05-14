@@ -87,6 +87,7 @@ fix-memory-leak-inside-highlight_string.patch
 fix-segfault-in-pgsql_stmt_execute-when-postgres-is-down.patch
 fix-segfault-when-extending-SplFixedArray.patch
 fix-segfault-when-node-is-NULL-in-simplexml.patch
+CVE-2011-1467.patch
 fix-sqlite3-columnName-segfaults-on-bad-column_number.patch
 CVE-2011-0421.patch
 CVE-2011-1153.patch
