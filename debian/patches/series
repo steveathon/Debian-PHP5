@@ -90,3 +90,4 @@ fix-segfault-when-node-is-NULL-in-simplexml.patch
 fix-sqlite3-columnName-segfaults-on-bad-column_number.patch
 CVE-2011-0421.patch
 CVE-2011-1153.patch
+CVE-2011-0708.patch
