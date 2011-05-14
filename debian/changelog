@@ -11,7 +11,7 @@ php5 (5.3.3-7+squeeze2) squeeze-security; urgency=low
   * Fix reject-filenames-with-null-r305507.patch to not break oci8
     extension (doesn't affect any built code)
 
- -- Ondřej Surý <ondrej@debian.org>  Sat, 14 May 2011 11:29:48 +0200
+ -- Ondřej Surý <ondrej@debian.org>  Sat, 14 May 2011 16:59:49 +0200
 
 php5 (5.3.3-7+squeeze1) squeeze-security; urgency=high
 
