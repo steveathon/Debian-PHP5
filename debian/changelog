@@ -1,11 +1,16 @@
+php5 (5.2.6.dfsg.1-1+lenny12) oldstable-security; urgency=low
+
+  * Fix CVE-2011-2202: file path injection vulnerability in RFC1867 file
+    upload filename
+
+ -- Ondřej Surý <ondrej@debian.org>  Wed, 15 Jun 2011 11:18:49 +0200
+
 php5 (5.2.6.dfsg.1-1+lenny11) oldstable-security; urgency=low
 
   * Fix CVE-2011-0421: _zip_name_locate function in zip_name_locate.c
   * Fix CVE-2011-1466: integer overflow in the SdnToJulian
   * Fix CVE-2011-0708: incorrect cast on 64-bit platforms in exif.c
   * Fix CVE-2011-1471: integer signedness error in zip_stream.c
-  * Fix CVE-2011-2202: file path injection vulnerability in RFC1867 file
-    upload filename
   * Fix CVE-2010-2531: var_export() causes a fatal error that could
     inadvertently display data due to flushing of the output buffer.
 
