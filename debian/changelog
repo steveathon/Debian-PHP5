@@ -1,3 +1,9 @@
+php5 (5.2.6.dfsg.1-1+lenny13) oldstable-security; urgency=low
+
+  * Remove stray php_printf from CVE-2010-2531 (Closes: #632194)
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 01 Jul 2011 09:49:45 +0200
+
 php5 (5.2.6.dfsg.1-1+lenny12) oldstable-security; urgency=low
 
   * Fix CVE-2011-2202: file path injection vulnerability in RFC1867 file
