@@ -137,8 +137,6 @@ else
 	echo 'nocheck found in DEB_BUILD_OPTIONS' > test-results.txt
 endif
 	cat test-results.txt
-	# Fail on purpose
-	false
 
 build: build-apache2-stamp build-apache2filter-stamp build-cgi-stamp build-cli-stamp build-pear-stamp test-results.txt
 
