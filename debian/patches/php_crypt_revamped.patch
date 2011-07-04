@@ -189,24 +189,18 @@
  
 -#if PHP_STD_DES_CRYPT
 -#define PHP_MAX_SALT_LEN 2
-+#if defined(HAVE_CRYPT_R) && (defined(_REENTRANT) || defined(_THREAD_SAFE))
-+# define PHP_USE_SYSTEM_CRYPT_R
- #endif
- 
+-#endif
+-
 -#if PHP_EXT_DES_CRYPT
 -#undef PHP_MAX_SALT_LEN
 -#define PHP_MAX_SALT_LEN 9
 -#endif
-+#define PHP_MAX_STD_DES_SALT_LEN 2
-+#define PHP_MAX_STD_DES_HASH_LEN 11
- 
+-
 -#if PHP_MD5_CRYPT
 -#undef PHP_MAX_SALT_LEN
 -#define PHP_MAX_SALT_LEN 12
 -#endif
-+#define PHP_MAX_EXT_DES_SALT_LEN 9
-+#define PHP_MAX_EXT_DES_HASH_LEN 11
- 
+-
 -#if PHP_BLOWFISH_CRYPT
 -#undef PHP_MAX_SALT_LEN
 -#define PHP_MAX_SALT_LEN 60
@@ -215,26 +209,36 @@
 -#if PHP_SHA512_CRYPT
 -#undef PHP_MAX_SALT_LEN
 -#define PHP_MAX_SALT_LEN 123
--#endif
-+#define PHP_MAX_MD5_SALT_LEN 12
-+#define PHP_MAX_MD5_HASH_LEN 22
++#if defined(HAVE_CRYPT_R) && (defined(_REENTRANT) || defined(_THREAD_SAFE))
++# define PHP_USE_SYSTEM_CRYPT_R
+ #endif
  
-+#define PHP_MAX_BLOWFISH_SALT_LEN 29
-+#define PHP_MAX_BLOWFISH_HASH_LEN 31
-+ 
-+#define PHP_MAX_SHA256_SALT_LEN 37
-+#define PHP_MAX_SHA256_HASH_LEN 43
++#define PHP_MAX_STD_DES_SALT_LEN 2
++#define PHP_MAX_STD_DES_HASH_LEN 11
  
 -/* If the configure-time checks fail, we provide DES.
 - * XXX: This is a hack. Fix the real problem! */
-+#define PHP_MAX_SHA512_SALT_LEN 37
-+#define PHP_MAX_SHA512_HASH_LEN 86
- 
+-
 -#ifndef PHP_MAX_SALT_LEN
 -#define PHP_MAX_SALT_LEN 2
 -#undef PHP_STD_DES_CRYPT
 -#define PHP_STD_DES_CRYPT 1
 -#endif
++#define PHP_MAX_EXT_DES_SALT_LEN 9
++#define PHP_MAX_EXT_DES_HASH_LEN 11
++
++#define PHP_MAX_MD5_SALT_LEN 12
++#define PHP_MAX_MD5_HASH_LEN 22
++
++#define PHP_MAX_BLOWFISH_SALT_LEN 29
++#define PHP_MAX_BLOWFISH_HASH_LEN 31
++ 
++#define PHP_MAX_SHA256_SALT_LEN 37
++#define PHP_MAX_SHA256_HASH_LEN 43
++
++#define PHP_MAX_SHA512_SALT_LEN 37
++#define PHP_MAX_SHA512_HASH_LEN 86
++
 +/* 
 + * Maximum salt length is from SHA512
 + * Maximum hash length is from SHA512
@@ -299,7 +303,7 @@
 +#if PHP_USE_PHP_CRYPT_R
 +	struct php_crypt_extended_data extended_buffer;
 +#endif
-+#if PHP_USE_SYSTEM_CRYPT_R
++#if defined(PHP_USE_SYSTEM_CRYPT_R)
 +#  if defined(CRYPT_R_STRUCT_CRYPT_DATA)
 +	struct crypt_data buffer;
 +#  elif defined(CRYPT_R_CRYPTD)
@@ -318,12 +322,13 @@
  		return;
  	}
  
- 	if (salt_in) {
+-	if (salt_in) {
 -		memcpy(salt, salt_in, MIN(PHP_MAX_SALT_LEN, salt_in_len));
 -	}
 -
 -	/* The automatic salt generation covers standard DES, md5-crypt and Blowfish (simple) */
 -	if (!*salt) {
++	if (salt_in && (salt_in_len > 0)) {
 +		salt_len = MIN(PHP_MAX_SALT_LEN, salt_in_len);
 +		memcpy(salt, salt_in, salt_len);
 +		salt[salt_len] = '\0';
@@ -352,9 +357,9 @@
 +#if PHP_USE_PHP_CRYPT_R
 +		memset(&extended_buffer, 0, sizeof(extended_buffer));
 +#endif
-+#if PHP_USE_SYSTEM_CRYPT_R
++#if defined(PHP_USE_SYSTEM_CRYPT_R)
 +# if defined(CRYPT_R_STRUCT_CRYPT_DATA)
-+		buffer->initialized = 0
++		buffer->initialized = 0;
 +# else
 +		memset(&buffer, 0, sizeof(buffer));
 +# endif
@@ -366,8 +371,8 @@
 -			RETURN_STRING(php_md5_crypt_r(str, salt, output), 1);
 +			/* CRYPT_MD5 */
 +#if PHP_MD5_CRYPT
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +# warning Using system MD5 crypt function, which is OK on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
@@ -402,7 +407,7 @@
 +			/* CRYPT_SHA512 */
 +#if PHP_SHA512_CRYPT
 +# warning Using system SHA512 crypt function, which is OK on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
@@ -437,7 +442,7 @@
 +			/* CRYPT_SHA256 */
 +#if PHP_SHA256_CRYPT
 +# warning Using system SHA256 crypt function, which is OK on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
@@ -468,7 +473,7 @@
 +			/* CRYPT_BLOWFISH */
 +#if PHP_BLOWFISH_CRYPT
 +# error Using system BlowFish crypt function, should not happen on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
@@ -493,7 +498,7 @@
 +			/* CRYPT_EXT_DES */
 +#if PHP_EXT_DES_CRYPT
 +# error Using system extended DES crypt function, should not happen on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
@@ -508,7 +513,7 @@
 +			/* CRYPT_STD_DES */
 +#if PHP_STD_DES_CRYPT
 +# warning Using system standard DES crypt function, which is OK on Debian system
-+# if PHP_USE_SYSTEM_CRYPT_R
++# if defined(PHP_USE_SYSTEM_CRYPT_R)
 +			crypt_res = crypt_r(str, salt, &buffer);
 +# else
 +			crypt_res = crypt(str, salt);
