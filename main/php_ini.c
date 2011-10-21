@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_ini.c 314383 2011-08-06 21:10:29Z rasmus $ */
+/* $Id: php_ini.c 317306 2011-09-26 08:49:28Z pajoye $ */
 
 #include "php.h"
 #include "ext/standard/info.h"
@@ -368,7 +368,6 @@ int php_init_config(TSRMLS_D)
 	char *php_ini_file_name = NULL;
 	char *php_ini_search_path = NULL;
 	int php_ini_scanned_path_len;
-	int safe_mode_state;
 	char *open_basedir;
 	int free_ini_search_path = 0;
 	zend_file_handle fh;
@@ -384,7 +383,6 @@ int php_init_config(TSRMLS_D)
 	zend_llist_init(&extension_lists.engine, sizeof(char *), (llist_dtor_func_t) free_estring, 1);
 	zend_llist_init(&extension_lists.functions, sizeof(char *), (llist_dtor_func_t) free_estring, 1);
 
-	safe_mode_state = PG(safe_mode);
 	open_basedir = PG(open_basedir);
 
 	if (sapi_module.php_ini_path_override) {
@@ -423,7 +421,11 @@ int php_init_config(TSRMLS_D)
 					env_location = "";
 				} else {
 					size = GetEnvironmentVariableA("PHPRC", phprc_path, size);
-					env_location = phprc_path;
+					if (size == 0) {
+						env_location = "";
+					} else {
+						env_location = phprc_path;
+					}
 				}
 			}
 		}
@@ -463,7 +465,7 @@ int php_init_config(TSRMLS_D)
 #endif
 
 		/* Add cwd (not with CLI) */
-		if (strcmp(sapi_module.name, "cli") != 0) {
+		if (!sapi_module.php_ini_ignore_cwd) {
 			if (*php_ini_search_path) {
 				strlcat(php_ini_search_path, paths_separator, search_path_size);
 			}
@@ -557,7 +559,6 @@ int php_init_config(TSRMLS_D)
 #endif
 	}
 
-	PG(safe_mode) = 0;
 	PG(open_basedir) = NULL;
 
 	/*
@@ -610,7 +611,6 @@ int php_init_config(TSRMLS_D)
 		efree(php_ini_search_path);
 	}
 
-	PG(safe_mode) = safe_mode_state;
 	PG(open_basedir) = open_basedir;
 
 	if (fh.handle.fp) {

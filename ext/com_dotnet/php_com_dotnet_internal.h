@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_com_dotnet_internal.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_com_dotnet_internal.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_COM_DOTNET_INTERNAL_H
 #define PHP_COM_DOTNET_INTERNAL_H
@@ -28,9 +28,6 @@
 #include <unknwn.h>
 #include <dispex.h>
 #include "win32/winutil.h"
-
-/* brain-death in winutil.h defines the macro to hide the useful function... */
-#undef php_win_err
 
 typedef struct _php_com_dotnet_object {
 	zend_object zo;

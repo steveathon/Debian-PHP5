@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_gc.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_gc.h 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #ifndef ZEND_GC_H
 #define ZEND_GC_H
@@ -84,7 +84,7 @@ typedef struct _gc_root_buffer {
 	zend_object_handle        handle;	/* must be 0 for zval               */
 	union {
 		zval                 *pz;
-		zend_object_handlers *handlers;
+		const zend_object_handlers *handlers;
 	} u;
 } gc_root_buffer;
 

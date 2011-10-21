@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_interfaces.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_interfaces.h 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #ifndef ZEND_INTERFACES_H
 #define ZEND_INTERFACES_H
@@ -38,7 +38,7 @@ typedef struct _zend_user_iterator {
 	zval                     *value;
 } zend_user_iterator;
 
-ZEND_API zval* zend_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2 TSRMLS_DC);
+ZEND_API zval* zend_call_method(zval **object_pp, zend_class_entry *obj_ce, zend_function **fn_proxy, const char *function_name, int function_name_len, zval **retval_ptr_ptr, int param_count, zval* arg1, zval* arg2 TSRMLS_DC);
 
 #define zend_call_method_with_0_params(obj, obj_ce, fn_proxy, function_name, retval) \
 	zend_call_method(obj, obj_ce, fn_proxy, function_name, sizeof(function_name)-1, retval, 0, NULL, NULL TSRMLS_CC)

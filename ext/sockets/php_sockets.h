@@ -22,7 +22,7 @@
 #ifndef PHP_SOCKETS_H
 #define PHP_SOCKETS_H
 
-/* $Id: php_sockets.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_sockets.h 309516 2011-03-22 00:44:23Z cataphract $ */
 
 #if HAVE_SOCKETS
 
@@ -70,6 +70,7 @@ PHP_FUNCTION(socket_shutdown);
 #endif
 PHP_FUNCTION(socket_last_error);
 PHP_FUNCTION(socket_clear_error);
+PHP_FUNCTION(socket_import_stream);
 
 #ifndef PHP_WIN32
 typedef int PHP_SOCKET;
@@ -80,10 +81,11 @@ typedef SOCKET PHP_SOCKET;
 #endif
 
 typedef struct {
-	PHP_SOCKET bsd_socket;
-	int		type;
-	int		error;
-	int		blocking;
+	PHP_SOCKET	bsd_socket;
+	int			type;
+	int			error;
+	int			blocking;
+	zval		*zstream;
 } php_socket;
 
 #ifdef PHP_WIN32

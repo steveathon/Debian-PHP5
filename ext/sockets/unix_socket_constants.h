@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: unix_socket_constants.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: unix_socket_constants.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 /* This file is to be included by sockets.c */
 

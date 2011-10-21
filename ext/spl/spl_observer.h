@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_observer.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: spl_observer.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef SPL_OBSERVER_H
 #define SPL_OBSERVER_H

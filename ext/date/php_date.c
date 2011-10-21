@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_date.c 314445 2011-08-07 18:12:52Z gwynne $ */
+/* $Id: php_date.c 316640 2011-09-13 14:48:13Z derick $ */
 
 #include "php.h"
 #include "php_streams.h"
@@ -564,8 +564,8 @@ static int date_object_compare_date(zval *d1, zval *d2 TSRMLS_DC);
 static HashTable *date_object_get_properties(zval *object TSRMLS_DC);
 static HashTable *date_object_get_properties_interval(zval *object TSRMLS_DC);
 
-zval *date_interval_read_property(zval *object, zval *member, int type TSRMLS_DC);
-void date_interval_write_property(zval *object, zval *member, zval *value TSRMLS_DC);
+zval *date_interval_read_property(zval *object, zval *member, int type, const zend_literal *key TSRMLS_DC);
+void date_interval_write_property(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC);
 
 /* {{{ Module struct */
 zend_module_entry date_module_entry = {
@@ -837,16 +837,9 @@ static timelib_tzinfo *php_date_parse_tzfile(char *formal_tzname, const timelib_
 /* {{{ Helper functions */
 static char* guess_timezone(const timelib_tzdb *tzdb TSRMLS_DC)
 {
-	char *env;
-
 	/* Checking configure timezone */
 	if (DATEG(timezone) && (strlen(DATEG(timezone)) > 0)) {
 		return DATEG(timezone);
-	}
-	/* Check environment variable */
-	env = getenv("TZ");
-	if (env && *env && timelib_timezone_id_is_valid(env, tzdb)) {
-		return env;
 	}
 	/* Check config setting for default timezone */
 	if (!DATEG(default_timezone)) {
@@ -862,73 +855,8 @@ static char* guess_timezone(const timelib_tzdb *tzdb TSRMLS_DC)
 	} else if (*DATEG(default_timezone) && timelib_timezone_id_is_valid(DATEG(default_timezone), tzdb)) {
 		return DATEG(default_timezone);
 	}
-#if HAVE_TM_ZONE
-	/* Try to guess timezone from system information */
-	{
-		struct tm *ta, tmbuf;
-		time_t     the_time;
-		char      *tzid = NULL;
-		
-		the_time = time(NULL);
-		ta = php_localtime_r(&the_time, &tmbuf);
-		if (ta) {
-			tzid = timelib_timezone_id_from_abbr(ta->tm_zone, ta->tm_gmtoff, ta->tm_isdst);
-		}
-		if (! tzid) {
-			tzid = "UTC";
-		}
-		
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, DATE_TZ_ERRMSG "We selected '%s' for '%s/%.1f/%s' instead", tzid, ta ? ta->tm_zone : "Unknown", ta ? (float) (ta->tm_gmtoff / 3600) : 0, ta ? (ta->tm_isdst ? "DST" : "no DST") : "Unknown");
-		return tzid;
-	}
-#endif
-#ifdef PHP_WIN32
-	{
-		char *tzid;
-		TIME_ZONE_INFORMATION tzi;
-
-		switch (GetTimeZoneInformation(&tzi))
-		{
-			/* DST in effect */
-			case TIME_ZONE_ID_DAYLIGHT:
-				/* If user has disabled DST in the control panel, Windows returns 0 here */
-				if (tzi.DaylightBias == 0) {
-					goto php_win_std_time;
-				}
-				
-				tzid = timelib_timezone_id_from_abbr("", (tzi.Bias + tzi.DaylightBias) * -60, 1);
-				if (! tzid) {
-					tzid = "UTC";
-				}
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, DATE_TZ_ERRMSG "We selected '%s' for '%.1f/DST' instead", tzid, ((tzi.Bias + tzi.DaylightBias) / -60.0));
-				break;
-
-			/* no DST or not in effect */
-			case TIME_ZONE_ID_UNKNOWN:
-			case TIME_ZONE_ID_STANDARD:
-			default:
-php_win_std_time:
-				tzid = timelib_timezone_id_from_abbr("", (tzi.Bias + tzi.StandardBias) * -60, 0);
-				if (! tzid) {
-					tzid = "UTC";
-				}
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, DATE_TZ_ERRMSG "We selected '%s' for '%.1f/no DST' instead", tzid, ((tzi.Bias + tzi.StandardBias) / -60.0));
-				break;
-
-		}
-		return tzid;
-	}
-#elif defined(NETWARE)
-	/* Try to guess timezone from system information */
-	{
-		char *tzid = timelib_timezone_id_from_abbr("", ((_timezone * -1) + (daylightOffset * daylightOnOff)), daylightOnOff);
-		if (tzid) {
-			return tzid;
-		}
-	}
-#endif
 	/* Fallback to UTC */
-	php_error_docref(NULL TSRMLS_CC, E_WARNING, DATE_TZ_ERRMSG "We had to select 'UTC' because your platform doesn't provide functionality for the guessing algorithm");
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, DATE_TZ_ERRMSG "We selected the timezone 'UTC' for now, but please set date.timezone to select your timezone.");
 	return "UTC";
 }
 
@@ -1205,14 +1133,13 @@ PHPAPI char *php_format_date(char *format, int format_len, time_t ts, int localt
 
 /* {{{ php_idate
  */
-PHPAPI int php_idate(char format, time_t ts, int localtime)
+PHPAPI int php_idate(char format, time_t ts, int localtime TSRMLS_DC)
 {
 	timelib_time   *t;
 	timelib_tzinfo *tzi;
 	int retval = -1;
 	timelib_time_offset *offset = NULL;
 	timelib_sll isoweek, isoyear;
-	TSRMLS_FETCH();
 
 	t = timelib_time_ctor();
 
@@ -1338,7 +1265,7 @@ PHP_FUNCTION(idate)
 		ts = time(NULL);
 	}
 
-	ret = php_idate(format[0], ts, 0);
+	ret = php_idate(format[0], ts, 0 TSRMLS_CC);
 	if (ret == -1) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unrecognized date format token.");
 		RETURN_FALSE;
@@ -2018,7 +1945,6 @@ static inline zend_object_value date_object_new_date_ex(zend_class_entry *class_
 {
 	php_date_obj *intern;
 	zend_object_value retval;
-	zval *tmp;
 
 	intern = emalloc(sizeof(php_date_obj));
 	memset(intern, 0, sizeof(php_date_obj));
@@ -2027,7 +1953,7 @@ static inline zend_object_value date_object_new_date_ex(zend_class_entry *class_
 	}
 	
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
-	zend_hash_copy(intern->std.properties, &class_type->default_properties, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+	object_properties_init(&intern->std, class_type);
 	
 	retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t)zend_objects_destroy_object, (zend_objects_free_object_storage_t) date_object_free_storage_date, NULL TSRMLS_CC);
 	retval.handlers = &date_object_handlers_date;
@@ -2047,6 +1973,9 @@ static zend_object_value date_object_clone_date(zval *this_ptr TSRMLS_DC)
 	zend_object_value new_ov = date_object_new_date_ex(old_obj->std.ce, &new_obj TSRMLS_CC);
 	
 	zend_objects_clone_members(&new_obj->std, new_ov, &old_obj->std, Z_OBJ_HANDLE_P(this_ptr) TSRMLS_CC);
+	if (!old_obj->time) {
+		return new_ov;
+	}
 	
 	/* this should probably moved to a new `timelib_time *timelime_time_clone(timelib_time *)` */
 	new_obj->time = timelib_time_ctor();
@@ -2139,7 +2068,6 @@ static inline zend_object_value date_object_new_timezone_ex(zend_class_entry *cl
 {
 	php_timezone_obj *intern;
 	zend_object_value retval;
-	zval *tmp;
 
 	intern = emalloc(sizeof(php_timezone_obj));
 	memset(intern, 0, sizeof(php_timezone_obj));
@@ -2148,7 +2076,7 @@ static inline zend_object_value date_object_new_timezone_ex(zend_class_entry *cl
 	}
 
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
-	zend_hash_copy(intern->std.properties, &class_type->default_properties, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+	object_properties_init(&intern->std, class_type);
 	
 	retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t)zend_objects_destroy_object, (zend_objects_free_object_storage_t) date_object_free_storage_timezone, NULL TSRMLS_CC);
 	retval.handlers = &date_object_handlers_timezone;
@@ -2168,6 +2096,10 @@ static zend_object_value date_object_clone_timezone(zval *this_ptr TSRMLS_DC)
 	zend_object_value new_ov = date_object_new_timezone_ex(old_obj->std.ce, &new_obj TSRMLS_CC);
 	
 	zend_objects_clone_members(&new_obj->std, new_ov, &old_obj->std, Z_OBJ_HANDLE_P(this_ptr) TSRMLS_CC);
+	if (!old_obj->initialized) {
+		return new_ov;
+	}
+	
 	new_obj->type = old_obj->type;
 	new_obj->initialized = 1;
 	switch (new_obj->type) {
@@ -2191,7 +2123,6 @@ static inline zend_object_value date_object_new_interval_ex(zend_class_entry *cl
 {
 	php_interval_obj *intern;
 	zend_object_value retval;
-	zval *tmp;
 
 	intern = emalloc(sizeof(php_interval_obj));
 	memset(intern, 0, sizeof(php_interval_obj));
@@ -2200,7 +2131,7 @@ static inline zend_object_value date_object_new_interval_ex(zend_class_entry *cl
 	}
 
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
-	zend_hash_copy(intern->std.properties, &class_type->default_properties, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+	object_properties_init(&intern->std, class_type);
 	
 	retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t)zend_objects_destroy_object, (zend_objects_free_object_storage_t) date_object_free_storage_interval, NULL TSRMLS_CC);
 	retval.handlers = &date_object_handlers_interval;
@@ -2267,7 +2198,6 @@ static inline zend_object_value date_object_new_period_ex(zend_class_entry *clas
 {
 	php_period_obj *intern;
 	zend_object_value retval;
-	zval *tmp;
 
 	intern = emalloc(sizeof(php_period_obj));
 	memset(intern, 0, sizeof(php_period_obj));
@@ -2276,7 +2206,7 @@ static inline zend_object_value date_object_new_period_ex(zend_class_entry *clas
 	}
 
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
-	zend_hash_copy(intern->std.properties, &class_type->default_properties, (copy_ctor_func_t) zval_add_ref, (void *) &tmp, sizeof(zval *));
+	object_properties_init(&intern->std, class_type);
 	
 	retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t)zend_objects_destroy_object, (zend_objects_free_object_storage_t) date_object_free_storage_period, NULL TSRMLS_CC);
 	retval.handlers = &date_object_handlers_period;
@@ -3480,7 +3410,7 @@ static int date_interval_initialize(timelib_rel_time **rt, /*const*/ char *forma
 }
 
 /* {{{ date_interval_read_property */
-zval *date_interval_read_property(zval *object, zval *member, int type TSRMLS_DC)
+zval *date_interval_read_property(zval *object, zval *member, int type, const zend_literal *key TSRMLS_DC)
 {
 	php_interval_obj *obj;
 	zval *retval;
@@ -3511,7 +3441,7 @@ zval *date_interval_read_property(zval *object, zval *member, int type TSRMLS_DC
 		GET_VALUE_FROM_STRUCT(invert, "invert");
 		GET_VALUE_FROM_STRUCT(days, "days");
 		/* didn't find any */
-		retval = (zend_get_std_object_handlers())->read_property(object, member, type TSRMLS_CC);
+		retval = (zend_get_std_object_handlers())->read_property(object, member, type, key TSRMLS_CC);
 
 		if (member == &tmp_member) {
 			zval_dtor(member);
@@ -3534,7 +3464,7 @@ zval *date_interval_read_property(zval *object, zval *member, int type TSRMLS_DC
 /* }}} */
 
 /* {{{ date_interval_write_property */
-void date_interval_write_property(zval *object, zval *member, zval *value TSRMLS_DC)
+void date_interval_write_property(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC)
 {
 	php_interval_obj *obj;
 	zval tmp_member, tmp_value;
@@ -3571,7 +3501,7 @@ void date_interval_write_property(zval *object, zval *member, zval *value TSRMLS
 		SET_VALUE_FROM_STRUCT(s, "s");
 		SET_VALUE_FROM_STRUCT(invert, "invert");
 		/* didn't find any */
-		(zend_get_std_object_handlers())->write_property(object, member, value TSRMLS_CC);
+		(zend_get_std_object_handlers())->write_property(object, member, value, key TSRMLS_CC);
 	} while(0);
 
 	if (member == &tmp_member) {

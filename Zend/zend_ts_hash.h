@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_ts_hash.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_ts_hash.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef ZEND_TS_HASH_H
 #define ZEND_TS_HASH_H

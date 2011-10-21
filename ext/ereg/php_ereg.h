@@ -17,7 +17,7 @@
 */
 
 
-/* $Id: php_ereg.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_ereg.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef EREG_H
 #define EREG_H
@@ -27,7 +27,15 @@
 extern zend_module_entry ereg_module_entry;
 #define phpext_ereg_ptr &ereg_module_entry
 
-PHPAPI char *php_ereg_replace(const char *pattern, const char *replace, const char *string, int icase, int extended);
+#ifdef PHP_WIN32
+# define PHP_EREG_API __declspec(dllexport)
+#elif defined(__GNUC__) && __GNUC__ >= 4
+# define PHP_EREG_API __attribute__ ((visibility("default")))
+#else
+# define PHP_EREG_API
+#endif
+
+PHP_EREG_API char *php_ereg_replace(const char *pattern, const char *replace, const char *string, int icase, int extended TSRMLS_DC);
 
 PHP_FUNCTION(ereg);
 PHP_FUNCTION(eregi);
@@ -35,7 +43,7 @@ PHP_FUNCTION(eregi_replace);
 PHP_FUNCTION(ereg_replace);
 PHP_FUNCTION(split);
 PHP_FUNCTION(spliti);
-PHPAPI PHP_FUNCTION(sql_regcase);
+PHP_EREG_API PHP_FUNCTION(sql_regcase);
 
 ZEND_BEGIN_MODULE_GLOBALS(ereg)
 	HashTable ht_rc;
@@ -43,8 +51,6 @@ ZEND_BEGIN_MODULE_GLOBALS(ereg)
 ZEND_END_MODULE_GLOBALS(ereg)
 
 /* Module functions */
-PHP_MINIT_FUNCTION(ereg);
-PHP_MSHUTDOWN_FUNCTION(ereg);
 PHP_MINFO_FUNCTION(ereg);
 
 #ifdef ZTS
@@ -52,5 +58,7 @@ PHP_MINFO_FUNCTION(ereg);
 #else
 #define EREG(v) (ereg_globals.v)
 #endif
+
+ZEND_EXTERN_MODULE_GLOBALS(ereg)
 
 #endif /* REG_H */

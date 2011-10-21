@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: text.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: text.c 314515 2011-08-08 13:45:18Z iliaa $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -196,7 +196,7 @@ PHP_FUNCTION(dom_text_split_text)
 		nnode->type = XML_TEXT_NODE;
 	}
 	
-	return_value = php_dom_create_object(nnode, &ret, NULL, return_value, intern TSRMLS_CC);
+	return_value = php_dom_create_object(nnode, &ret, return_value, intern TSRMLS_CC);
 }
 /* }}} end dom_text_split_text */
 

@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_types.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_types.h 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #ifndef ZEND_TYPES_H
 #define ZEND_TYPES_H
@@ -55,7 +55,7 @@ typedef struct _zend_object_handlers zend_object_handlers;
 
 typedef struct _zend_object_value {
 	zend_object_handle handle;
-	zend_object_handlers *handlers;
+	const zend_object_handlers *handlers;
 } zend_object_value;
 
 #endif /* ZEND_TYPES_H */

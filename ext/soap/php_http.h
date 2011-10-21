@@ -17,7 +17,7 @@
   |          Dmitry Stogov <dmitry@zend.com>                             |
   +----------------------------------------------------------------------+
 */
-/* $Id: php_http.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_http.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_HTTP_H
 #define PHP_HTTP_H

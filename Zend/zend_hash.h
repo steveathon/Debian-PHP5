@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_hash.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_hash.h 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #ifndef ZEND_HASH_H
 #define ZEND_HASH_H
@@ -60,7 +60,7 @@ typedef struct bucket {
 	struct bucket *pListLast;
 	struct bucket *pNext;
 	struct bucket *pLast;
-	char arKey[1]; /* Must be last element */
+	const char *arKey;
 } Bucket;
 
 typedef struct _hashtable {
@@ -83,7 +83,7 @@ typedef struct _hashtable {
 
 
 typedef struct _zend_hash_key {
-	char *arKey;
+	const char *arKey;
 	uint nKeyLength;
 	ulong h;
 } zend_hash_key;
@@ -304,7 +304,7 @@ END_EXTERN_C()
 #define ZEND_INIT_SYMTABLE_EX(ht, n, persistent)			\
 	zend_hash_init(ht, n, NULL, ZVAL_PTR_DTOR, persistent)
 
-#define ZEND_HANDLE_NUMERIC(key, length, func) do {							\
+#define ZEND_HANDLE_NUMERIC_EX(key, length, idx, func) do {					\
 	register const char *tmp = key;											\
 																			\
 	if (*tmp == '-') {														\
@@ -312,7 +312,6 @@ END_EXTERN_C()
 	}																		\
 	if (*tmp >= '0' && *tmp <= '9') { /* possibly a numeric index */		\
 		const char *end = key + length - 1;									\
-		ulong idx;															\
 																			\
 		if ((*end != '\0') /* not a null terminated string */				\
 		 || (*tmp == '0' && length > 2) /* numbers with leading zeros */	\
@@ -335,9 +334,15 @@ END_EXTERN_C()
 			} else if (idx > LONG_MAX) { /* overflow */						\
 				break;														\
 			}																\
-			return func;													\
+			func;															\
 		}																	\
 	}																		\
+} while (0)
+
+#define ZEND_HANDLE_NUMERIC(key, length, func) do {							\
+	ulong idx;																\
+																			\
+	ZEND_HANDLE_NUMERIC_EX(key, length, idx, return func);					\
 } while (0)
 
 static inline int zend_symtable_update(HashTable *ht, const char *arKey, uint nKeyLength, void *pData, uint nDataSize, void **pDest)					\

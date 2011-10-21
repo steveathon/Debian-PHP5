@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_ptr_stack.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_ptr_stack.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "zend.h"
 #include "zend_ptr_stack.h"
@@ -27,9 +27,8 @@
 
 ZEND_API void zend_ptr_stack_init_ex(zend_ptr_stack *stack, zend_bool persistent)
 {
-	stack->top_element = stack->elements = (void **) pemalloc(sizeof(void *)*PTR_STACK_BLOCK_SIZE, persistent);
-	stack->max = PTR_STACK_BLOCK_SIZE;
-	stack->top = 0;
+	stack->top_element = stack->elements = NULL;
+	stack->top = stack->max = 0;
 	stack->persistent = persistent;
 }
 

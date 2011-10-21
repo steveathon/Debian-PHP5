@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_hash_snefru_tables.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_hash_snefru_tables.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 static const php_hash_uint32 tables[16][256]= {
 

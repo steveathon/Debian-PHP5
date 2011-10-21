@@ -17,7 +17,7 @@
   |          Dmitry Stogov <dmitry@zend.com>                             |
   +----------------------------------------------------------------------+
 */
-/* $Id: php_sdl.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_sdl.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_SDL_H
 #define PHP_SDL_H

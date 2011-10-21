@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_constants.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_constants.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef ZEND_CONSTANTS_H
 #define ZEND_CONSTANTS_H
@@ -69,6 +69,7 @@ ZEND_API void zend_register_stringl_constant(const char *name, uint name_len, ch
 ZEND_API int zend_register_constant(zend_constant *c TSRMLS_DC);
 void zend_copy_constants(HashTable *target, HashTable *sourc);
 void copy_zend_constant(zend_constant *c);
+zend_constant *zend_quick_get_constant(const zend_literal *key, ulong flags TSRMLS_DC);
 END_EXTERN_C()
 
 #define ZEND_CONSTANT_DTOR (void (*)(void *)) free_zend_constant

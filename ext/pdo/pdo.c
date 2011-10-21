@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: pdo.c 314450 2011-08-07 23:46:00Z iliaa $ */
+/* $Id: pdo.c 316185 2011-09-05 15:02:21Z laruence $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -277,7 +277,7 @@ PDO_API int php_pdo_parse_data_source(const char *data_source,
 					parsed[j].optval = estrndup(data_source + valstart, semi - valstart - n_semicolumns);
 				} else {
 					int vlen = semi - valstart;
-					char *orig_val = data_source + valstart;
+					const char *orig_val = data_source + valstart;
 					char *new_val  = (char *) emalloc(vlen - n_semicolumns + 1);
 				
 					parsed[j].optval = new_val;

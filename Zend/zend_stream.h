@@ -19,7 +19,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_stream.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_stream.h 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #ifndef ZEND_STREAM_H
 #define ZEND_STREAM_H
@@ -61,7 +61,7 @@ typedef struct _zend_stream {
 
 typedef struct _zend_file_handle {
 	zend_stream_type  type;
-	char              *filename;
+	const char        *filename;
 	char              *opened_path;
 	union {
 		int           fd;

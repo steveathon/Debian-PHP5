@@ -21,7 +21,7 @@
 
 #ifdef PHP_WIN32
 
-/* $Id: select.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: select.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 /* Win32 select() will only work with sockets, so we roll our own implementation here.
  * - If you supply only sockets, this simply passes through to winsock select().

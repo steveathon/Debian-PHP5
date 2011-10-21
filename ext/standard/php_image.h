@@ -17,12 +17,13 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_image.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_image.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_IMAGE_H
 #define PHP_IMAGE_H
 
 PHP_FUNCTION(getimagesize);
+PHP_FUNCTION(getimagesizefromstring);
 
 PHP_FUNCTION(image_type_to_mime_type);
 PHP_FUNCTION(image_type_to_extension);

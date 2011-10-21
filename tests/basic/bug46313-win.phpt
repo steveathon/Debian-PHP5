@@ -3,9 +3,7 @@ Bug #46313 (Magic quotes broke $_FILES)
 --SKIPIF--
 <?php if(substr(PHP_OS, 0, 3) != "WIN") die("skip Windows-only test"); ?>
 --INI--
-magic_quotes_gpc=1
 file_uploads=1
-register_globals=1
 --POST_RAW--
 Content-Type: multipart/form-data; boundary=---------------------------20896060251896012921717172737
 -----------------------------20896060251896012921717172737
@@ -28,8 +26,6 @@ var_dump($GLOBALS["o1\'file"]);
 var_dump($GLOBALS["o1\'file"] === $_FILES["o1\'file"]["tmp_name"]);
 ?>
 --EXPECTF--
-Deprecated: Directive 'register_globals' is deprecated in PHP 5.3 and greater in Unknown on line 0
-Deprecated: Directive 'magic_quotes_gpc' is deprecated in PHP 5.3 and greater in Unknown on line 0
 array(2) {
   ["o1\'file"]=>
   array(5) {
@@ -62,3 +58,5 @@ string(12) "o1"
 bool(true)
 string(%d) "%s"
 bool(true)
+Warning: Directive 'register_globals' is deprecated in PHP 5.3 and greater in Unknown on line 0
+Warning: Directive 'magic_quotes_gpc' is deprecated in PHP 5.3 and greater in Unknown on line 0

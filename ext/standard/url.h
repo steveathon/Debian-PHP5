@@ -15,7 +15,7 @@
    | Author: Jim Winstead <jimw@php.net>                                  |
    +----------------------------------------------------------------------+
  */
-/* $Id: url.h 307432 2011-01-13 07:27:46Z stas $ */
+/* $Id: url.h 307247 2011-01-08 02:21:44Z hirokawa $ */
 
 #ifndef URL_H
 #define URL_H
@@ -54,6 +54,9 @@ PHP_FUNCTION(get_headers);
 #define PHP_URL_PATH 5
 #define PHP_URL_QUERY 6
 #define PHP_URL_FRAGMENT 7
+
+#define PHP_QUERY_RFC1738 1
+#define PHP_QUERY_RFC3986 2
 
 #endif /* URL_H */
 

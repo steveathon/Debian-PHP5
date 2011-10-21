@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: type.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: type.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "php.h"
 #include "php_incomplete_class.h"
@@ -72,8 +72,8 @@ PHP_FUNCTION(gettype)
 
 		case IS_RESOURCE:
 			{
-				char *type_name;
-				type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(arg) TSRMLS_CC);
+				const char *type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(arg) TSRMLS_CC);
+
 				if (type_name) {
 					RETVAL_STRING("resource", 1);
 					break;
@@ -219,8 +219,7 @@ static void php_is_type(INTERNAL_FUNCTION_PARAMETERS, int type)
 			}
 		}
 		if (type == IS_RESOURCE) {
-			char *type_name;
-			type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(arg) TSRMLS_CC);
+			const char *type_name = zend_rsrc_list_get_rsrc_type(Z_LVAL_PP(arg) TSRMLS_CC);
 			if (!type_name) {
 				RETURN_FALSE;
 			}

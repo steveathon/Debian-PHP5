@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: stub.h 306941 2011-01-01 02:48:19Z felipe $ */
+/* $Id: stub.h 306940 2011-01-01 02:46:03Z felipe $ */
 
 static inline void phar_get_stub(const char *index_php, const char *web, size_t *len, char **stub, const int name_len, const int web_len TSRMLS_DC)
 {

@@ -24,7 +24,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: run-tests.php 314690 2011-08-09 21:53:44Z nlopess $ */
+/* $Id: run-tests.php 315995 2011-09-01 14:52:55Z johannes $ */
 
 /* Sanity check to ensure that pcre extension needed by this script is available.
  * In the event it is not, print a nice error message indicating that this script will
@@ -205,6 +205,12 @@ if (getenv('TEST_PHP_DETAILED')) {
 	$DETAILED = getenv('TEST_PHP_DETAILED');
 } else {
 	$DETAILED = 0;
+}
+
+if (getenv('SHOW_ONLY_GROUPS')) {
+	$SHOW_ONLY_GROUPS = explode(",", getenv('SHOW_ONLY_GROUPS'));
+} else {
+	$SHOW_ONLY_GROUPS = array();
 }
 
 // Check whether user test dirs are requested.
@@ -560,6 +566,9 @@ if (isset($argc) && $argc > 1) {
 				case 'd':
 					$ini_overwrites[] = $argv[++$i];
 					break;
+				case 'g':
+					$SHOW_ONLY_GROUPS = explode(",", $argv[++$i]);;
+					break;
 				//case 'h'
 				case '--keep-all':
 					foreach($cfgfiles as $file) {
@@ -644,7 +653,7 @@ if (isset($argc) && $argc > 1) {
 					$html_output = is_resource($html_file);
 					break;
 				case '--version':
-					echo '$Revision: 314690 $' . "\n";
+					echo '$Revision: 315995 $' . "\n";
 					exit(1);
 
 				default:
@@ -674,6 +683,9 @@ Options:
 
     -d foo=bar  Pass -d option to the php binary (Define INI entry foo
                 with value 'bar').
+
+    -g          Comma seperated list of groups to show during test run
+                (e.x. FAIL,SKIP).
 
     -m          Test for memory leaks with Valgrind.
 
@@ -854,7 +866,7 @@ function find_files($dir, $is_ext_dir = false, $ignore = false)
 
 	while (($name = readdir($o)) !== false) {
 
-		if (is_dir("{$dir}/{$name}") && !in_array($name, array('.', '..', 'CVS'))) {
+		if (is_dir("{$dir}/{$name}") && !in_array($name, array('.', '..', '.svn'))) {
 			$skip_ext = ($is_ext_dir && !in_array(strtolower($name), $exts_to_test));
 			if ($skip_ext) {
 				$exts_skipped++;
@@ -1948,7 +1960,7 @@ COMMAND $cmd
 	if (!$passed) {
 		if (isset($section_text['XFAIL'])) {
 			$restype[] = 'XFAIL';
-			$info = '  XFAIL REASON: ' . $section_text['XFAIL'];
+			$info = '  XFAIL REASON: ' . rtrim($section_text['XFAIL']);
 		} else {
 			$restype[] = 'FAIL';
 		}
@@ -2293,6 +2305,18 @@ Time taken      : ' . sprintf('%4d seconds', $end_time - $start_time) . '
 ';
 	$failed_test_summary = '';
 
+	if (count($PHP_FAILED_TESTS['XFAILED'])) {
+		$failed_test_summary .= '
+=====================================================================
+EXPECTED FAILED TEST SUMMARY
+---------------------------------------------------------------------
+';
+		foreach ($PHP_FAILED_TESTS['XFAILED'] as $failed_test_data) {
+			$failed_test_summary .= $failed_test_data['test_name'] . $failed_test_data['info'] . "\n";
+		}
+		$failed_test_summary .=  "=====================================================================\n";
+	}
+
 	if (count($PHP_FAILED_TESTS['BORKED'])) {
 		$failed_test_summary .= '
 =====================================================================
@@ -2317,18 +2341,6 @@ FAILED TEST SUMMARY
 		}
 		$failed_test_summary .=  "=====================================================================\n";
 	}
-	if (count($PHP_FAILED_TESTS['XFAILED'])) {
-		$failed_test_summary .= '
-=====================================================================
-EXPECTED FAILED TEST SUMMARY
----------------------------------------------------------------------
-';
-		foreach ($PHP_FAILED_TESTS['XFAILED'] as $failed_test_data) {
-			$failed_test_summary .= $failed_test_data['test_name'] . $failed_test_data['info'] . "\n";
-		}
-		$failed_test_summary .=  "=====================================================================\n";
-	}
-
 	if (count($PHP_FAILED_TESTS['WARNED'])) {
 		$failed_test_summary .= '
 =====================================================================
@@ -2426,16 +2438,24 @@ function show_redirect_ends($tests, $tested, $tested_file)
 function show_test($test_idx, $shortname)
 {
 	global $test_cnt;
+	global $line_length;
 
-	echo "TEST $test_idx/$test_cnt [$shortname]\r";
+	$str = "TEST $test_idx/$test_cnt [$shortname]\r";
+	$line_length = strlen($str);
+	echo $str;
 	flush();
 }
 
 function show_result($result, $tested, $tested_file, $extra = '', $temp_filenames = null)
 {
-	global $html_output, $html_file, $temp_target, $temp_urlbase;
+	global $html_output, $html_file, $temp_target, $temp_urlbase, $line_length, $SHOW_ONLY_GROUPS;
 
-	echo "$result $tested [$tested_file] $extra\n";
+	if (!$SHOW_ONLY_GROUPS || in_array($result, $SHOW_ONLY_GROUPS)) {
+		echo "$result $tested [$tested_file] $extra\n";
+	} else {
+		// Write over the last line to avoid random trailing chars on next echo
+		echo str_repeat(" ", $line_length), "\r";
+	}
 
 	if ($html_output) {
 

@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_ini.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_ini.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef ZEND_INI_H
 #define ZEND_INI_H
@@ -56,8 +56,6 @@
 # endif
 
 #endif
-
-typedef struct _zend_ini_entry zend_ini_entry;
 
 #define ZEND_INI_MH(name) int name(zend_ini_entry *entry, char *new_value, uint new_value_length, void *mh_arg1, void *mh_arg2, void *mh_arg3, int stage TSRMLS_DC)
 #define ZEND_INI_DISP(name) void name(zend_ini_entry *ini_entry, int type)

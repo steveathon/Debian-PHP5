@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_directory.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: spl_directory.h 317501 2011-09-30 14:17:23Z bjori $ */
 
 #ifndef SPL_DIRECTORY_H
 #define SPL_DIRECTORY_H
@@ -117,7 +117,7 @@ static inline spl_filesystem_object* spl_filesystem_iterator_to_object(spl_files
 
 #define SPL_FILE_OBJECT_DROP_NEW_LINE      0x00000001 /* drop new lines */
 #define SPL_FILE_OBJECT_READ_AHEAD         0x00000002 /* read on rewind/next */
-#define SPL_FILE_OBJECT_SKIP_EMPTY         0x00000006 /* skip empty lines */
+#define SPL_FILE_OBJECT_SKIP_EMPTY         0x00000004 /* skip empty lines */
 #define SPL_FILE_OBJECT_READ_CSV           0x00000008 /* read via fgetcsv */
 #define SPL_FILE_OBJECT_MASK               0x0000000F /* read via fgetcsv */
 

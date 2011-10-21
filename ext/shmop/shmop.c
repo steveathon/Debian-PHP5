@@ -16,7 +16,7 @@
    |          Ilia Alshanetsky <ilia@prohost.org>                         |
    +----------------------------------------------------------------------+
  */
-/* $Id: shmop.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: shmop.c 313663 2011-07-25 11:35:02Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -226,7 +226,7 @@ PHP_FUNCTION(shmop_open)
 
 	shmop->size = shm.shm_segsz;
 
-	rsid = zend_list_insert(shmop, shm_type);
+	rsid = zend_list_insert(shmop, shm_type TSRMLS_CC);
 	RETURN_LONG(rsid);
 err:
 	efree(shmop);

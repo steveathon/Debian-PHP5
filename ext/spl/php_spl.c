@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_spl.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: php_spl.c 318040 2011-10-12 01:03:15Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -51,14 +51,30 @@ ZEND_DECLARE_MODULE_GLOBALS(spl)
 
 #define SPL_DEFAULT_FILE_EXTENSIONS ".inc,.php"
 
+static void construction_wrapper(INTERNAL_FUNCTION_PARAMETERS);
+
 /* {{{ PHP_GINIT_FUNCTION
  */
 static PHP_GINIT_FUNCTION(spl)
 {
+	zend_function *cwf = &spl_globals->constr_wrapper_fun;
 	spl_globals->autoload_extensions     = NULL;
 	spl_globals->autoload_extensions_len = 0;
 	spl_globals->autoload_functions      = NULL;
 	spl_globals->autoload_running        = 0;
+	spl_globals->validating_fun			 = NULL;
+	
+	cwf->type							 = ZEND_INTERNAL_FUNCTION;
+	cwf->common.function_name			 = "internal_construction_wrapper";
+	cwf->common.scope					 = NULL; /* to be filled w/ object runtime class */
+	cwf->common.fn_flags				 = ZEND_ACC_PRIVATE;
+	cwf->common.prototype				 = NULL;
+	cwf->common.num_args				 = 0; /* not necessarily true but not enforced */
+	cwf->common.required_num_args		 = 0;
+	cwf->common.arg_info				 = NULL;
+	
+	cwf->internal_function.handler		 = construction_wrapper;
+	cwf->internal_function.module		 = &spl_module_entry;
 }
 /* }}} */
 
@@ -150,6 +166,35 @@ PHP_FUNCTION(class_implements)
 }
 /* }}} */
 
+/* {{{ proto array class_uses(mixed what [, bool autoload ])
+ Return all traits used by a class. */
+PHP_FUNCTION(class_uses)
+{
+	zval *obj;
+	zend_bool autoload = 1;
+	zend_class_entry *ce;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|b", &obj, &autoload) == FAILURE) {
+		RETURN_FALSE;
+	}
+	if (Z_TYPE_P(obj) != IS_OBJECT && Z_TYPE_P(obj) != IS_STRING) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "object or string expected");
+		RETURN_FALSE;
+	}
+	
+	if (Z_TYPE_P(obj) == IS_STRING) {
+		if (NULL == (ce = spl_find_ce_by_name(Z_STRVAL_P(obj), Z_STRLEN_P(obj), autoload TSRMLS_CC))) {
+			RETURN_FALSE;
+		}
+	} else {
+		ce = Z_OBJCE_P(obj);
+	}
+	
+	array_init(return_value);
+	spl_add_traits(return_value, ce, 1, ZEND_ACC_TRAIT TSRMLS_CC);
+}
+/* }}} */
+
 #define SPL_ADD_CLASS(class_name, z_list, sub, allow, ce_flags) \
 	spl_add_classes(spl_ce_ ## class_name, z_list, sub, allow, ce_flags TSRMLS_CC)
 
@@ -160,6 +205,7 @@ PHP_FUNCTION(class_implements)
 	SPL_ADD_CLASS(BadFunctionCallException, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(BadMethodCallException, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(CachingIterator, z_list, sub, allow, ce_flags); \
+	SPL_ADD_CLASS(CallbackFilterIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(Countable, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(DirectoryIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(DomainException, z_list, sub, allow, ce_flags); \
@@ -183,6 +229,7 @@ PHP_FUNCTION(class_implements)
 	SPL_ADD_CLASS(RangeException, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(RecursiveArrayIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(RecursiveCachingIterator, z_list, sub, allow, ce_flags); \
+	SPL_ADD_CLASS(RecursiveCallbackFilterIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(RecursiveDirectoryIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(RecursiveFilterIterator, z_list, sub, allow, ce_flags); \
 	SPL_ADD_CLASS(RecursiveIterator, z_list, sub, allow, ce_flags); \
@@ -242,7 +289,7 @@ static int spl_autoload(const char *class_name, const char * lc_name, int class_
 	}
 #endif
 
-	ret = php_stream_open_for_zend_ex(class_file, &file_handle, ENFORCE_SAFE_MODE|USE_PATH|STREAM_OPEN_FOR_INCLUDE TSRMLS_CC);
+	ret = php_stream_open_for_zend_ex(class_file, &file_handle, USE_PATH|STREAM_OPEN_FOR_INCLUDE TSRMLS_CC);
 
 	if (ret == SUCCESS) {
 		if (!file_handle.opened_path) {
@@ -406,6 +453,7 @@ PHP_FUNCTION(spl_autoload_call)
 			zend_exception_save(TSRMLS_C);
 			if (retval) {
 				zval_ptr_dtor(&retval);
+				retval = NULL;
 			}
 			if (zend_hash_exists(EG(class_table), lc_name, class_name_len + 1)) {
 				break;
@@ -566,7 +614,14 @@ PHP_FUNCTION(spl_autoload_register)
 			}
 		}
 
-		zend_hash_add(SPL_G(autoload_functions), lc_name, func_name_len+1, &alfi.func_ptr, sizeof(autoload_func_info), NULL);
+		if (zend_hash_add(SPL_G(autoload_functions), lc_name, func_name_len+1, &alfi.func_ptr, sizeof(autoload_func_info), NULL) == FAILURE) {
+			if (obj_ptr && !(alfi.func_ptr->common.fn_flags & ZEND_ACC_STATIC)) {
+				Z_DELREF_P(alfi.obj);
+			}				
+			if (alfi.closure) {
+				Z_DELREF_P(alfi.closure);
+			}
+		}
 		if (prepend && SPL_G(autoload_functions)->nNumOfElements > 1) {
 			/* Move the newly created element to the head of the hashtable */
 			HT_MOVE_TAIL_TO_HEAD(SPL_G(autoload_functions));
@@ -769,6 +824,89 @@ int spl_build_class_list_string(zval **entry, char **list TSRMLS_DC) /* {{{ */
 	return ZEND_HASH_APPLY_KEEP;
 } /* }}} */
 
+zend_function *php_spl_get_constructor_helper(zval *object, int (*validating_fun)(void *object_data TSRMLS_DC) TSRMLS_DC) /* {{{ */
+{
+	if (Z_OBJCE_P(object)->type == ZEND_INTERNAL_CLASS) {
+		return std_object_handlers.get_constructor(object TSRMLS_CC);
+	} else {
+		SPL_G(validating_fun) = validating_fun;
+		SPL_G(constr_wrapper_fun).common.scope = Z_OBJCE_P(object);
+		return &SPL_G(constr_wrapper_fun);
+	}
+}
+/* }}} */
+
+static void construction_wrapper(INTERNAL_FUNCTION_PARAMETERS) /* {{{ */
+{
+	zval				  *this = getThis();
+	void				  *object_data;
+	zend_class_entry	  *this_ce;
+	zend_function		  *zf;
+	zend_fcall_info		  fci = {0};
+	zend_fcall_info_cache fci_cache = {0};
+	zval *retval_ptr	  = NULL;
+	
+	object_data = zend_object_store_get_object(this TSRMLS_CC);
+	this_ce		= Z_OBJCE_P(this);
+	
+	/* The call of this internal function did not change the scope because
+	 * zend_do_fcall_common_helper doesn't do that for internal instance
+	 * function calls. So the visibility checks on zend_std_get_constructor
+	 * will still work. Reflection refuses to instantiate classes whose
+	 * constructor is not public so we're OK there too*/
+	zf		  = zend_std_get_constructor(this TSRMLS_CC);
+	
+	if (zf == NULL) {
+		return;
+	}
+
+	fci.size					= sizeof(fci);
+	fci.function_table			= &this_ce->function_table;
+	/* fci.function_name = ; not necessary */
+	/* fci.symbol_table = ; not necessary */
+	fci.retval_ptr_ptr			= &retval_ptr;
+	fci.param_count				= ZEND_NUM_ARGS();
+	if (fci.param_count > 0) {
+		fci.params				= emalloc(fci.param_count * sizeof *fci.params);
+		if (zend_get_parameters_array_ex(ZEND_NUM_ARGS(), fci.params) == FAILURE) {
+			zend_throw_exception(NULL, "Unexpected error fetching arguments", 0 TSRMLS_CC);
+			goto cleanup;
+		}
+	}
+	fci.object_ptr				= this;
+	fci.no_separation			= 0;
+	
+	fci_cache.initialized		= 1;
+	fci_cache.called_scope		= this_ce; /* set called scope to class of this */
+	/* function->common.scope will replace it, except for
+	 * ZEND_OVERLOADED_FUNCTION, which we won't get */
+	fci_cache.calling_scope		= EG(scope);
+	fci_cache.function_handler	= zf;
+	fci_cache.object_ptr		= this;
+
+	if (zend_call_function(&fci, &fci_cache TSRMLS_CC) == FAILURE) {
+		if (!EG(exception)) {
+			zend_throw_exception(NULL, "Error calling parent constructor", 0 TSRMLS_CC);
+		}
+		goto cleanup;
+	}
+	if (!EG(exception) && SPL_G(validating_fun)(object_data TSRMLS_CC) == 0)
+		zend_throw_exception_ex(spl_ce_LogicException, 0 TSRMLS_CC,
+			"In the constructor of %s, parent::__construct() must be called "
+			"and its exceptions cannot be cleared", this_ce->name);
+	
+cleanup:
+	/* no need to cleanup zf, zend_std_get_constructor never allocates a new
+	 * function (so no ZEND_OVERLOADED_FUNCTION or call-via-handlers) */
+	if (fci.params != NULL) {
+		efree(fci.params);
+	}
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+}
+/* }}} */
+
 /* {{{ PHP_MINFO(spl)
  */
 PHP_MINFO_FUNCTION(spl)
@@ -827,6 +965,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_implements, 0, 0, 1)
 	ZEND_ARG_INFO(0, autoload)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_uses, 0, 0, 1)
+	ZEND_ARG_INFO(0, what)
+	ZEND_ARG_INFO(0, autoload)
+ZEND_END_ARG_INFO()
+
+
 ZEND_BEGIN_ARG_INFO(arginfo_spl_classes, 0)
 ZEND_END_ARG_INFO()
 
@@ -871,6 +1015,7 @@ const zend_function_entry spl_functions[] = {
 	PHP_FE(spl_autoload_call,       arginfo_spl_autoload_call)
 	PHP_FE(class_parents,           arginfo_class_parents)
 	PHP_FE(class_implements,        arginfo_class_implements)
+	PHP_FE(class_uses,              arginfo_class_uses)
 	PHP_FE(spl_object_hash,         arginfo_spl_object_hash)
 #ifdef SPL_ITERATORS_H
 	PHP_FE(iterator_to_array,       arginfo_iterator_to_array)

@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: string.c 310401 2011-04-21 01:51:24Z pierrick $ */
+/* $Id: string.c 316627 2011-09-13 13:29:35Z dmitry $ */
 
 /* Synced with php 3.0 revision 1.193 1999-06-16 [ssb] */
 
@@ -146,6 +146,46 @@ static char *php_bin2hex(const unsigned char *old, const size_t oldlen, size_t *
 }
 /* }}} */
 
+/* {{{ php_hex2bin
+ */
+static char *php_hex2bin(const unsigned char *old, const size_t oldlen, size_t *newlen)
+{
+	size_t target_length = oldlen >> 1;
+	register unsigned char *str = (unsigned char *)safe_emalloc(target_length, sizeof(char), 1);
+	size_t i, j;
+	for (i = j = 0; i < target_length; i++) {
+		char c = old[j++];
+		if (c >= '0' && c <= '9') {
+			str[i] = (c - '0') << 4;
+		} else if (c >= 'a' && c <= 'f') {
+			str[i] = (c - 'a' + 10) << 4;
+		} else if (c >= 'A' && c <= 'F') {
+			str[i] = (c - 'A' + 10) << 4;
+		} else {
+			efree(str);
+			return NULL;
+		}
+		c = old[j++];
+		if (c >= '0' && c <= '9') {
+			str[i] |= c - '0';
+		} else if (c >= 'a' && c <= 'f') {
+			str[i] |= c - 'a' + 10;
+		} else if (c >= 'A' && c <= 'F') {
+			str[i] |= c - 'A' + 10;
+		} else {
+			efree(str);
+			return NULL;
+		}
+	}
+	str[target_length] = '\0';
+	
+	if (newlen) 
+		*newlen = target_length;
+
+	return (char *)str;
+}
+/* }}} */
+
 #ifdef HAVE_LOCALECONV
 /* {{{ localeconv_r
  * glibc's localeconv is not reentrant, so lets make it so ... sorta */
@@ -205,6 +245,28 @@ PHP_FUNCTION(bin2hex)
 	}
 
 	result = php_bin2hex((unsigned char *)data, datalen, &newlen);
+	
+	if (!result) {
+		RETURN_FALSE;
+	}
+
+	RETURN_STRINGL(result, newlen, 0);
+}
+/* }}} */
+
+/* {{{ proto string hex2bin(string data)
+   Converts the hex representation of data to binary */
+PHP_FUNCTION(hex2bin)
+{
+	char *result, *data;
+	size_t newlen;
+	int datalen;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &data, &datalen) == FAILURE) {
+		return;
+	}
+
+	result = php_hex2bin((unsigned char *)data, datalen, &newlen);
 	
 	if (!result) {
 		RETURN_FALSE;
@@ -1338,13 +1400,13 @@ PHP_FUNCTION(strtolower)
 
 /* {{{ php_basename
  */
-PHPAPI void php_basename(char *s, size_t len, char *suffix, size_t sufflen, char **p_ret, size_t *p_len TSRMLS_DC)
+PHPAPI void php_basename(const char *s, size_t len, char *suffix, size_t sufflen, char **p_ret, size_t *p_len TSRMLS_DC)
 {
 	char *ret = NULL, *c, *comp, *cend;
 	size_t inc_len, cnt;
 	int state;
 
-	c = comp = cend = s;
+	c = comp = cend = (char*)s;
 	cnt = len;
 	state = 0;
 	while (cnt > 0) {
@@ -1354,7 +1416,7 @@ PHPAPI void php_basename(char *s, size_t len, char *suffix, size_t sufflen, char
 			case -2:
 			case -1:
 				inc_len = 1;
-				php_mblen(NULL, 0);
+				php_ignore_value(php_mblen(NULL, 0));
 				break;
 			case 0:
 				goto quit_loop;
@@ -1489,7 +1551,7 @@ PHP_FUNCTION(pathinfo)
 	}
 	
 	if ((opt & PHP_PATHINFO_EXTENSION) == PHP_PATHINFO_EXTENSION) {
-		char *p;
+		const char *p;
 		int idx;
 
 		if (!have_basename) {
@@ -1505,7 +1567,7 @@ PHP_FUNCTION(pathinfo)
 	}
 	
 	if ((opt & PHP_PATHINFO_FILENAME) == PHP_PATHINFO_FILENAME) {
-		char *p;
+		const char *p;
 		int idx;
 
 		/* Have we alrady looked up the basename? */
@@ -2018,7 +2080,7 @@ PHP_FUNCTION(strrchr)
 {
 	zval *needle;
 	char *haystack;
-	char *found = NULL;
+	const char *found = NULL;
 	long found_offset;
 	int  haystack_len;
 	
@@ -2336,6 +2398,10 @@ PHP_FUNCTION(substr_replace)
 			RETURN_STRINGL(Z_STRVAL_PP(str), Z_STRLEN_PP(str), 1);	
 		}
 	} else { /* str is array of strings */
+		char *str_index = NULL;
+		uint str_index_len;
+		ulong num_index;
+
 		array_init(return_value);
 
 		if (Z_TYPE_PP(from) == IS_ARRAY) {
@@ -2471,7 +2537,13 @@ PHP_FUNCTION(substr_replace)
 			}
 
 			result[result_len] = '\0';
-			add_next_index_stringl(return_value, result, result_len, 0);
+
+			if (zend_hash_get_current_key_ex(Z_ARRVAL_PP(str), &str_index, &str_index_len, &num_index, 0, &pos_str) == HASH_KEY_IS_STRING) {
+				add_assoc_stringl_ex(return_value, str_index, str_index_len, result, result_len, 0);
+			} else {
+				add_index_stringl(return_value, num_index, result, result_len, 0);
+			}
+
 			if(Z_TYPE_PP(tmp_str) != IS_STRING) {
 				zval_dtor(orig_str);
 			}
@@ -2953,34 +3025,6 @@ PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC)
 	s = str;
 	t = str;
 
-	if (PG(magic_quotes_sybase)) {
-		while (l > 0) {
-			if (*t == '\'') {
-				if ((l > 0) && (t[1] == '\'')) {
-					t++;
-					if (len != NULL) {
-						(*len)--;
-					}
-					l--;
-				}
-				*s++ = *t++;
-			} else if (*t == '\\' && t[1] == '0' && l > 0) {
-				*s++='\0';
-				t+=2;
-				if (len != NULL) {
-					(*len)--;
-				}
-				l--;
-			} else {
-				*s++ = *t++;
-			}
-			l--;
-		}
-		*s = '\0';
-		
-		return;
-	}
-
 	while (l > 0) {
 		if (*t == '\\') {
 			t++;				/* skip the slash */
@@ -3170,7 +3214,7 @@ PHPAPI void php_stripcslashes(char *str, int *len)
 			
 /* {{{ php_addcslashes
  */
-PHPAPI char *php_addcslashes(char *str, int length, int *new_length, int should_free, char *what, int wlength TSRMLS_DC)
+PHPAPI char *php_addcslashes(const char *str, int length, int *new_length, int should_free, char *what, int wlength TSRMLS_DC)
 {
 	char flags[256];
 	char *new_str = safe_emalloc(4, (length?length:(length=strlen(str))), 1);
@@ -3185,7 +3229,7 @@ PHPAPI char *php_addcslashes(char *str, int length, int *new_length, int should_
 
 	php_charmask((unsigned char *)what, wlength, flags TSRMLS_CC);
 
-	for (source = str, end = source + length, target = new_str; source < end; source++) {
+	for (source = (char*)str, end = source + length, target = new_str; source < end; source++) {
 		c = *source; 
 		if (flags[(unsigned char)c]) {
 			if ((unsigned char) c < 32 || (unsigned char) c > 126) {
@@ -3215,7 +3259,7 @@ PHPAPI char *php_addcslashes(char *str, int length, int *new_length, int should_
 		*new_length = newlen;
 	}
 	if (should_free) {
-		STR_FREE(str);
+		STR_FREE((char*)str);
 	}
 	return new_str;
 }
@@ -3224,14 +3268,6 @@ PHPAPI char *php_addcslashes(char *str, int length, int *new_length, int should_
 /* {{{ php_addslashes
  */
 PHPAPI char *php_addslashes(char *str, int length, int *new_length, int should_free TSRMLS_DC)
-{
-	return php_addslashes_ex(str, length, new_length, should_free, 0 TSRMLS_CC);
-}
-/* }}} */
-
-/* {{{ php_addslashes_ex
- */
-PHPAPI char *php_addslashes_ex(char *str, int length, int *new_length, int should_free, int ignore_sybase TSRMLS_DC)
 {
 	/* maximum string length, worst case situation */
 	char *new_str;
@@ -3251,42 +3287,23 @@ PHPAPI char *php_addslashes_ex(char *str, int length, int *new_length, int shoul
 	end = source + length;
 	target = new_str;
 	
-	if (!ignore_sybase && PG(magic_quotes_sybase)) {
-		while (source < end) {
-			switch (*source) {
-				case '\0':
-					*target++ = '\\';
-					*target++ = '0';
-					break;
-				case '\'':
-					*target++ = '\'';
-					*target++ = '\'';
-					break;
-				default:
-					*target++ = *source;
-					break;
-			}
-			source++;
+	while (source < end) {
+		switch (*source) {
+			case '\0':
+				*target++ = '\\';
+				*target++ = '0';
+				break;
+			case '\'':
+			case '\"':
+			case '\\':
+				*target++ = '\\';
+				/* break is missing *intentionally* */
+			default:
+				*target++ = *source;
+				break;	
 		}
-	} else {
-		while (source < end) {
-			switch (*source) {
-				case '\0':
-					*target++ = '\\';
-					*target++ = '0';
-					break;
-				case '\'':
-				case '\"':
-				case '\\':
-					*target++ = '\\';
-					/* break is missing *intentionally* */
-				default:
-					*target++ = *source;
-					break;	
-			}
-		
-			source++;
-		}
+
+		source++;
 	}
 	
 	*target = 0;
@@ -3644,7 +3661,7 @@ static void php_str_replace_in_subject(zval *search, zval *replace, zval **subje
 														   replace_value, replace_len, &Z_STRLEN(temp_result), case_sensitivity, replace_count);
 			}
 
-			efree(Z_STRVAL_P(result));
+           str_efree(Z_STRVAL_P(result));
 			Z_STRVAL_P(result) = Z_STRVAL(temp_result);
 			Z_STRLEN_P(result) = Z_STRLEN(temp_result);
 
@@ -4198,8 +4215,7 @@ PHP_FUNCTION(parse_str)
 		sapi_module.treat_data(PARSE_STRING, res, &ret TSRMLS_CC);
 		/* Clear out the array that was passed in. */
 		zval_dtor(arrayArg);
-		arrayArg->type = ret.type;
-		arrayArg->value = ret.value;
+		ZVAL_COPY_VALUE(arrayArg, &ret);
 	}
 }
 /* }}} */
@@ -4301,6 +4317,7 @@ PHPAPI size_t php_strip_tags_ex(char *rbuf, int len, int *stateptr, char *allow,
 	char *tbuf, *buf, *p, *tp, *rp, c, lc;
 	int br, i=0, depth=0, in_q = 0;
 	int state = 0, pos;
+	char *allow_free;
 
 	if (stateptr)
 		state = *stateptr;
@@ -4312,7 +4329,12 @@ PHPAPI size_t php_strip_tags_ex(char *rbuf, int len, int *stateptr, char *allow,
 	rp = rbuf;
 	br = 0;
 	if (allow) {
-		php_strtolower(allow, allow_len);
+		if (IS_INTERNED(allow)) {
+			allow_free = allow = zend_str_tolower_dup(allow, allow_len);
+		} else {
+			allow_free = NULL;
+			php_strtolower(allow, allow_len);
+		}
 		tbuf = emalloc(PHP_TAG_BUF_SIZE + 1);
 		tp = tbuf;
 	} else {
@@ -4551,8 +4573,12 @@ reg_char:
 		*rp = '\0';
 	}
 	efree(buf);
-	if (allow)
+	if (allow) {
 		efree(tbuf);
+		if (allow_free) {
+			efree(allow_free);
+		}
+	}
 	if (stateptr)
 		*stateptr = state;
 
@@ -4715,6 +4741,49 @@ static void php_strnatcmp(INTERNAL_FUNCTION_PARAMETERS, int fold_case)
 	RETURN_LONG(strnatcmp_ex(s1, s1_len,
 							 s2, s2_len,
 							 fold_case));
+}
+/* }}} */
+
+PHPAPI int string_natural_compare_function_ex(zval *result, zval *op1, zval *op2, zend_bool case_insensitive TSRMLS_DC) /* {{{ */
+{
+	zval op1_copy, op2_copy;
+	int use_copy1 = 0, use_copy2 = 0;
+
+	if (Z_TYPE_P(op1) != IS_STRING) {
+		zend_make_printable_zval(op1, &op1_copy, &use_copy1);
+	}
+	if (Z_TYPE_P(op2) != IS_STRING) {
+		zend_make_printable_zval(op2, &op2_copy, &use_copy2);
+	}
+
+	if (use_copy1) {
+		op1 = &op1_copy;
+	}
+	if (use_copy2) {
+		op2 = &op2_copy;
+	}
+
+	ZVAL_LONG(result, strnatcmp_ex(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2), case_insensitive));
+
+	if (use_copy1) {
+		zval_dtor(op1);
+	}
+	if (use_copy2) {
+		zval_dtor(op2);
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+PHPAPI int string_natural_case_compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
+{
+	return string_natural_compare_function_ex(result, op1, op2, 1 TSRMLS_CC);
+}
+/* }}} */
+
+PHPAPI int string_natural_compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
+{
+	return string_natural_compare_function_ex(result, op1, op2, 0 TSRMLS_CC);
 }
 /* }}} */
 
@@ -5276,10 +5345,6 @@ PHP_FUNCTION(substr_compare)
 	if (offset >= s1_len) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "The start position cannot exceed initial string length");
 		RETURN_FALSE;
-	}
-
-	if (len > s1_len - offset) {
-		len = s1_len - offset;
 	}
 
 	cmp_len = (uint) (len ? len : MAX(s2_len, (s1_len - offset)));

@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_openssl.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_openssl.h 311299 2011-05-20 18:56:13Z scottmac $ */
 
 #ifndef PHP_OPENSSL_H
 #define PHP_OPENSSL_H
@@ -25,6 +25,9 @@
 #ifdef HAVE_OPENSSL_EXT
 extern zend_module_entry openssl_module_entry;
 #define phpext_openssl_ptr &openssl_module_entry
+
+#define OPENSSL_RAW_DATA 1
+#define OPENSSL_ZERO_PADDING 2
 
 php_stream_transport_factory_func php_openssl_ssl_socket_factory;
 

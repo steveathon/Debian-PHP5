@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: dom_iterators.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: dom_iterators.c 314515 2011-08-08 13:45:18Z iliaa $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -251,7 +251,7 @@ err:
 	zval_ptr_dtor((zval**)&curobj);
 	if (curnode) {
 		MAKE_STD_ZVAL(curattr);
-		curattr = php_dom_create_object(curnode, &ret, NULL, curattr, objmap->baseobj TSRMLS_CC);
+		curattr = php_dom_create_object(curnode, &ret, curattr, objmap->baseobj TSRMLS_CC);
 	}
 
 	iterator->curobj = curattr;
@@ -330,7 +330,7 @@ zend_object_iterator *php_dom_get_iterator(zend_class_entry *ce, zval *object, i
 err:
 	if (curnode) {
 		MAKE_STD_ZVAL(curattr);
-		curattr = php_dom_create_object(curnode, &ret, NULL, curattr, objmap->baseobj TSRMLS_CC);
+		curattr = php_dom_create_object(curnode, &ret, curattr, objmap->baseobj TSRMLS_CC);
 	}
 
 	iterator->curobj = curattr;

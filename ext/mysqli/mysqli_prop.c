@@ -15,7 +15,7 @@
   | Author: Georg Richter <georg@php.net>                                |
   +----------------------------------------------------------------------+
 
-  $Id: mysqli_prop.c 306939 2011-01-01 02:19:59Z felipe $
+  $Id: mysqli_prop.c 317906 2011-10-08 14:48:14Z andrey $
 */
 
 #ifdef HAVE_CONFIG_H
@@ -189,6 +189,54 @@ static int link_affected_rows_read(mysqli_object *obj, zval **retval TSRMLS_DC)
 }
 /* }}} */
 
+
+/* {{{ property link_error_list_read */
+static int link_error_list_read(mysqli_object *obj, zval **retval TSRMLS_DC)
+{
+	MY_MYSQL *mysql;
+
+	MAKE_STD_ZVAL(*retval);
+
+	CHECK_STATUS(MYSQLI_STATUS_VALID);
+
+ 	mysql = (MY_MYSQL *)((MYSQLI_RESOURCE *)(obj->ptr))->ptr;
+
+	array_init(*retval);
+	if (mysql) {
+#if defined(MYSQLI_USE_MYSQLND)
+		if (mysql->mysql->error_info.error_list) {
+			MYSQLND_ERROR_LIST_ELEMENT * message;
+			zend_llist_position pos;
+			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->error_info.error_list, &pos);
+				 message;
+				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->error_info.error_list, &pos)) 
+			{
+				zval * single_error;
+				MAKE_STD_ZVAL(single_error);
+				array_init(single_error);
+				add_assoc_long_ex(single_error, "errno", sizeof("errno"), message->error_no);
+				add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), message->sqlstate, 1);
+				add_assoc_string_ex(single_error, "error", sizeof("error"), message->error, 1);
+				add_next_index_zval(*retval, single_error);
+			}
+		}
+#else
+		if (mysql_errno(mysql->mysql)) {
+			zval * single_error;
+			MAKE_STD_ZVAL(single_error);
+			array_init(single_error);
+			add_assoc_long_ex(single_error, "errno", sizeof("errno"), mysql_errno(mysql->mysql));
+			add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), mysql_sqlstate(mysql->mysql), 1);
+			add_assoc_string_ex(single_error, "error", sizeof("error"), mysql_error(mysql->mysql), 1);
+			add_next_index_zval(*retval, single_error);
+		}
+#endif
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+
 /* link properties */
 MYSQLI_MAP_PROPERTY_FUNC_LONG(link_errno_read, mysql_errno, MYSQLI_GET_MYSQL(MYSQLI_STATUS_INITIALIZED), ulong, "%lu")
 MYSQLI_MAP_PROPERTY_FUNC_STRING(link_error_read, mysql_error, MYSQLI_GET_MYSQL(MYSQLI_STATUS_INITIALIZED))
@@ -202,6 +250,37 @@ MYSQLI_MAP_PROPERTY_FUNC_LONG(link_server_version_read, mysql_get_server_version
 MYSQLI_MAP_PROPERTY_FUNC_STRING(link_sqlstate_read, mysql_sqlstate, MYSQLI_GET_MYSQL(MYSQLI_STATUS_VALID))
 MYSQLI_MAP_PROPERTY_FUNC_LONG(link_thread_id_read, mysql_thread_id, MYSQLI_GET_MYSQL(MYSQLI_STATUS_VALID), ulong, "%lu")
 MYSQLI_MAP_PROPERTY_FUNC_LONG(link_warning_count_read, mysql_warning_count, MYSQLI_GET_MYSQL(MYSQLI_STATUS_VALID), ulong, "%lu")
+
+/* {{{ property link_stat_read */
+static int link_stat_read(mysqli_object *obj, zval **retval TSRMLS_DC)\
+{\
+	MY_MYSQL *mysql;
+
+	MAKE_STD_ZVAL(*retval);
+	ZVAL_NULL(*retval);
+
+	CHECK_STATUS(MYSQLI_STATUS_INITIALIZED);
+
+ 	mysql = (MY_MYSQL *)((MYSQLI_RESOURCE *)(obj->ptr))->ptr;
+
+	if (mysql) {
+		char * stat_msg;
+#if defined(MYSQLI_USE_MYSQLND)
+		uint stat_msg_len;
+		if (mysqlnd_stat(mysql->mysql, &stat_msg, &stat_msg_len) == PASS) {
+			ZVAL_STRINGL(*retval, stat_msg, stat_msg_len, 0);
+		}
+#else
+		if ((stat_msg = (char *) mysql_stat(mysql->mysql))) {
+			ZVAL_STRING(*retval, stat_msg, 1);
+		}
+#endif
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+
 /* result properties */
 
 /* {{{ property result_type_read */
@@ -306,6 +385,51 @@ static int stmt_affected_rows_read(mysqli_object *obj, zval **retval TSRMLS_DC)
 }
 /* }}} */
 
+/* {{{ property stmt_error_list_read */
+static int stmt_error_list_read(mysqli_object *obj, zval **retval TSRMLS_DC)
+{
+	MY_STMT * stmt;
+
+	MAKE_STD_ZVAL(*retval);
+	CHECK_STATUS(MYSQLI_STATUS_INITIALIZED);
+
+ 	stmt = (MY_STMT *)((MYSQLI_RESOURCE *)(obj->ptr))->ptr;
+	array_init(*retval);
+	if (stmt && stmt->stmt) {
+#if defined(MYSQLI_USE_MYSQLND)
+		if (stmt->stmt->data && stmt->stmt->data->error_info.error_list) {
+			MYSQLND_ERROR_LIST_ELEMENT * message;
+			zend_llist_position pos;
+			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info.error_list, &pos);
+				 message;
+				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info.error_list, &pos)) 
+			{
+				zval * single_error;
+				MAKE_STD_ZVAL(single_error);
+				array_init(single_error);
+				add_assoc_long_ex(single_error, "errno", sizeof("errno"), message->error_no);
+				add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), message->sqlstate, 1);
+				add_assoc_string_ex(single_error, "error", sizeof("error"), message->error, 1);
+				add_next_index_zval(*retval, single_error);
+			}
+		}
+#else
+		if (mysql_stmt_errno(stmt->stmt)) {
+			zval * single_error;
+			MAKE_STD_ZVAL(single_error);
+			array_init(single_error);
+			add_assoc_long_ex(single_error, "errno", sizeof("errno"), mysql_stmt_errno(stmt->stmt));
+			add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), mysql_stmt_sqlstate(stmt->stmt), 1);
+			add_assoc_string_ex(single_error, "error", sizeof("error"), mysql_stmt_error(stmt->stmt), 1);
+			add_next_index_zval(*retval, single_error);
+		}
+#endif
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+
 MYSQLI_MAP_PROPERTY_FUNC_LONG(stmt_insert_id_read, mysql_stmt_insert_id, MYSQLI_GET_STMT(MYSQLI_STATUS_VALID), my_ulonglong, MYSQLI_LLU_SPEC)
 MYSQLI_MAP_PROPERTY_FUNC_LONG(stmt_num_rows_read, mysql_stmt_num_rows, MYSQLI_GET_STMT(MYSQLI_STATUS_VALID), my_ulonglong, MYSQLI_LLU_SPEC)
 MYSQLI_MAP_PROPERTY_FUNC_LONG(stmt_param_count_read, mysql_stmt_param_count, MYSQLI_GET_STMT(MYSQLI_STATUS_VALID), ulong, "%lu")
@@ -323,12 +447,14 @@ const mysqli_property_entry mysqli_link_property_entries[] = {
 	{"connect_error",	sizeof("connect_error") - 1,	link_connect_error_read, NULL},
 	{"errno",			sizeof("errno") - 1,			link_errno_read, NULL},
 	{"error",			sizeof("error") - 1,			link_error_read, NULL},
+	{"error_list",		sizeof("error_list") - 1,		link_error_list_read, NULL},
 	{"field_count",		sizeof("field_count") - 1,		link_field_count_read, NULL},
 	{"host_info",		sizeof("host_info") - 1,		link_host_info_read, NULL},
 	{"info",			sizeof("info") - 1,				link_info_read, NULL},
 	{"insert_id",		sizeof("insert_id") - 1,		link_insert_id_read, NULL},
 	{"server_info",		sizeof("server_info") - 1,		link_server_info_read, NULL},
 	{"server_version",	sizeof("server_version") - 1,	link_server_version_read, NULL},
+	{"stat",			sizeof("stat") - 1,				link_stat_read, NULL},
 	{"sqlstate",		sizeof("sqlstate") - 1,			link_sqlstate_read, NULL},
 	{"protocol_version",sizeof("protocol_version") - 1,	link_protocol_version_read, NULL},
 	{"thread_id",		sizeof("thread_id") - 1, 		link_thread_id_read, NULL},
@@ -336,26 +462,28 @@ const mysqli_property_entry mysqli_link_property_entries[] = {
 	{NULL, 0, NULL, NULL}
 };
 
-/* should not be const, as it is patched during runtime */
-zend_property_info mysqli_link_property_info_entries[] = {
-	{ZEND_ACC_PUBLIC, "affected_rows",	sizeof("affected_rows") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "client_info",	sizeof("client_info") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "client_version",	sizeof("client_version") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "connect_errno",	sizeof("connect_errno") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "connect_error",	sizeof("connect_error") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "errno",			sizeof("errno") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "error",			sizeof("error") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "field_count",	sizeof("field_count") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "host_info",		sizeof("host_info") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "info",			sizeof("info") - 1,				0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "insert_id",		sizeof("insert_id") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "server_info",	sizeof("server_info") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "server_version",	sizeof("server_version") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "sqlstate",		sizeof("sqlstate") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "protocol_version", sizeof("protocol_version")-1, 0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "thread_id", 		sizeof("thread_id") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "warning_count",	sizeof("warning_count") - 1,	0, NULL, 0, NULL},
-	{0,					NULL, 			0,								0, NULL, 0, NULL}
+
+const zend_property_info mysqli_link_property_info_entries[] = {
+	{ZEND_ACC_PUBLIC, "affected_rows",	sizeof("affected_rows") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "client_info",	sizeof("client_info") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "client_version",	sizeof("client_version") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "connect_errno",	sizeof("connect_errno") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "connect_error",	sizeof("connect_error") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "errno",			sizeof("errno") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "error",			sizeof("error") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "error_list",		sizeof("error_list") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "field_count",	sizeof("field_count") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "host_info",		sizeof("host_info") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "info",			sizeof("info") - 1,				-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "insert_id",		sizeof("insert_id") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "server_info",	sizeof("server_info") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "server_version",	sizeof("server_version") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "stat",			sizeof("stat") - 1,				-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "sqlstate",		sizeof("sqlstate") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "protocol_version", sizeof("protocol_version")-1, -1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "thread_id", 		sizeof("thread_id") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "warning_count",	sizeof("warning_count") - 1,	-1, 0, NULL, 0, NULL},
+	{0,					NULL, 			0,								-1, 0, NULL, 0, NULL}
 };
 
 
@@ -368,13 +496,13 @@ const mysqli_property_entry mysqli_result_property_entries[] = {
 	{NULL, 0, NULL, NULL}
 };
 
-zend_property_info mysqli_result_property_info_entries[] = {
-	{ZEND_ACC_PUBLIC, "current_field",	sizeof("current_field")-1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "field_count",	sizeof("field_count") - 1, 	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "lengths",		sizeof("lengths") - 1, 		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "num_rows",		sizeof("num_rows") - 1, 	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "type",			sizeof("type") - 1, 		0, NULL, 0, NULL},
-	{0,					NULL, 			0,							0, NULL, 0, NULL}
+const zend_property_info mysqli_result_property_info_entries[] = {
+	{ZEND_ACC_PUBLIC, "current_field",	sizeof("current_field")-1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "field_count",	sizeof("field_count") - 1, 	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "lengths",		sizeof("lengths") - 1, 		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "num_rows",		sizeof("num_rows") - 1, 	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "type",			sizeof("type") - 1, 		-1, 0, NULL, 0, NULL},
+	{0,					NULL, 			0,							-1, 0, NULL, 0, NULL}
 };
 
 const mysqli_property_entry mysqli_stmt_property_entries[] = {
@@ -385,23 +513,25 @@ const mysqli_property_entry mysqli_stmt_property_entries[] = {
 	{"field_count", sizeof("field_count") - 1,	stmt_field_count_read, NULL},
 	{"errno",		sizeof("errno") - 1,		stmt_errno_read, NULL},
 	{"error",		sizeof("error") - 1, 		stmt_error_read, NULL},
+	{"error_list",	sizeof("error_list") - 1, 	stmt_error_list_read, NULL},
 	{"sqlstate",	sizeof("sqlstate") - 1,		stmt_sqlstate_read, NULL},
 	{"id",			sizeof("id") - 1,			stmt_id_read, NULL},
 	{NULL, 0, NULL, NULL}
 };
 
 
-zend_property_info mysqli_stmt_property_info_entries[] = {
-	{ZEND_ACC_PUBLIC, "affected_rows", sizeof("affected_rows") - 1,	0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "insert_id",	sizeof("insert_id") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "num_rows",	sizeof("num_rows") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "param_count",sizeof("param_count") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "field_count",sizeof("field_count") - 1,		0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "errno",		sizeof("errno") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "error",		sizeof("error") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "sqlstate",	sizeof("sqlstate") - 1,			0, NULL, 0, NULL},
-	{ZEND_ACC_PUBLIC, "id",			sizeof("id") - 1,				0, NULL, 0, NULL},
-	{0,					NULL, 			0,							0, NULL, 0, NULL}
+const zend_property_info mysqli_stmt_property_info_entries[] = {
+	{ZEND_ACC_PUBLIC, "affected_rows", sizeof("affected_rows") - 1,	-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "insert_id",	sizeof("insert_id") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "num_rows",	sizeof("num_rows") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "param_count",sizeof("param_count") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "field_count",sizeof("field_count") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "errno",		sizeof("errno") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "error",		sizeof("error") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "error_list",	sizeof("error_list") - 1,		-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "sqlstate",	sizeof("sqlstate") - 1,			-1, 0, NULL, 0, NULL},
+	{ZEND_ACC_PUBLIC, "id",			sizeof("id") - 1,				-1, 0, NULL, 0, NULL},
+	{0,					NULL, 			0,							-1, 0, NULL, 0, NULL}
 };
 
 /*

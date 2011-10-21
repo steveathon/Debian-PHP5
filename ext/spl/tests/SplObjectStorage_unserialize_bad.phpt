@@ -37,7 +37,7 @@ object(SplObjectStorage)#2 (1) {
       object(stdClass)#1 (0) {
       }
       ["inf"]=>
-      object(stdClass)#4 (0) {
+      object(stdClass)#3 (0) {
       }
     }
   }

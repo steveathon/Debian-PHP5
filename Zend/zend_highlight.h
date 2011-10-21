@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_highlight.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_highlight.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef ZEND_HIGHLIGHT_H
 #define ZEND_HIGHLIGHT_H
@@ -26,7 +26,6 @@
 #define HL_DEFAULT_COLOR     "#0000BB"    /* blue */
 #define HL_HTML_COLOR        "#000000"    /* black */
 #define HL_STRING_COLOR      "#DD0000"    /* red */
-#define HL_BG_COLOR          "#FFFFFF"    /* white */
 #define HL_KEYWORD_COLOR     "#007700"    /* green */
 
 

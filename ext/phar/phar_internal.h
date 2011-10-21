@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: phar_internal.h 308657 2011-02-25 09:32:17Z nlopess $ */
+/* $Id: phar_internal.h 314438 2011-08-07 16:10:34Z rasmus $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -485,9 +485,9 @@ typedef struct _phar_entry_data {
 	off_t                    position;
 	/* for copies of the phar fp, defines where 0 is */
 	off_t                    zero;
-	int                      for_write:1;
-	int                      is_zip:1;
-	int                      is_tar:1;
+	unsigned int             for_write:1;
+	unsigned int             is_zip:1;
+	unsigned int             is_tar:1;
 	phar_entry_info          *internal_file;
 } phar_entry_data;
 

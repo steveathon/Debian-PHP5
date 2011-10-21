@@ -20,7 +20,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_ini_scanner.l 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_ini_scanner.l 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include <errno.h>
 #include "zend.h"

@@ -1,7 +1,9 @@
 --TEST--
 Bug #51615 (PHP crash with wrong HTML in SimpleXML)
 --SKIPIF--
-<?php if (!extension_loaded("simplexml")) print "skip"; ?>
+<?php if (!extension_loaded("simplexml")) print "skip"; 
+ if (!extension_loaded("dom")) print "skip";
+?>
 --FILE--
 <?php
 
@@ -20,7 +22,7 @@ foreach ($html->body->span as $obj) {
 Warning: DOMDocument::loadHTML(): error parsing attribute name in Entity, line: 1 in %s on line %d
 
 Warning: DOMDocument::loadHTML(): error parsing attribute name in Entity, line: 1 in %s on line %d
-object(SimpleXMLElement)#%d (2) {
+object(SimpleXMLElement)#%d (3) {
   ["@attributes"]=>
   array(2) {
     ["title"]=>
@@ -29,6 +31,8 @@ object(SimpleXMLElement)#%d (2) {
     string(0) ""
   }
   [0]=>
+  string(1) "x"
+  [1]=>
   string(1) "x"
 }
 string(0) ""

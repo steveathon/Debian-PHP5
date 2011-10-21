@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: nsapi.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: nsapi.c 314799 2011-08-11 20:25:24Z thetaphi $ */
 
 /*
  * PHP includes
@@ -312,7 +312,7 @@ PHP_MSHUTDOWN_FUNCTION(nsapi)
 PHP_MINFO_FUNCTION(nsapi)
 {
 	php_info_print_table_start();
-	php_info_print_table_row(2, "NSAPI Module Revision", "$Revision: 306939 $");
+	php_info_print_table_row(2, "NSAPI Module Revision", "$Revision: 314799 $");
 	php_info_print_table_row(2, "Server Software", system_version());
 	php_info_print_table_row(2, "Sub-requests with nsapi_virtual()",
 	 (nsapi_servact_service)?((zend_ini_long("zlib.output_compression", sizeof("zlib.output_compression"), 0))?"not supported with zlib.output_compression":"enabled"):"not supported on this platform" );
@@ -347,7 +347,7 @@ PHP_FUNCTION(nsapi_virtual)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to include uri '%s' - Sub-requests do not work with zlib.output_compression", uri);
 		RETURN_FALSE;
 	} else {
-		php_end_ob_buffers(1 TSRMLS_CC);
+		php_output_end_all(TSRMLS_C);
 		php_header(TSRMLS_C);
 
 		/* do the sub-request */
@@ -414,9 +414,7 @@ PHP_FUNCTION(nsapi_request_headers)
 	for (i=0; i < rc->rq->headers->hsize; i++) {
 		entry=rc->rq->headers->ht[i];
 		while (entry) {
-			if (!PG(safe_mode) || strncasecmp(entry->param->name, "authorization", 13)) {
-				add_assoc_string(return_value, entry->param->name, entry->param->value, 1);
-			}
+			add_assoc_string(return_value, entry->param->name, entry->param->value, 1);
 			entry=entry->next;
 		}
   	}
@@ -676,24 +674,22 @@ static void sapi_nsapi_register_server_variables(zval *track_vars_array TSRMLS_D
 	for (i=0; i < rc->rq->headers->hsize; i++) {
 		entry=rc->rq->headers->ht[i];
 		while (entry) {
-			if (!PG(safe_mode) || strncasecmp(entry->param->name, "authorization", 13)) {
-				if (strcasecmp(entry->param->name, "content-length")==0 || strcasecmp(entry->param->name, "content-type")==0) {
-					value=estrdup(entry->param->name);
-					pos = 0;
-				} else {
-					spprintf(&value, 0, "HTTP_%s", entry->param->name);
-					pos = 5;
-				}
-				if (value) {
-					for(p = value + pos; *p; p++) {
-						*p = toupper(*p);
-						if (!isalnum(*p)) {
-							*p = '_';
-						}
+			if (strcasecmp(entry->param->name, "content-length")==0 || strcasecmp(entry->param->name, "content-type")==0) {
+				value=estrdup(entry->param->name);
+				pos = 0;
+			} else {
+				spprintf(&value, 0, "HTTP_%s", entry->param->name);
+				pos = 5;
+			}
+			if (value) {
+				for(p = value + pos; *p; p++) {
+					*p = toupper(*p);
+					if (!isalnum(*p)) {
+						*p = '_';
 					}
-					php_register_variable(value, entry->param->value, track_vars_array TSRMLS_CC);
-					efree(value);
 				}
+				php_register_variable(value, entry->param->value, track_vars_array TSRMLS_CC);
+				efree(value);
 			}
 			entry=entry->next;
 		}
@@ -727,7 +723,9 @@ static void sapi_nsapi_register_server_variables(zval *track_vars_array TSRMLS_D
 	nsapi_free(value);
 
 	php_register_variable("SERVER_SOFTWARE", system_version(), track_vars_array TSRMLS_CC);
-	php_register_variable("HTTPS", (security_active ? "ON" : "OFF"), track_vars_array TSRMLS_CC);
+	if (security_active) {
+		php_register_variable("HTTPS", "ON", track_vars_array TSRMLS_CC);
+	}
 	php_register_variable("GATEWAY_INTERFACE", "CGI/1.1", track_vars_array TSRMLS_CC);
 
 	/* DOCUMENT_ROOT */
@@ -777,9 +775,8 @@ static void sapi_nsapi_register_server_variables(zval *track_vars_array TSRMLS_D
 	}
 }
 
-static void nsapi_log_message(char *message)
+static void nsapi_log_message(char *message TSRMLS_DC)
 {
-	TSRMLS_FETCH();
 	nsapi_request_context *rc = (nsapi_request_context *)SG(server_context);
 
 	if (rc) {
@@ -789,7 +786,7 @@ static void nsapi_log_message(char *message)
 	}
 }
 
-static time_t sapi_nsapi_get_request_time(TSRMLS_D)
+static double sapi_nsapi_get_request_time(TSRMLS_D)
 {
 	return REQ_TIME( ((nsapi_request_context *)SG(server_context))->rq );
 }
@@ -1033,7 +1030,7 @@ int NSAPI_PUBLIC php5_execute(pblock *pb, Session *sn, Request *rq)
 	
 	nsapi_php_ini_entries(NSLS_C TSRMLS_CC);
 
-	if (!PG(safe_mode)) php_handle_auth_data(pblock_findval("authorization", rq->headers) TSRMLS_CC);
+	php_handle_auth_data(pblock_findval("authorization", rq->headers) TSRMLS_CC);
 
 	file_handle.type = ZEND_HANDLE_FILENAME;
 	file_handle.filename = SG(request_info).path_translated;

@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_reentrancy.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_reentrancy.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_REENTRANCY_H
 #define PHP_REENTRANCY_H

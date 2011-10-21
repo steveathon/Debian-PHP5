@@ -2,7 +2,7 @@
 Phar: test edge cases of fopen() function interception #2
 --SKIPIF--
 <?php if (!extension_loaded("phar")) die("skip"); ?>
-<?php if (version_compare(php_version(), '6.0', '>=')) die('skip parameter parsing changed in 6.0'); ?>
+<?php if (version_compare(phpversion(), '6.0', '>=')) die('skip parameter parsing changed in 6.0'); ?>
 --INI--
 phar.readonly=0
 --FILE--
@@ -36,7 +36,7 @@ include $pname . '/foo/hi';
 <?php rmdir(dirname(__FILE__) . '/poo'); ?>
 <?php unlink(dirname(__FILE__) . '/foob'); ?>
 --EXPECTF--
-Warning: fopen() expects parameter 1 to be string, array given in %sfopen_edgecases2.php on line %d
+Warning: fopen() expects parameter 1 to be a valid path, array given in %sfopen_edgecases2.php on line %d
 blah
 test
 

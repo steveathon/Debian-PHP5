@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_functions.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: spl_functions.c 313640 2011-07-23 19:08:43Z gron $ */
 
 #ifdef HAVE_CONFIG_H
 	#include "config.h"
@@ -102,6 +102,18 @@ void spl_add_interfaces(zval *list, zend_class_entry * pce, int allow, int ce_fl
 	}
 }
 /* }}} */
+
+/* {{{ spl_add_traits */
+void spl_add_traits(zval *list, zend_class_entry * pce, int allow, int ce_flags TSRMLS_DC)
+{
+	zend_uint num_traits;
+  
+	for (num_traits = 0; num_traits < pce->num_traits; num_traits++) {
+		spl_add_class_name(list, pce->traits[num_traits], allow, ce_flags TSRMLS_CC);
+	}
+}
+/* }}} */
+
 
 /* {{{ spl_add_classes */
 int spl_add_classes(zend_class_entry *pce, zval *list, int sub, int allow, int ce_flags TSRMLS_DC)

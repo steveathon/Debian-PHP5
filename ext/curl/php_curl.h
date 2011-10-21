@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_curl.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_curl.h 316511 2011-09-12 09:16:04Z bjori $ */
 
 #ifndef _PHP_CURL_H
 #define _PHP_CURL_H
@@ -150,6 +150,7 @@ typedef struct {
 
 void _php_curl_cleanup_handle(php_curl *);
 void _php_curl_multi_cleanup_list(void *data);
+int  _php_curl_verify_handlers(php_curl *ch, int reporterror TSRMLS_DC);
 
 /* streams support */
 

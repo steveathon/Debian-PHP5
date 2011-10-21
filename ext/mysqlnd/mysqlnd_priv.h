@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_priv.h 311643 2011-05-31 10:35:07Z andrey $ */
+/* $Id: mysqlnd_priv.h 314239 2011-08-04 09:51:26Z andrey $ */
 
 #ifndef MYSQLND_PRIV_H
 #define MYSQLND_PRIV_H
@@ -67,6 +67,7 @@
 }
 #endif
 
+#define MYSQLND_STR_W_LEN(str)  str, (sizeof(str) - 1)
 
 #define MYSQLND_DEBUG_DUMP_TIME				1
 #define MYSQLND_DEBUG_DUMP_TRACE			2
@@ -133,14 +134,40 @@
 		(error_info).error_no = 0; \
 		(error_info).error[0] = '\0'; \
 		strlcpy((error_info).sqlstate, "00000", sizeof((error_info).sqlstate)); \
+		if ((error_info).error_list) { \
+			zend_llist_clean((error_info).error_list); \
+		} \
 	}
 
+
 #define SET_CLIENT_ERROR(error_info, a, b, c) \
-	{ \
+{ \
+	if (0 == (a)) { \
+		SET_EMPTY_ERROR((error_info)); \
+	} else { \
 		(error_info).error_no = (a); \
 		strlcpy((error_info).sqlstate, (b), sizeof((error_info).sqlstate)); \
 		strlcpy((error_info).error, (c), sizeof((error_info).error)); \
+		if ((error_info).error_list) {\
+			MYSQLND_ERROR_LIST_ELEMENT error_for_the_list = {0}; \
+																	\
+			error_for_the_list.error_no = (a); \
+			strlcpy(error_for_the_list.sqlstate, (b), sizeof(error_for_the_list.sqlstate)); \
+			error_for_the_list.error = mnd_pestrdup((c), TRUE); \
+			if (error_for_the_list.error) { \
+				DBG_INF_FMT("adding error [%s] to the list", error_for_the_list.error); \
+				zend_llist_add_element((error_info).error_list, &error_for_the_list); \
+			} \
+		} \
+	} \
+}
+
+
+#define COPY_CLIENT_ERROR(error_info_to, error_info_from) \
+	{ \
+		SET_CLIENT_ERROR((error_info_to), (error_info_from).error_no, (error_info_from).sqlstate, (error_info_from).error); \
 	}
+
 
 #define SET_OOM_ERROR(error_info) SET_CLIENT_ERROR((error_info), CR_OUT_OF_MEMORY, UNKNOWN_SQLSTATE, mysqlnd_out_of_memory)
 
@@ -187,6 +214,55 @@ void _mysqlnd_init_ps_fetch_subsystem();
 void ps_fetch_from_1_to_8_bytes(zval *zv, const MYSQLND_FIELD * const field,
 								unsigned int pack_len, zend_uchar **row, zend_bool as_unicode,
 								unsigned int byte_count TSRMLS_DC);
+
+void mysqlnd_plugin_subsystem_init(TSRMLS_D);
+void mysqlnd_plugin_subsystem_end(TSRMLS_D);
+
+void mysqlnd_register_builtin_authentication_plugins(TSRMLS_D);
+
+void mysqlnd_example_plugin_register(TSRMLS_D);
+
+struct st_mysqlnd_packet_greet;
+struct st_mysqlnd_authentication_plugin;
+
+enum_func_status
+mysqlnd_auth_handshake(MYSQLND * conn,
+						const char * const user,
+						const char * const passwd,
+						const size_t passwd_len,
+						const char * const db,
+						const size_t db_len,
+						const MYSQLND_OPTIONS * const options,
+						unsigned long mysql_flags,
+						unsigned int server_charset_no,
+						zend_bool use_full_blown_auth_packet,
+						const char * const auth_protocol,
+						const zend_uchar * const auth_plugin_data,
+						const size_t auth_plugin_data_len,
+						char ** switch_to_auth_protocol,
+						size_t * switch_to_auth_protocol_len,
+						zend_uchar ** switch_to_auth_protocol_data,
+						size_t * switch_to_auth_protocol_data_len
+						TSRMLS_DC);
+
+enum_func_status
+mysqlnd_auth_change_user(MYSQLND * const conn,
+								const char * const user,
+								const size_t user_len,
+								const char * const passwd,
+								const size_t passwd_len,
+								const char * const db,
+								const size_t db_len,
+								const zend_bool silent,
+								zend_bool use_full_blown_auth_packet,
+								const char * const auth_protocol,
+								zend_uchar * auth_plugin_data,
+								size_t auth_plugin_data_len,
+								char ** switch_to_auth_protocol,
+								size_t * switch_to_auth_protocol_len,
+								zend_uchar ** switch_to_auth_protocol_data,
+								size_t * switch_to_auth_protocol_data_len
+								TSRMLS_DC);
 
 #endif	/* MYSQLND_PRIV_H */
 

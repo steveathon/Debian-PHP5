@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_mbregex.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_mbregex.c 317264 2011-09-25 08:22:58Z hirokawa $ */
 
 
 #ifdef HAVE_CONFIG_H
@@ -372,7 +372,7 @@ static OnigEncoding _php_mb_regex_name2mbctype(const char *pname)
 	const char *p;
 	php_mb_regex_enc_name_map_t *mapping;
 
-	if (pname == NULL) {
+	if (pname == NULL || !*pname) {
 		return ONIG_ENCODING_UNDEF;
 	}
 

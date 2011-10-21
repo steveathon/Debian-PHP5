@@ -1,4 +1,4 @@
-/* $Id: php_crypt_r.c 315338 2011-08-23 08:09:55Z johannes $ */
+/* $Id: php_crypt_r.c 316885 2011-09-17 00:01:45Z felipe $ */
 /*
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
@@ -94,7 +94,7 @@ void _crypt_extended_init_r(void)
 	if (!initialized) {
 #ifdef PHP_WIN32
 		InterlockedIncrement(&initialized);
-#elif (defined(__GNUC__) && !defined(__hpux) && (__GNUC__ > 4 || \
+#elif (defined(__GNUC__) && !defined(__hpux) && !defined(__hppa__) && (__GNUC__ > 4 || \
     (__GNUC__ == 4 && (__GNUC_MINOR__ > 1 || (__GNUC_MINOR__ == 1 && __GNUC_PATCHLEVEL__ > 1)))))
 		__sync_fetch_and_add(&initialized, 1);
 #elif defined(HAVE_ATOMIC_H) /* Solaris 10 defines atomic API within */
@@ -220,17 +220,12 @@ char * php_md5_crypt_r(const char *pw, const char *salt, char *out) {
 
 	memcpy(passwd, MD5_MAGIC, MD5_MAGIC_LEN);
 
-#if _MSC_VER >= 1500
 	if (strncpy_s(passwd + MD5_MAGIC_LEN, MD5_HASH_MAX_LEN - MD5_MAGIC_LEN, sp, sl + 1) != 0) {
 		goto _destroyCtx1;
 	}
 	passwd[MD5_MAGIC_LEN + sl] = '\0';
 	strcat_s(passwd, MD5_HASH_MAX_LEN, "$");
-#else
-	/* VC6 version doesn't have strcat_s or strncpy_s */
-	strncpy(passwd + MD5_MAGIC_LEN, sp, sl + 1);
-	strcat(passwd, "$");
-#endif
+
 	dwHashLen = 16;
 
 	/* Fetch the ctx hash value */

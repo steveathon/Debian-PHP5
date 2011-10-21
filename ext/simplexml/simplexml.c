@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: simplexml.c 314376 2011-08-06 14:47:44Z felipe $ */
+/* $Id: simplexml.c 315883 2011-08-31 11:44:22Z chregu $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -389,7 +389,7 @@ static zval * sxe_prop_dim_read(zval *object, zval *member, zend_bool elements, 
 
 /* {{{ sxe_property_read()
  */
-static zval * sxe_property_read(zval *object, zval *member, int type TSRMLS_DC)
+static zval * sxe_property_read(zval *object, zval *member, int type, const zend_literal *key TSRMLS_DC)
 {
 	return sxe_prop_dim_read(object, member, 1, 0, type TSRMLS_CC);
 }
@@ -680,7 +680,7 @@ next_iter:
 
 /* {{{ sxe_property_write()
  */
-static void sxe_property_write(zval *object, zval *member, zval *value TSRMLS_DC)
+static void sxe_property_write(zval *object, zval *member, zval *value, const zend_literal *key TSRMLS_DC)
 {
 	sxe_prop_dim_write(object, member, value, 1, 0, NULL TSRMLS_CC);
 }
@@ -694,7 +694,7 @@ static void sxe_dimension_write(zval *object, zval *offset, zval *value TSRMLS_D
 }
 /* }}} */
 
-static zval** sxe_property_get_adr(zval *object, zval *member TSRMLS_DC) /* {{{ */
+static zval** sxe_property_get_adr(zval *object, zval *member, const zend_literal *key TSRMLS_DC) /* {{{ */
 {
 	php_sxe_object *sxe;
 	xmlNodePtr      node;
@@ -846,7 +846,7 @@ static int sxe_prop_dim_exists(zval *object, zval *member, int check_empty, zend
 
 /* {{{ sxe_property_exists()
  */
-static int sxe_property_exists(zval *object, zval *member, int check_empty TSRMLS_DC)
+static int sxe_property_exists(zval *object, zval *member, int check_empty, const zend_literal *key TSRMLS_DC)
 {
 	return sxe_prop_dim_exists(object, member, check_empty, 1, 0 TSRMLS_CC);
 }
@@ -971,7 +971,7 @@ next_iter:
 
 /* {{{ sxe_property_delete()
  */
-static void sxe_property_delete(zval *object, zval *member TSRMLS_DC)
+static void sxe_property_delete(zval *object, zval *member, const zend_literal *key TSRMLS_DC)
 {
 	sxe_prop_dim_delete(object, member, 1, 0 TSRMLS_CC);
 }
@@ -1069,6 +1069,10 @@ static HashTable * sxe_get_prop_hash(zval *object, int is_debug TSRMLS_DC) /* {{
 	xmlAttrPtr       attr;
 	int              namelen;
 	int              test;
+	char 		 use_iter;
+	zval            *iter_data;
+
+	use_iter = 0;
 
 	sxe = php_sxe_fetch_object(object TSRMLS_CC);
 
@@ -1122,6 +1126,7 @@ static HashTable * sxe_get_prop_hash(zval *object, int is_debug TSRMLS_DC) /* {{
 
 	GET_NODE(sxe, node);
 	node = php_sxe_get_first_node(sxe, node TSRMLS_CC);
+
 	if (node && sxe->iter.type != SXE_ITER_ATTRLIST) {
 		if (node->type == XML_ATTRIBUTE_NODE) {
 			MAKE_STD_ZVAL(value);
@@ -1129,7 +1134,17 @@ static HashTable * sxe_get_prop_hash(zval *object, int is_debug TSRMLS_DC) /* {{
 			zend_hash_next_index_insert(rv, &value, sizeof(zval *), NULL);
 			node = NULL;
 		} else if (sxe->iter.type != SXE_ITER_CHILD) {
-			node = node->children;
+
+			if ( !node->children || !node->parent || node->children->next || node->children->children || node->parent->children == node->parent->last ) {
+				node = node->children;
+			} else {
+				iter_data = sxe->iter.data;
+				sxe->iter.data = NULL;
+
+				node = php_sxe_reset_iterator(sxe, 0 TSRMLS_CC);
+
+				use_iter = 1;
+			}
 		}
 
 		while (node) {
@@ -1161,10 +1176,25 @@ static HashTable * sxe_get_prop_hash(zval *object, int is_debug TSRMLS_DC) /* {{
 
 			_get_base_node_value(sxe, node, &value, sxe->iter.nsprefix, sxe->iter.isprefix TSRMLS_CC);
 
-			sxe_properties_add(rv, name, namelen, value TSRMLS_CC);
+			if ( use_iter ) {
+				zend_hash_next_index_insert(rv, &value, sizeof(zval *), NULL);
+			} else {
+				sxe_properties_add(rv, name, namelen, value TSRMLS_CC);
+			}
 next_iter:
-			node = node->next;
+			if ( use_iter ) {
+				node = php_sxe_iterator_fetch(sxe, node->next, 0 TSRMLS_CC);
+			} else {
+				node = node->next;
+			}
 		}
+	}
+
+	if ( use_iter ) {
+		if (sxe->iter.data) {
+			zval_ptr_dtor(&sxe->iter.data);
+		}
+		sxe->iter.data = iter_data;
 	}
 
 	return rv;
@@ -1264,8 +1294,9 @@ SXE_METHOD(xpath)
 
 	result = retval->nodesetval;
 
+	array_init(return_value);
+		
 	if (result != NULL) {
-		array_init(return_value);
 		for (i = 0; i < result->nodeNr; ++i) {
 			nodeptr = result->nodeTab[i];
 			if (nodeptr->type == XML_TEXT_NODE || nodeptr->type == XML_ELEMENT_NODE || nodeptr->type == XML_ATTRIBUTE_NODE) {
@@ -1286,8 +1317,6 @@ SXE_METHOD(xpath)
 				add_next_index_zval(return_value, value);
 			}
 		}
-	} else {
-		RETVAL_FALSE;
 	}
 
 	xmlXPathFreeObject(retval);
@@ -1336,7 +1365,7 @@ SXE_METHOD(asXML)
 	}
 
 	if (ZEND_NUM_ARGS() == 1) {
-		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &filename, &filename_len) == FAILURE) {
+		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "p", &filename, &filename_len) == FAILURE) {
 			RETURN_FALSE;
 		}
 
@@ -2119,7 +2148,7 @@ PHP_FUNCTION(simplexml_load_file)
 	zend_class_entry *ce= sxe_class_entry;
 	zend_bool       isprefix = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|C!lsb", &filename, &filename_len, &ce, &options, &ns, &ns_len, &isprefix) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "p|C!lsb", &filename, &filename_len, &ce, &options, &ns, &ns_len, &isprefix) == FAILURE) {
 		return;
 	}
 
@@ -2609,7 +2638,7 @@ PHP_MINFO_FUNCTION(simplexml)
 {
 	php_info_print_table_start();
 	php_info_print_table_header(2, "Simplexml support", "enabled");
-	php_info_print_table_row(2, "Revision", "$Revision: 314376 $");
+	php_info_print_table_row(2, "Revision", "$Revision: 315883 $");
 	php_info_print_table_row(2, "Schema support",
 #ifdef LIBXML_SCHEMAS_ENABLED
 		"enabled");

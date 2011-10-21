@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_hash_crc32_tables.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_hash_crc32_tables.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 static const php_hash_uint32 crc32_table[] = {  0x0,
 	0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b,

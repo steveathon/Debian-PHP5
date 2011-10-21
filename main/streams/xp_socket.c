@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: xp_socket.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: xp_socket.c 308477 2011-02-19 01:28:37Z cataphract $ */
 
 #include "php.h"
 #include "ext/standard/file.h"
@@ -400,10 +400,6 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 				}
 #endif
 				
-				case PHP_STREAM_OPTION_WRITE_BUFFER:
-					php_stream_set_chunk_size(stream, (ptrparam ? *(size_t *)ptrparam : PHP_SOCK_CHUNK_SIZE));
-					return PHP_STREAM_OPTION_RETURN_OK;
-
 				default:
 					return PHP_STREAM_OPTION_RETURN_NOTIMPL;
 			}

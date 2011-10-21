@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: assert.c 311451 2011-05-26 18:17:43Z iliaa $ */
+/* $Id: assert.c 316627 2011-09-13 13:29:35Z dmitry $ */
 
 /* {{{ includes */
 #include "php.h"
@@ -200,7 +200,7 @@ PHP_FUNCTION(assert)
 		zval *retval;
 		int i;
 		uint lineno = zend_get_executed_lineno(TSRMLS_C);
-		char *filename = zend_get_executed_filename(TSRMLS_C);
+		const char *filename = zend_get_executed_filename(TSRMLS_C);
 
 		MAKE_STD_ZVAL(args[0]);
 		MAKE_STD_ZVAL(args[1]);

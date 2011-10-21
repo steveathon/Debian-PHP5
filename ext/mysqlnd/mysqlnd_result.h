@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_result.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: mysqlnd_result.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef MYSQLND_RESULT_H
 #define MYSQLND_RESULT_H

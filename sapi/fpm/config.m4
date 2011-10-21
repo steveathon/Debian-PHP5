@@ -366,6 +366,171 @@ AC_DEFUN([AC_FPM_TIMES],
 ])
 dnl }}}
 
+AC_DEFUN([AC_FPM_KQUEUE],
+[
+	AC_MSG_CHECKING([for kqueue])
+
+	AC_TRY_COMPILE(
+	[ 
+		#include <sys/types.h>
+		#include <sys/event.h>
+		#include <sys/time.h>
+	], [
+		int kfd;
+		struct kevent k;
+		kfd = kqueue();
+		/* 0 -> STDIN_FILENO */
+		EV_SET(&k, 0, EVFILT_READ , EV_ADD | EV_CLEAR, 0, 0, NULL);
+	], [
+		AC_DEFINE([HAVE_KQUEUE], 1, [do we have kqueue?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
+AC_DEFUN([AC_FPM_PORT],
+[
+	AC_MSG_CHECKING([for port framework])
+
+	AC_TRY_COMPILE(
+	[ 
+		#include <port.h>
+	], [
+		int port;
+
+		port = port_create();
+		if (port < 0) {
+			return 1;
+		}
+	], [
+		AC_DEFINE([HAVE_PORT], 1, [do we have port framework?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
+AC_DEFUN([AC_FPM_DEVPOLL],
+[
+	AC_MSG_CHECKING([for /dev/poll])
+
+	AC_TRY_COMPILE(
+	[ 
+		#include <stdio.h>
+		#include <sys/devpoll.h>
+	], [
+		int n, dp;
+		struct dvpoll dvp;
+		dp = 0;
+		dvp.dp_fds = NULL;
+		dvp.dp_nfds = 0;
+		dvp.dp_timeout = 0;
+		n = ioctl(dp, DP_POLL, &dvp)
+	], [
+		AC_DEFINE([HAVE_DEVPOLL], 1, [do we have /dev/poll?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
+AC_DEFUN([AC_FPM_EPOLL],
+[
+	AC_MSG_CHECKING([for epoll])
+
+	AC_TRY_COMPILE(
+	[ 
+		#include <sys/epoll.h>
+	], [
+		int epollfd;
+		struct epoll_event e;
+
+		epollfd = epoll_create(1);
+		if (epollfd < 0) {
+			return 1;
+		}
+
+		e.events = EPOLLIN | EPOLLET;
+		e.data.fd = 0;
+
+		if (epoll_ctl(epollfd, EPOLL_CTL_ADD, 0, &e) == -1) {
+			return 1;
+		}
+
+		e.events = 0;
+		if (epoll_wait(epollfd, &e, 1, 1) < 0) {
+			return 1;
+		}
+	], [
+		AC_DEFINE([HAVE_EPOLL], 1, [do we have epoll?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
+AC_DEFUN([AC_FPM_POLL],
+[
+	AC_MSG_CHECKING([for poll])
+
+	AC_TRY_COMPILE(
+	[ 
+		#include <poll.h>
+	], [
+		struct pollfd fds[2];
+
+		fds[0].fd = 0;
+		fds[0].events = POLLIN;
+
+		fds[1].fd = 0;
+		fds[1].events = POLLIN;
+
+		 poll(fds, 2, 1);
+	], [
+		AC_DEFINE([HAVE_POLL], 1, [do we have poll?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
+AC_DEFUN([AC_FPM_SELECT],
+[
+	AC_MSG_CHECKING([for select])
+
+	AC_TRY_COMPILE(
+	[ 
+		/* According to POSIX.1-2001 */
+		#include <sys/select.h>
+
+		/* According to earlier standards */
+		#include <sys/time.h>
+		#include <sys/types.h>
+		#include <unistd.h>
+	], [
+		fd_set fds;
+		struct timeval t;
+		t.tv_sec = 0;
+		t.tv_usec = 42;
+		FD_ZERO(&fds);
+		/* 0 -> STDIN_FILENO */
+		FD_SET(0, &fds);
+		select(FD_SETSIZE, &fds, NULL, NULL, &t);
+	], [
+		AC_DEFINE([HAVE_SELECT], 1, [do we have select?])
+		AC_MSG_RESULT([yes])
+	], [
+		AC_MSG_RESULT([no])
+	])
+])
+dnl }}}
+
 
 AC_MSG_CHECKING(for FPM build)
 if test "$PHP_FPM" != "no"; then
@@ -379,6 +544,12 @@ if test "$PHP_FPM" != "no"; then
   AC_FPM_LQ
 	AC_FPM_SYSCONF
 	AC_FPM_TIMES
+	AC_FPM_KQUEUE
+	AC_FPM_PORT
+	AC_FPM_DEVPOLL
+	AC_FPM_EPOLL
+	AC_FPM_POLL
+	AC_FPM_SELECT
 
   PHP_ARG_WITH(fpm-user,,
   [  --with-fpm-user[=USER]  Set the user for php-fpm to run as. (default: nobody)], nobody, no)
@@ -411,11 +582,12 @@ if test "$PHP_FPM" != "no"; then
   AC_DEFINE_UNQUOTED(PHP_FPM_USER, "$php_fpm_user", [fpm user name])
   AC_DEFINE_UNQUOTED(PHP_FPM_GROUP, "$php_fpm_group", [fpm group name])
 
-  PHP_OUTPUT(sapi/fpm/php-fpm.conf sapi/fpm/init.d.php-fpm sapi/fpm/php-fpm.8)
-  PHP_ADD_MAKEFILE_FRAGMENT([$abs_srcdir/sapi/fpm/Makefile.frag], [$abs_srcdir/sapi/fpm], [sapi/fpm])
+  PHP_ADD_BUILD_DIR(sapi/fpm/fpm)
+  PHP_ADD_BUILD_DIR(sapi/fpm/fpm/events)
+  PHP_OUTPUT(sapi/fpm/php-fpm.conf sapi/fpm/init.d.php-fpm sapi/fpm/php-fpm.8 sapi/fpm/status.html)
+  PHP_ADD_MAKEFILE_FRAGMENT([$abs_srcdir/sapi/fpm/Makefile.frag])
 
   SAPI_FPM_PATH=sapi/fpm/php-fpm
-  PHP_SUBST(SAPI_FPM_PATH)
   
   if test "$fpm_trace_type" && test -f "$abs_srcdir/sapi/fpm/fpm/fpm_trace_$fpm_trace_type.c"; then
     PHP_FPM_TRACE_FILES="fpm/fpm_trace.c fpm/fpm_trace_$fpm_trace_type.c"
@@ -423,7 +595,6 @@ if test "$PHP_FPM" != "no"; then
   
   PHP_FPM_CFLAGS="-I$abs_srcdir/sapi/fpm"
  
-  INSTALL_IT=":"
   PHP_FPM_FILES="fpm/fastcgi.c \
     fpm/fpm.c \
     fpm/fpm_children.c \
@@ -447,23 +618,31 @@ if test "$PHP_FPM" != "no"; then
     fpm/fpm_unix.c \
     fpm/fpm_worker_pool.c \
     fpm/zlog.c \
+		fpm/events/select.c \
+		fpm/events/poll.c \
+		fpm/events/epoll.c \
+		fpm/events/kqueue.c \
+		fpm/events/devpoll.c \
+		fpm/events/port.c \
   "
 
   PHP_SELECT_SAPI(fpm, program, $PHP_FPM_FILES $PHP_FPM_TRACE_FILES, $PHP_FPM_CFLAGS, '$(SAPI_FPM_PATH)')
 
   case $host_alias in
       *aix*)
-        BUILD_FPM="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+        BUILD_FPM="echo '\#! .' > php.sym && echo >>php.sym && nm -BCpg \`echo \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_FPM_OBJS) | sed 's/\([A-Za-z0-9_]*\)\.lo/\1.o/g'\` | \$(AWK) '{ if (((\$\$2 == \"T\") || (\$\$2 == \"D\") || (\$\$2 == \"B\")) && (substr(\$\$3,1,1) != \".\")) { print \$\$3 } }' | sort -u >> php.sym && \$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) -Wl,-brtl -Wl,-bE:php.sym \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_FPM_OBJS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
         ;;
       *darwin*)
-        BUILD_FPM="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_SAPI_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+        BUILD_FPM="\$(CC) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(NATIVE_RPATHS) \$(PHP_GLOBAL_OBJS:.lo=.o) \$(PHP_BINARY_OBJS:.lo=.o) \$(PHP_FPM_OBJS:.lo=.o) \$(PHP_FRAMEWORKS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
       ;;
       *)
-        BUILD_FPM="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_SAPI_OBJS) \$(EXTRA_LIBS) \$(SAPI_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
+        BUILD_FPM="\$(LIBTOOL) --mode=link \$(CC) -export-dynamic \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(EXTRA_LDFLAGS_PROGRAM) \$(LDFLAGS) \$(PHP_RPATHS) \$(PHP_GLOBAL_OBJS) \$(PHP_BINARY_OBJS) \$(PHP_FPM_OBJS) \$(EXTRA_LIBS) \$(FPM_EXTRA_LIBS) \$(ZEND_EXTRA_LIBS) -o \$(SAPI_FPM_PATH)"
       ;;
   esac
 
+  PHP_SUBST(SAPI_FPM_PATH)
   PHP_SUBST(BUILD_FPM)
+
 else
   AC_MSG_RESULT(no)
 fi

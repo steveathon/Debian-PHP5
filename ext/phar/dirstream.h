@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: dirstream.h 306941 2011-01-01 02:48:19Z felipe $ */
+/* $Id: dirstream.h 306940 2011-01-01 02:46:03Z felipe $ */
 
 BEGIN_EXTERN_C()
 int phar_wrapper_mkdir(php_stream_wrapper *wrapper, char *url_from, int mode, int options, php_stream_context *context TSRMLS_DC);

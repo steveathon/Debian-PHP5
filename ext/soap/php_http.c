@@ -17,7 +17,7 @@
   |          Dmitry Stogov <dmitry@zend.com>                             |
   +----------------------------------------------------------------------+
 */
-/* $Id: php_http.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_http.c 318136 2011-10-15 23:57:33Z stas $ */
 
 #include "php_soap.h"
 #include "ext/standard/base64.h"
@@ -118,7 +118,7 @@ static php_stream* http_connect(zval* this_ptr, php_url *phpurl, int use_ssl, ph
 	namelen = spprintf(&name, 0, "%s://%s:%d", (use_ssl && !*use_proxy)? "ssl" : "tcp", host, port);
 
 	stream = php_stream_xport_create(name, namelen,
-		ENFORCE_SAFE_MODE | REPORT_ERRORS,
+		REPORT_ERRORS,
 		STREAM_XPORT_CLIENT | STREAM_XPORT_CONNECT,
 		NULL /*persistent_id*/,
 		timeout,
@@ -387,7 +387,7 @@ try_again:
 
 	if (stream) {
 		zval **cookies, **login, **password;
-	  int ret = zend_list_insert(phpurl, le_url);
+	  int ret = zend_list_insert(phpurl, le_url TSRMLS_CC);
 
 		add_property_resource(this_ptr, "httpurl", ret);
 		/*zend_list_addref(ret);*/
@@ -1386,7 +1386,7 @@ static int get_http_body(php_stream *stream, int close, char *headers,  char **r
 		if (header_length < 0) {
 			return FALSE;
 		}
-		http_buf = emalloc(header_length + 1);
+		http_buf = safe_emalloc(1, header_length, 1);
 		while (http_buf_size < header_length) {
 			int len_read = php_stream_read(stream, http_buf + http_buf_size, header_length - http_buf_size);
 			if (len_read <= 0) {

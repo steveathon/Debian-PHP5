@@ -18,19 +18,13 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_statistics.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: mysqlnd_statistics.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef MYSQLND_STATISTICS_H
 #define MYSQLND_STATISTICS_H
 
 
 PHPAPI extern MYSQLND_STATS * mysqlnd_global_stats;
-
-typedef struct st_mysqlnd_string
-{
-	char	*s;
-	size_t	l;
-} MYSQLND_STRING;
 
 extern const MYSQLND_STRING mysqlnd_stats_values_names[];
 

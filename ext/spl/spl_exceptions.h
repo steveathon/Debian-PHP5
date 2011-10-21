@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_exceptions.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: spl_exceptions.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef SPL_EXCEPTIONS_H
 #define SPL_EXCEPTIONS_H

@@ -16,9 +16,9 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: snprintf.c 314582 2011-08-09 02:42:25Z pierrick $ */
+/* $Id: snprintf.c 316807 2011-09-15 07:09:43Z laruence $ */
 
-
+#define _GNU_SOURCE
 #include "php.h"
 
 #include <zend_strtod.h>
@@ -1222,7 +1222,7 @@ static void strx_printv(int *ccp, char *buf, size_t len, const char *format, va_
 
 PHPAPI int ap_php_slprintf(char *buf, size_t len, const char *format,...) /* {{{ */
 {
-	int cc;
+	unsigned int cc;
 	va_list ap;
 
 	va_start(ap, format);
@@ -1238,7 +1238,7 @@ PHPAPI int ap_php_slprintf(char *buf, size_t len, const char *format,...) /* {{{
 
 PHPAPI int ap_php_vslprintf(char *buf, size_t len, const char *format, va_list ap) /* {{{ */
 {
-	int cc;
+	unsigned int cc;
 
 	strx_printv(&cc, buf, len, format, ap);
 	if (cc >= len) {

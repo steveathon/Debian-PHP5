@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: hash_md.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: hash_md.c 311870 2011-06-06 21:28:16Z felipe $ */
 
 #include "php_hash.h"
 #include "php_hash_md.h"
@@ -144,11 +144,11 @@ PHP_NAMED_FUNCTION(php_if_md5_file)
 	int           n;
 	php_stream    *stream;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|b", &arg, &arg_len, &raw_output) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "p|b", &arg, &arg_len, &raw_output) == FAILURE) {
 		return;
 	}
 	
-	stream = php_stream_open_wrapper(arg, "rb", REPORT_ERRORS | ENFORCE_SAFE_MODE, NULL);
+	stream = php_stream_open_wrapper(arg, "rb", REPORT_ERRORS, NULL);
 	if (!stream) {
 		RETURN_FALSE;
 	}

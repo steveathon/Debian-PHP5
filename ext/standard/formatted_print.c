@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: formatted_print.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: formatted_print.c 308523 2011-02-21 05:33:16Z cataphract $ */
 
 #include <math.h>				/* modf() */
 #include "php.h"
@@ -37,10 +37,7 @@
 #define ADJ_WIDTH 1
 #define ADJ_PRECISION 2
 #define NUM_BUF_SIZE 500
-#define	NDIG 80
-#define FLOAT_DIGITS 6
 #define FLOAT_PRECISION 6
-#define MAX_FLOAT_DIGITS 38
 #define MAX_FLOAT_PRECISION 53
 
 #if 0

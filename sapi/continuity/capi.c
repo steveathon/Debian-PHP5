@@ -110,7 +110,7 @@ PHP_MSHUTDOWN_FUNCTION(continuity)
 PHP_MINFO_FUNCTION(continuity)
 {
         php_info_print_table_start();
-        php_info_print_table_row(2, "Continuity Module Revision", "$Revision: 306939 $");
+        php_info_print_table_row(2, "Continuity Module Revision", "$Revision: 306938 $");
         php_info_print_table_row(2, "Server Version", conFget_build());
 #ifdef CONTINUITY_CDPEXT
 	php_info_print_table_row(2,"CDP Extensions", "enabled");
@@ -343,9 +343,8 @@ static void sapi_capi_register_server_variables(zval * track_vars_array TSRMLS_D
 
 }
 
-static void capi_log_message(char *message)
+static void capi_log_message(char *message TSRMLS_DC)
 {
-   TSRMLS_FETCH();
    capi_request_context *rc = (capi_request_context *) SG(server_context);
    logFmsg(0, "mod/php: %s", message);
 }

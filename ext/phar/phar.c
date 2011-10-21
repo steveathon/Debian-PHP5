@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: phar.c 314419 2011-08-07 11:13:27Z laruence $ */
+/* $Id: phar.c 316627 2011-09-13 13:29:35Z dmitry $ */
 
 #define PHAR_MAIN 1
 #include "phar_internal.h"
@@ -1736,31 +1736,30 @@ static int phar_open_from_fp(php_stream* fp, char *fname, int fname_len, char *a
 static int phar_analyze_path(const char *fname, const char *ext, int ext_len, int for_create TSRMLS_DC) /* {{{ */
 {
 	php_stream_statbuf ssb;
-	char *realpath, old, *a = (char *)(ext + ext_len);
+	char *realpath;
+	char *filename = estrndup(fname, (ext - fname) + ext_len);
 
-	old = *a;
-	*a = '\0';
-
-	if ((realpath = expand_filepath(fname, NULL TSRMLS_CC))) {
+	if ((realpath = expand_filepath(filename, NULL TSRMLS_CC))) {
 #ifdef PHP_WIN32
 		phar_unixify_path_separators(realpath, strlen(realpath));
 #endif
 		if (zend_hash_exists(&(PHAR_GLOBALS->phar_fname_map), realpath, strlen(realpath))) {
-			*a = old;
 			efree(realpath);
+			efree(filename);
 			return SUCCESS;
 		}
 
 		if (PHAR_G(manifest_cached) && zend_hash_exists(&cached_phars, realpath, strlen(realpath))) {
-			*a = old;
 			efree(realpath);
+			efree(filename);
 			return SUCCESS;
 		}
 		efree(realpath);
 	}
 
-	if (SUCCESS == php_stream_stat_path((char *) fname, &ssb)) {
-		*a = old;
+	if (SUCCESS == php_stream_stat_path((char *) filename, &ssb)) {
+
+		efree(filename);
 
 		if (ssb.sb.st_mode & S_IFDIR) {
 			return FAILURE;
@@ -1775,57 +1774,56 @@ static int phar_analyze_path(const char *fname, const char *ext, int ext_len, in
 		char *slash;
 
 		if (!for_create) {
-			*a = old;
+			efree(filename);
 			return FAILURE;
 		}
 
-		slash = (char *) strrchr(fname, '/');
-		*a = old;
+		slash = (char *) strrchr(filename, '/');
 
 		if (slash) {
-			old = *slash;
 			*slash = '\0';
 		}
 
-		if (SUCCESS != php_stream_stat_path((char *) fname, &ssb)) {
-			if (slash) {
-				*slash = old;
-			} else {
-				if (!(realpath = expand_filepath(fname, NULL TSRMLS_CC))) {
+		if (SUCCESS != php_stream_stat_path((char *) filename, &ssb)) {
+			if (!slash) {
+				if (!(realpath = expand_filepath(filename, NULL TSRMLS_CC))) {
+					efree(filename);
 					return FAILURE;
 				}
 #ifdef PHP_WIN32
 				phar_unixify_path_separators(realpath, strlen(realpath));
 #endif
-				a = strstr(realpath, fname) + ((ext - fname) + ext_len);
-				*a = '\0';
+				slash = strstr(realpath, filename) + ((ext - fname) + ext_len);
+				*slash = '\0';
 				slash = strrchr(realpath, '/');
 
 				if (slash) {
 					*slash = '\0';
 				} else {
 					efree(realpath);
+					efree(filename);
 					return FAILURE;
 				}
 
 				if (SUCCESS != php_stream_stat_path(realpath, &ssb)) {
 					efree(realpath);
+					efree(filename);
 					return FAILURE;
 				}
 
 				efree(realpath);
 
 				if (ssb.sb.st_mode & S_IFDIR) {
+					efree(filename);
 					return SUCCESS;
 				}
 			}
 
+			efree(filename);
 			return FAILURE;
 		}
 
-		if (slash) {
-			*slash = old;
-		}
+		efree(filename);
 
 		if (ssb.sb.st_mode & S_IFDIR) {
 			return SUCCESS;
@@ -2333,7 +2331,7 @@ int phar_open_executed_filename(char *alias, int alias_len, char **error TSRMLS_
 		*error = NULL;
 	}
 
-	fname = zend_get_executed_filename(TSRMLS_C);
+	fname = (char*)zend_get_executed_filename(TSRMLS_C);
 	fname_len = strlen(fname);
 
 	if (phar_open_parsed_phar(fname, fname_len, alias, alias_len, 0, REPORT_ERRORS, NULL, 0 TSRMLS_CC) == SUCCESS) {
@@ -3103,9 +3101,7 @@ int phar_flush(phar_archive_data *phar, char *user_stub, long len, int convert, 
 		/* this will have changed for all files that have either changed compression or been modified */
 		entry->offset = entry->offset_abs = offset;
 		offset += entry->compressed_filesize;
-		phar_stream_copy_to_stream(file, newfile, entry->compressed_filesize, &wrote);
-
-		if (entry->compressed_filesize != wrote) {
+		if (phar_stream_copy_to_stream(file, newfile, entry->compressed_filesize, &wrote) == FAILURE) {
 			if (closeoldfile) {
 				php_stream_close(oldfile);
 			}
@@ -3340,7 +3336,7 @@ static zend_op_array *phar_compile_file(zend_file_handle *file_handle, int type 
 		return phar_orig_compile_file(file_handle, type TSRMLS_CC);
 	}
 	if (strstr(file_handle->filename, ".phar") && !strstr(file_handle->filename, "://")) {
-		if (SUCCESS == phar_open_from_filename(file_handle->filename, strlen(file_handle->filename), NULL, 0, 0, &phar, NULL TSRMLS_CC)) {
+		if (SUCCESS == phar_open_from_filename((char*)file_handle->filename, strlen(file_handle->filename), NULL, 0, 0, &phar, NULL TSRMLS_CC)) {
 			if (phar->is_zip || phar->is_tar) {
 				zend_file_handle f = *file_handle;
 
@@ -3421,7 +3417,7 @@ int phar_zend_open(const char *filename, zend_file_handle *handle TSRMLS_DC) /* 
 		char *fname;
 		int fname_len;
 
-		fname = zend_get_executed_filename(TSRMLS_C);
+		fname = (char*)zend_get_executed_filename(TSRMLS_C);
 		fname_len = strlen(fname);
 
 		if (fname_len > 7 && !strncasecmp(fname, "phar://", 7)) {
@@ -3669,7 +3665,7 @@ PHP_MINFO_FUNCTION(phar) /* {{{ */
 	php_info_print_table_header(2, "Phar: PHP Archive support", "enabled");
 	php_info_print_table_row(2, "Phar EXT version", PHP_PHAR_VERSION);
 	php_info_print_table_row(2, "Phar API version", PHP_PHAR_API_VERSION);
-	php_info_print_table_row(2, "SVN revision", "$Revision: 314419 $");
+	php_info_print_table_row(2, "SVN revision", "$Revision: 316627 $");
 	php_info_print_table_row(2, "Phar-based phar archives", "enabled");
 	php_info_print_table_row(2, "Tar-based phar archives", "enabled");
 	php_info_print_table_row(2, "ZIP-based phar archives", "enabled");

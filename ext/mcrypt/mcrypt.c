@@ -16,7 +16,7 @@
    |          Derick Rethans <derick@derickrethans.nl>                    |
    +----------------------------------------------------------------------+
  */
-/* $Id: mcrypt.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: mcrypt.c 313663 2011-07-25 11:35:02Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -1387,7 +1387,7 @@ PHP_FUNCTION(mcrypt_create_iv)
 	}
 	
 	iv = ecalloc(size + 1, 1);
-	
+
 	if (source == RANDOM || source == URANDOM) {
 #if PHP_WIN32
 		/* random/urandom equivalent on Windows */

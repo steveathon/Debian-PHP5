@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_main.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_main.h 312345 2011-06-20 20:30:36Z moriyoshi $ */
 
 #ifndef PHP_MAIN_H
 #define PHP_MAIN_H
@@ -35,6 +35,7 @@ PHPAPI void php_module_shutdown(TSRMLS_D);
 PHPAPI void php_module_shutdown_for_exec(void);
 PHPAPI int php_module_shutdown_wrapper(sapi_module_struct *sapi_globals);
 PHPAPI int php_request_startup_for_hook(TSRMLS_D);
+PHPAPI void php_request_shutdown_for_hook(void *dummy);
 
 PHPAPI int php_register_extensions(zend_module_entry **ptr, int count TSRMLS_DC);
 

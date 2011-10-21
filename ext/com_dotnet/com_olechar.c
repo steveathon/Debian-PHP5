@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: com_olechar.c 307626 2011-01-20 13:57:40Z pajoye $ */
+/* $Id: com_olechar.c 307616 2011-01-20 06:55:11Z pajoye $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -54,7 +54,7 @@ PHPAPI OLECHAR *php_com_string_to_olestring(char *string, uint string_len, int c
 	}
 
 	if (!ok) {
-		char *msg = php_win_err(GetLastError());
+		char *msg = php_win32_error_to_msg(GetLastError());
 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING,
 			"Could not convert string to unicode: `%s'", msg);
@@ -85,7 +85,7 @@ PHPAPI char *php_com_olestring_to_string(OLECHAR *olestring, uint *string_len, i
 	}
 
 	if (!ok) {
-		char *msg = php_win_err(GetLastError());
+		char *msg = php_win32_error_to_msg(GetLastError());
 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING,
 			"Could not convert string from unicode: `%s'", msg);

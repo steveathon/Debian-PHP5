@@ -15,7 +15,7 @@
    | Author: Wez Furlong <wez@thebrainroom.com>                           |
    +----------------------------------------------------------------------+
  */
-/* $Id: proc_open.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: proc_open.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifdef PHP_WIN32
 typedef HANDLE php_file_descriptor_t;

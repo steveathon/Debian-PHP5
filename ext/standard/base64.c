@@ -15,7 +15,7 @@
    | Author: Jim Winstead <jimw@php.net>                                  |
    +----------------------------------------------------------------------+
  */
-/* $Id: base64.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: base64.c 316560 2011-09-12 17:20:24Z iliaa $ */
 
 #include <string.h>
 
@@ -153,6 +153,14 @@ PHPAPI unsigned char *php_base64_decode_ex(const unsigned char *str, int length,
 	while ((ch = *current++) != '\0' && length-- > 0) {
 		if (ch == base64_pad) {
 			if (*current != '=' && ((i % 4) == 1 || (strict && length > 0))) {
+				if ((i % 4) != 1) {
+					while (isspace(*(++current))) {
+						continue;
+					}
+					if (*current == '\0') {
+						continue;
+					}
+				}
 				efree(result);
 				return NULL;
 			}

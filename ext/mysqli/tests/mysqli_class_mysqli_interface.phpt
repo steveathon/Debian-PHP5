@@ -22,7 +22,6 @@ require_once('skipifconnectfailure.inc');
 		'autocommit'			=> true,
 		'change_user'			=> true,
 		'character_set_name'		=> true,
-		'client_encoding'		=> true,
 		'close'				=> true,
 		'commit'	=> true,
 		'connect'			=> true,
@@ -59,7 +58,6 @@ require_once('skipifconnectfailure.inc');
 	);
 	if ($IS_MYSQLND) {
 		// mysqlnd only
-		/* $expected_methods['get_cache_stats']		= true; */
 		/* $expected_methods['get_client_stats']	= true; */
 		$expected_methods['get_connection_stats']	= true;
 		$expected_methods['reap_async_query']	= true;
@@ -133,6 +131,11 @@ require_once('skipifconnectfailure.inc');
 		$mysqli->error, gettype($mysqli->error),
 		mysqli_error($link), gettype(mysqli_error($link)));
 
+	assert(mysqli_error_list($link) === $mysqli->error_list);
+	printf("mysqli->error_list = '%s'/%s ('%s'/%s)\n",
+		$mysqli->error_list, gettype($mysqli->error_list),
+		mysqli_error_list($link), gettype(mysqli_error_list($link)));
+
 	assert(mysqli_field_count($link) === $mysqli->field_count);
 	printf("mysqli->field_count = '%s'/%s ('%s'/%s)\n",
 		$mysqli->field_count, gettype($mysqli->field_count),
@@ -147,6 +150,11 @@ require_once('skipifconnectfailure.inc');
 	printf("mysqli->sqlstate = '%s'/%s ('%s'/%s)\n",
 		$mysqli->sqlstate, gettype($mysqli->sqlstate),
 		mysqli_sqlstate($link), gettype(mysqli_sqlstate($link)));
+
+	assert(mysqli_stat($link) === $mysqli->stat);
+	printf("mysqli->stat = '%s'/%s ('%s'/%s)\n",
+		$mysqli->stat, gettype($mysqli->stat),
+		mysqli_stat($link), gettype(mysqli_stat($link)));
 
 	assert(mysqli_get_host_info($link) === $mysqli->host_info);
 	printf("mysqli->host_info = '%s'/%s ('%s'/%s)\n",
@@ -224,6 +232,7 @@ connect_errno
 connect_error
 errno
 error
+error_list
 field_count
 host_info
 info
@@ -232,6 +241,7 @@ protocol_version
 server_info
 server_version
 sqlstate
+stat
 thread_id
 warning_count
 
@@ -243,12 +253,14 @@ connect_errno
 connect_error
 errno
 error
+error_list
 field_count
 host_info
 info
 insert_id
 server_info
 server_version
+stat
 sqlstate
 protocol_version
 thread_id
@@ -260,9 +272,11 @@ mysqli->client_info = '%s'/%unicode|string% ('%s'/%unicode|string%)
 mysqli->client_version =  '%d'/integer ('%d'/integer)
 mysqli->errno = '0'/integer ('0'/integer)
 mysqli->error = ''/%unicode|string% (''/%unicode|string%)
+mysqli->error_list = 'Array'/array ('Array'/array)
 mysqli->field_count = '0'/integer ('0'/integer)
 mysqli->insert_id = '0'/integer ('0'/integer)
 mysqli->sqlstate = '00000'/%unicode|string% ('00000'/%unicode|string%)
+mysqli->stat = 'Uptime: %d  Threads: %d  Questions: %d  Slow queries: %d  Opens: %d  Flush tables: %d  Open tables: %d  Queries per second avg: %d.%d'/string ('Uptime: %d  Threads: %d  Questions: %d  Slow queries: %d  Opens: %d  Flush tables: %d  Open tables: %d  Queries per second avg: %d.%d'/string)
 mysqli->host_info = '%s'/%unicode|string% ('%s'/%unicode|string%)
 mysqli->info = ''/NULL (''/%unicode|string%)
 mysqli->thread_id = '%d'/integer ('%d'/integer)

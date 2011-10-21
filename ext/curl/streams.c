@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: streams.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: streams.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 /* This file implements cURL based wrappers.
  * NOTE: If you are implementing your own streams that are intended to
@@ -395,7 +395,7 @@ php_stream *php_curl_stream_opener(php_stream_wrapper *wrapper, char *filename, 
 				}
 			}
 			if (mr > 1) {
-				if ((PG(open_basedir) && *PG(open_basedir)) || PG(safe_mode)) {
+				if (PG(open_basedir) && *PG(open_basedir)) {
 					curl_easy_setopt(curlstream->curl, CURLOPT_FOLLOWLOCATION, 0);
 				} else {
 					curl_easy_setopt(curlstream->curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -403,7 +403,7 @@ php_stream *php_curl_stream_opener(php_stream_wrapper *wrapper, char *filename, 
 				curl_easy_setopt(curlstream->curl, CURLOPT_MAXREDIRS, mr);
 			}
 		} else {
-			if ((PG(open_basedir) && *PG(open_basedir)) || PG(safe_mode)) {
+			if (PG(open_basedir) && *PG(open_basedir)) {
 				curl_easy_setopt(curlstream->curl, CURLOPT_FOLLOWLOCATION, 0);
 			} else {
 				curl_easy_setopt(curlstream->curl, CURLOPT_FOLLOWLOCATION, 1);

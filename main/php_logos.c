@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_logos.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_logos.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "php.h"
 #include "logos.h"
@@ -85,7 +85,7 @@ int php_info_logos(const char *logo_string TSRMLS_DC)
 	content_header[len] = '\0';
 	sapi_add_header(content_header, len, 0);
 
-	PHPWRITE(logo_image->data, logo_image->size);
+	PHPWRITE((char*)logo_image->data, logo_image->size);
 	return 1;
 }
 

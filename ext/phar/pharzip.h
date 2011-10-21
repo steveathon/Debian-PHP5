@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: pharzip.h 306941 2011-01-01 02:48:19Z felipe $ */
+/* $Id: pharzip.h 306940 2011-01-01 02:46:03Z felipe $ */
 
 typedef struct _phar_zip_file_header {
 	char signature[4];       /* local file header signature     4 bytes  (0x04034b50) */

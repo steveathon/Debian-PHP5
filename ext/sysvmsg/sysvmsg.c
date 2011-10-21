@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: sysvmsg.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: sysvmsg.c 313663 2011-07-25 11:35:02Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -145,7 +145,7 @@ PHP_MINFO_FUNCTION(sysvmsg)
 {
 	php_info_print_table_start();
 	php_info_print_table_row(2, "sysvmsg support", "enabled");
-	php_info_print_table_row(2, "Revision", "$Revision: 313665 $");
+	php_info_print_table_row(2, "Revision", "$Revision: 313663 $");
 	php_info_print_table_end();
 }
 /* }}} */
@@ -271,7 +271,7 @@ PHP_FUNCTION(msg_get_queue)
 			RETURN_FALSE;
 		}
 	}
-	RETVAL_RESOURCE(zend_list_insert(mq, le_sysvmsg));
+	RETVAL_RESOURCE(zend_list_insert(mq, le_sysvmsg TSRMLS_CC));
 }
 /* }}} */
 

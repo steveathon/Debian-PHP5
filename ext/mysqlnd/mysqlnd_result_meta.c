@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_result_meta.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: mysqlnd_result_meta.c 314239 2011-08-04 09:51:26Z andrey $ */
 #include "php.h"
 #include "mysqlnd.h"
 #include "mysqlnd_priv.h"
@@ -170,7 +170,7 @@ MYSQLND_METHOD(mysqlnd_res_meta, read_metadata)(MYSQLND_RES_METADATA * const met
 			DBG_RETURN(FAIL);
 		}
 		if (field_packet->error_info.error_no) {
-			conn->error_info = field_packet->error_info;
+			COPY_CLIENT_ERROR(conn->error_info, field_packet->error_info);
 			/* Return back from CONN_QUERY_SENT */
 			PACKET_FREE(field_packet);
 			DBG_RETURN(FAIL);

@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: fopen_wrappers.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: fopen_wrappers.h 313678 2011-07-25 16:50:07Z pajoye $ */
 
 #ifndef FOPEN_WRAPPERS_H
 #define FOPEN_WRAPPERS_H
@@ -28,13 +28,14 @@ BEGIN_EXTERN_C()
 PHPAPI int php_fopen_primary_script(zend_file_handle *file_handle TSRMLS_DC);
 PHPAPI char *expand_filepath(const char *filepath, char *real_path TSRMLS_DC);
 PHPAPI char *expand_filepath_ex(const char *filepath, char *real_path, const char *relative_to, size_t relative_to_len TSRMLS_DC);
+PHPAPI char *expand_filepath_with_mode(const char *filepath, char *real_path, const char *relative_to, size_t relative_to_len, int realpath_mode TSRMLS_DC);
 
 PHPAPI int php_check_open_basedir(const char *path TSRMLS_DC);
 PHPAPI int php_check_open_basedir_ex(const char *path, int warn TSRMLS_DC);
 PHPAPI int php_check_specific_open_basedir(const char *basedir, const char *path TSRMLS_DC);
 
 /* {{{ OPENBASEDIR_CHECKPATH(filename) to ease merge between 6.x and 5.x */
-#if (PHP_MAJOR_VERSION < 6)
+#if PHP_API_VERSION < 20100412
 # define OPENBASEDIR_CHECKPATH(filename) \
 	(PG(safe_mode) && (!php_checkuid(filename, NULL, CHECKUID_CHECK_FILE_AND_DIR))) || php_check_open_basedir(filename TSRMLS_CC)
 #else

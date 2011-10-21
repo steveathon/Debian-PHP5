@@ -174,7 +174,7 @@ void mysqli_common_connect(INTERNAL_FUNCTION_PARAMETERS, zend_bool is_real_conne
 							/* reset variables */
 
 #ifndef MYSQLI_NO_CHANGE_USER_ON_PCONNECT
-							if (!mysqli_change_user_silent(mysql->mysql, username, passwd, dbname)) {
+							if (!mysqli_change_user_silent(mysql->mysql, username, passwd, dbname, passwd_len)) {
 #else
 							if (!mysql_ping(mysql->mysql)) {
 #endif
@@ -387,17 +387,6 @@ PHP_FUNCTION(mysqli_fetch_all)
 /* }}} */
 
 
-/* {{{ proto array mysqli_cache_stats(void) U
-   Returns statistics about the zval cache */
-PHP_FUNCTION(mysqli_get_cache_stats)
-{
-	if (zend_parse_parameters_none() == FAILURE) {
-		return;
-	}
-	array_init(return_value);
-}
-/* }}} */
-
 
 /* {{{ proto array mysqli_get_client_stats(void)
    Returns statistics about the zval cache */
@@ -427,6 +416,93 @@ PHP_FUNCTION(mysqli_get_connection_stats)
 	mysqlnd_get_connection_stats(mysql->mysql, return_value);
 }
 #endif
+/* }}} */
+
+/* {{{ proto mixed mysqli_error_list (object connection)
+   Fetches all client errors */
+PHP_FUNCTION(mysqli_error_list)
+{
+	MY_MYSQL	*mysql;
+	zval		*mysql_link;
+
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "O", &mysql_link, mysqli_link_class_entry) == FAILURE) {
+		return;
+	}
+	MYSQLI_FETCH_RESOURCE_CONN(mysql, &mysql_link, MYSQLI_STATUS_VALID);
+	array_init(return_value);
+#if defined(MYSQLI_USE_MYSQLND)
+	if (mysql->mysql->error_info.error_list) {
+		MYSQLND_ERROR_LIST_ELEMENT * message;
+		zend_llist_position pos;
+		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->error_info.error_list, &pos);
+			 message;
+			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->error_info.error_list, &pos)) 
+		{
+			zval * single_error;
+			MAKE_STD_ZVAL(single_error);
+			array_init(single_error);
+			add_assoc_long_ex(single_error, "errno", sizeof("errno"), message->error_no);
+			add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), message->sqlstate, 1);
+			add_assoc_string_ex(single_error, "error", sizeof("error"), message->error, 1);
+			add_next_index_zval(return_value, single_error);
+		}
+	}
+#else
+	if (mysql_errno(mysql->mysql)) {
+		zval * single_error;
+		MAKE_STD_ZVAL(single_error);
+		array_init(single_error);
+		add_assoc_long_ex(single_error, "errno", sizeof("errno"), mysql_errno(mysql->mysql));
+		add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), mysql_sqlstate(mysql->mysql), 1);
+		add_assoc_string_ex(single_error, "error", sizeof("error"), mysql_error(mysql->mysql), 1);
+		add_next_index_zval(return_value, single_error);
+	}
+#endif
+}
+/* }}} */
+
+
+/* {{{ proto string mysqli_stmt_error_list(object stmt)
+*/
+PHP_FUNCTION(mysqli_stmt_error_list)
+{
+	MY_STMT	*stmt;
+	zval 	*mysql_stmt;
+
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS() TSRMLS_CC, getThis(), "O", &mysql_stmt, mysqli_stmt_class_entry) == FAILURE) {
+		return;
+	}
+	MYSQLI_FETCH_RESOURCE_STMT(stmt, &mysql_stmt, MYSQLI_STATUS_INITIALIZED);
+	array_init(return_value);
+#if defined(MYSQLI_USE_MYSQLND)
+	if (stmt->stmt && stmt->stmt->data && stmt->stmt->data->error_info.error_list) {
+		MYSQLND_ERROR_LIST_ELEMENT * message;
+		zend_llist_position pos;
+		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info.error_list, &pos);
+			 message;
+			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info.error_list, &pos)) 
+		{
+			zval * single_error;
+			MAKE_STD_ZVAL(single_error);
+			array_init(single_error);
+			add_assoc_long_ex(single_error, "errno", sizeof("errno"), message->error_no);
+			add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), message->sqlstate, 1);
+			add_assoc_string_ex(single_error, "error", sizeof("error"), message->error, 1);
+			add_next_index_zval(return_value, single_error);
+		}
+	}
+#else
+	if (mysql_stmt_errno(stmt->stmt)) {
+		zval * single_error;
+		MAKE_STD_ZVAL(single_error);
+		array_init(single_error);
+		add_assoc_long_ex(single_error, "errno", sizeof("errno"), mysql_stmt_errno(stmt->stmt));
+		add_assoc_string_ex(single_error, "sqlstate", sizeof("sqlstate"), mysql_stmt_sqlstate(stmt->stmt), 1);
+		add_assoc_string_ex(single_error, "error", sizeof("error"), mysql_stmt_error(stmt->stmt), 1);
+		add_next_index_zval(return_value, single_error);
+	}
+#endif
+}
 /* }}} */
 
 

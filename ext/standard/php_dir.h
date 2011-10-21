@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_dir.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_dir.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_DIR_H
 #define PHP_DIR_H
@@ -36,5 +36,9 @@ PHP_NAMED_FUNCTION(php_if_readdir);
 PHP_FUNCTION(getdir);
 PHP_FUNCTION(glob);
 PHP_FUNCTION(scandir);
+
+#define PHP_SCANDIR_SORT_ASCENDING 0
+#define PHP_SCANDIR_SORT_DESCENDING 1
+#define PHP_SCANDIR_SORT_NONE 2
 
 #endif /* PHP_DIR_H */

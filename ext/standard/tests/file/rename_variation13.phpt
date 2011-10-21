@@ -98,16 +98,22 @@ bool(true)
 Warning: rename( ,%s/renameVar13/afile.tmp): No such file or directory in %s on line %d
 bool(false)
 -- testing '%s' --
+
+Warning: rename() %s in %s on line %d
 bool(false)
+
+Warning: file_exists() expects parameter 1 to be a valid path, string given in %s on line %d
+
+Warning: rename() expects parameter 1 to be a valid path, string given in %s on line %d
 bool(false)
 -- testing 'Array' --
 
-Warning: rename() expects parameter 2 to be string, array given in %s on line %d
+Warning: rename() expects parameter 2 to be a valid path, array given in %s on line %d
 bool(false)
 
-Warning: file_exists() expects parameter 1 to be string, array given in %s on line %d
+Warning: file_exists() expects parameter 1 to be a valid path, array given in %s on line %d
 
-Warning: rename() expects parameter 1 to be string, array given in %s on line %d
+Warning: rename() expects parameter 1 to be a valid path, array given in %s on line %d
 bool(false)
 -- testing '/no/such/file/dir' --
 

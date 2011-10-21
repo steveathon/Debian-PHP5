@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: php_fileinfo.h 306943 2011-01-01 02:51:27Z felipe $ */
+/* $Id: php_fileinfo.h 306942 2011-01-01 02:51:18Z felipe $ */
 
 #ifndef PHP_FILEINFO_H
 #define PHP_FILEINFO_H

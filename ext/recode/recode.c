@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
  
-/* $Id: recode.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: recode.c 313663 2011-07-25 11:35:02Z felipe $ */
 
 /* {{{ includes & prototypes */
 
@@ -135,7 +135,7 @@ PHP_MINFO_FUNCTION(recode)
 {
 	php_info_print_table_start();
 	php_info_print_table_row(2, "Recode Support", "enabled");
-	php_info_print_table_row(2, "Revision", "$Revision: 313665 $");
+	php_info_print_table_row(2, "Revision", "$Revision: 313663 $");
 	php_info_print_table_end();
 }
 

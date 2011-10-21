@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: hash_adler32.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: hash_adler32.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "php_hash.h"
 #include "php_hash_adler32.h"
@@ -34,9 +34,16 @@ PHP_HASH_API void PHP_ADLER32Update(PHP_ADLER32_CTX *context, const unsigned cha
 	s[0] = context->state & 0xffff;
 	s[1] = (context->state >> 16) & 0xffff;
 	for (i = 0; i < len; ++i) {
-		s[0] = (s[0] + input[i]) % 65521;
-		s[1] = (s[1] + s[0]) % 65521;
+		s[0] += input[i];
+		s[1] += s[0];
+		if (s[1]>=0x7fffffff)
+		{
+			s[0] = s[0] % 65521;
+			s[1] = s[1] % 65521;
+		}
 	}
+	s[0] = s[0] % 65521;
+	s[1] = s[1] % 65521;
 	context->state = s[0] + (s[1] << 16);
 }
 

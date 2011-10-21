@@ -17,17 +17,18 @@
   |          Ulf Wendel <uwendel@mysql.com>                              |
   +----------------------------------------------------------------------+
 */
-/* $Id: mysqlnd.h 310735 2011-05-03 09:37:53Z andrey $ */
+/* $Id: mysqlnd.h 318221 2011-10-19 15:04:12Z andrey $ */
 
 #ifndef MYSQLND_H
 #define MYSQLND_H
 
-#define MYSQLND_VERSION "mysqlnd 5.0.8-dev - 20102224 - $Revision: 310735 $"
-#define MYSQLND_VERSION_ID 50008
+#define MYSQLND_VERSION "mysqlnd 5.0.9-dev - 20110325 - $Revision: 318221 $"
+#define MYSQLND_VERSION_ID 50009
+
+#define MYSQLND_PLUGIN_API_VERSION 1
 
 /* This forces inlining of some accessor functions */
 #define MYSQLND_USE_OPTIMISATIONS 0
-#define AUTOCOMMIT_TX_COMMIT_ROLLBACK
 
 #define MYSQLND_STRING_TO_INT_CONVERSION
 /*
@@ -69,7 +70,14 @@ PHPAPI void mysqlnd_library_init(TSRMLS_D);
 PHPAPI void mysqlnd_library_end(TSRMLS_D);
 
 PHPAPI unsigned int mysqlnd_plugin_register();
+PHPAPI unsigned int mysqlnd_plugin_register_ex(struct st_mysqlnd_plugin_header * plugin TSRMLS_DC);
 PHPAPI unsigned int mysqlnd_plugin_count();
+PHPAPI void * _mysqlnd_plugin_find(const char * const name TSRMLS_DC);
+#define mysqlnd_plugin_find(name) _mysqlnd_plugin_find((name) TSRMLS_CC);
+
+PHPAPI void _mysqlnd_plugin_apply_with_argument(apply_func_arg_t apply_func, void * argument TSRMLS_DC);
+#define mysqlnd_plugin_apply_with_argument(func, argument) _mysqlnd_plugin_apply_with_argument((func), (argument) TSRMLS_CC);
+
 PHPAPI void ** _mysqlnd_plugin_get_plugin_connection_data(const MYSQLND * conn, unsigned int plugin_id TSRMLS_DC);
 #define mysqlnd_plugin_get_plugin_connection_data(c, p_id) _mysqlnd_plugin_get_plugin_connection_data((c), (p_id) TSRMLS_CC)
 
@@ -81,6 +89,9 @@ PHPAPI void ** _mysqlnd_plugin_get_plugin_stmt_data(const MYSQLND_STMT * stmt, u
 
 PHPAPI void ** _mysqlnd_plugin_get_plugin_protocol_data(const MYSQLND_PROTOCOL * protocol, unsigned int plugin_id TSRMLS_DC);
 #define mysqlnd_plugin_get_plugin_protocol_data(p, p_id) _mysqlnd_plugin_get_plugin_protocol_data((p), (p_id) TSRMLS_CC)
+
+PHPAPI void ** _mysqlnd_plugin_get_plugin_net_data(const MYSQLND_NET * net, unsigned int plugin_id TSRMLS_DC);
+#define mysqlnd_plugin_get_plugin_net_data(n, p_id) _mysqlnd_plugin_get_plugin_net_data((n), (p_id) TSRMLS_CC)
 
 
 PHPAPI struct st_mysqlnd_conn_methods * mysqlnd_conn_get_methods();
@@ -111,7 +122,8 @@ PHPAPI MYSQLND * mysqlnd_connect(MYSQLND *conn,
 						  unsigned int mysql_flags
 						  TSRMLS_DC);
 
-#define mysqlnd_change_user(conn, user, passwd, db, silent)		(conn)->m->change_user((conn), (user), (passwd), (db), (silent) TSRMLS_CC)
+#define mysqlnd_change_user(conn, user, passwd, db, silent)		(conn)->m->change_user((conn), (user), (passwd), (db), (silent), strlen((passwd)) TSRMLS_CC)
+#define mysqlnd_change_user_ex(conn, user, passwd, db, silent, passwd_len)		(conn)->m->change_user((conn), (user), (passwd), (db), (silent), (passwd_len) TSRMLS_CC)
 
 #define mysqlnd_debug(x)								_mysqlnd_debug((x) TSRMLS_CC)
 PHPAPI void _mysqlnd_debug(const char *mode TSRMLS_DC);
@@ -203,15 +215,9 @@ PHPAPI void mysqlnd_local_infile_default(MYSQLND *conn);
 PHPAPI void mysqlnd_set_local_infile_handler(MYSQLND * const conn, const char * const funcname);
 
 /* Simple commands */
-#ifdef AUTOCOMMIT_TX_COMMIT_ROLLBACK
 #define mysqlnd_autocommit(conn, mode)		(conn)->m->set_autocommit((conn), (mode) TSRMLS_CC)
 #define mysqlnd_commit(conn)				(conn)->m->tx_commit((conn) TSRMLS_CC)
 #define mysqlnd_rollback(conn)				(conn)->m->tx_rollback((conn) TSRMLS_CC)
-#else
-#define mysqlnd_autocommit(conn, mode)		(conn)->m->query((conn),(mode) ? "SET AUTOCOMMIT=1":"SET AUTOCOMMIT=0", 16 TSRMLS_CC)
-#define mysqlnd_commit(conn)				(conn)->m->query((conn), "COMMIT", sizeof("COMMIT")-1 TSRMLS_CC)
-#define mysqlnd_rollback(conn)				(conn)->m->query((conn), "ROLLBACK", sizeof("ROLLBACK")-1 TSRMLS_CC)
-#endif
 #define mysqlnd_list_dbs(conn, wild)		(conn)->m->list_method((conn), wild? "SHOW DATABASES LIKE %s":"SHOW DATABASES", (wild), NULL TSRMLS_CC)
 #define mysqlnd_list_fields(conn, tab,wild)	(conn)->m->list_fields((conn), (tab), (wild) TSRMLS_CC)
 #define mysqlnd_list_processes(conn)		(conn)->m->list_method((conn), "SHOW PROCESSLIST", NULL, NULL TSRMLS_CC)
@@ -262,6 +268,7 @@ PHPAPI ulong mysqlnd_old_escape_string(char *newstr, const char *escapestr, size
 #define	mysqlnd_stmt_free_result(stmt)		(stmt)->m->free_result((stmt) TSRMLS_CC)
 #define	mysqlnd_stmt_close(stmt, implicit)	(stmt)->m->dtor((stmt), (implicit) TSRMLS_CC)
 #define	mysqlnd_stmt_reset(stmt)			(stmt)->m->reset((stmt) TSRMLS_CC)
+#define	mysqlnd_stmt_flush(stmt)			(stmt)->m->flush((stmt) TSRMLS_CC)
 
 
 #define mysqlnd_stmt_attr_get(stmt, attr, value)	(stmt)->m->get_attribute((stmt), (attr), (value) TSRMLS_CC)

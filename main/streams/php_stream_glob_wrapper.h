@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_stream_glob_wrapper.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_stream_glob_wrapper.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 PHPAPI extern php_stream_wrapper  php_glob_stream_wrapper;
 PHPAPI extern php_stream_ops      php_glob_stream_ops;

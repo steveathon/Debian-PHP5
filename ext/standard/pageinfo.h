@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: pageinfo.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: pageinfo.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PAGEINFO_H
 #define PAGEINFO_H
@@ -29,7 +29,7 @@ PHP_FUNCTION(getlastmod);
 
 PHPAPI void php_statpage(TSRMLS_D);
 PHPAPI long php_getlastmod(TSRMLS_D);
-extern long php_getuid(void);
-extern long php_getgid(void);
+extern long php_getuid(TSRMLS_D);
+extern long php_getgid(TSRMLS_D);
 
 #endif

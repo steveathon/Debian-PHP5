@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
  
-/* $Id: sysvshm.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: sysvshm.c 317673 2011-10-03 18:17:12Z iliaa $ */
 
 /* This has been built and tested on Linux 2.2.14 
  *
@@ -424,7 +424,7 @@ static int php_remove_shm_data(sysvshm_chunk_head *ptr, long shm_varpos)
 	ptr->free += chunk_ptr->next;
 	ptr->end -= chunk_ptr->next;
 	if (memcpy_len > 0) {
-		memcpy(chunk_ptr, next_chunk_ptr, memcpy_len);
+		memmove(chunk_ptr, next_chunk_ptr, memcpy_len);
 	}
 	return 0;
 }

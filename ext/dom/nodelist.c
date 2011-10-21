@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: nodelist.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: nodelist.c 314515 2011-08-08 13:45:18Z iliaa $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -104,7 +104,7 @@ Since:
 */
 PHP_FUNCTION(dom_nodelist_item)
 {
-	zval *id, *rv = NULL;
+	zval *id;
 	long index;
 	int ret;
 	dom_object *intern;
@@ -163,7 +163,7 @@ PHP_FUNCTION(dom_nodelist_item)
 		}
 
 		if (itemnode) {
-			DOM_RET_OBJ(rv, itemnode, &ret, objmap->baseobj);
+			DOM_RET_OBJ(itemnode, &ret, objmap->baseobj);
 			return;
 		}
 	}

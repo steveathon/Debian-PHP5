@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: parse_date.re 311831 2011-06-05 13:30:01Z bjori $ */
+/* $Id: parse_date.re 312297 2011-06-19 18:55:48Z stas $ */
 
 #include "timelib.h"
 
@@ -1875,6 +1875,7 @@ timelib_time *timelib_parse_from_format(char *format, char *string, int len, tim
 	timelib_sll tmp;
 	Scanner in;
 	Scanner *s = &in;
+	int allow_extra = 0;
 
 	memset(&in, 0, sizeof(in));
 	in.errors = malloc(sizeof(struct timelib_error_container));
@@ -2088,6 +2089,10 @@ timelib_time *timelib_parse_from_format(char *format, char *string, int len, tim
 				timelib_eat_until_separator((char **) &ptr);
 				break;
 
+			case '+': /* allow extra chars in the format */
+				allow_extra = 1;
+				break;
+
 			default:
 				if (*fptr != *ptr) {
 					add_pbf_error(s, "The format separator does not match", string, begin);
@@ -2097,11 +2102,20 @@ timelib_time *timelib_parse_from_format(char *format, char *string, int len, tim
 		fptr++;
 	}
 	if (*ptr) {
-		add_pbf_error(s, "Trailing data", string, ptr);
+		if (allow_extra) {
+			add_pbf_warning(s, "Trailing data", string, ptr);
+		} else {
+			add_pbf_error(s, "Trailing data", string, ptr);
+		}
+	}
+	/* ignore trailing +'s */
+	while (*fptr == '+') {
+		fptr++;
 	}
 	if (*fptr) {
+		int done = 0;
 		/* Trailing | and ! specifiers are valid. */
-		while (*fptr) {
+		while (*fptr && !done) {
 			switch (*fptr++) {
 				case '!': /* reset all fields to default */
 					timelib_time_reset_fields(s->time);
@@ -2113,6 +2127,7 @@ timelib_time *timelib_parse_from_format(char *format, char *string, int len, tim
 
 				default:
 					add_pbf_error(s, "Data missing", string, ptr);
+					done = 1;
 			}
 		}
 	}

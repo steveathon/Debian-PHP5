@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: xsltprocessor.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: xsltprocessor.c 317953 2011-10-10 07:59:19Z chregu $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -71,6 +71,13 @@ ZEND_END_ARG_INFO();
 ZEND_BEGIN_ARG_INFO_EX(arginfo_xsl_xsltprocessor_set_profiling, 0, 0, 1)
 	ZEND_ARG_INFO(0, filename)
 ZEND_END_ARG_INFO();
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_xsl_xsltprocessor_set_security_prefs, 0, 0, 1)
+	ZEND_ARG_INFO(0, securityPrefs)
+ZEND_END_ARG_INFO();
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_xsl_xsltprocessor_get_security_prefs, 0, 0, 0)
+ZEND_END_ARG_INFO();
 /* }}} */
 
 /*
@@ -91,6 +98,8 @@ const zend_function_entry php_xsl_xsltprocessor_class_functions[] = {
 	PHP_FALIAS(hasExsltSupport, xsl_xsltprocessor_has_exslt_support, arginfo_xsl_xsltprocessor_has_exslt_support)
 	PHP_FALIAS(registerPHPFunctions, xsl_xsltprocessor_register_php_functions, arginfo_xsl_xsltprocessor_register_php_functions)
 	PHP_FALIAS(setProfiling, xsl_xsltprocessor_set_profiling, arginfo_xsl_xsltprocessor_set_profiling)
+	PHP_FALIAS(setSecurityPrefs, xsl_xsltprocessor_set_security_prefs, arginfo_xsl_xsltprocessor_set_security_prefs)
+	PHP_FALIAS(getSecurityPrefs, xsl_xsltprocessor_get_security_prefs, arginfo_xsl_xsltprocessor_get_security_prefs)
 	{NULL, NULL, NULL}
 };
 
@@ -271,7 +280,7 @@ static void xsl_ext_function_php(xmlXPathParserContextPtr ctxt, int nargs, int t
 								node->parent = nsparent;
 								node->ns = curns;
 							}
-							child = php_dom_create_object(node, &ret, NULL, child, domintern TSRMLS_CC);
+							child = php_dom_create_object(node, &ret, child, domintern TSRMLS_CC);
 							add_next_index_zval(args[i], child);
 						}
 					}
@@ -293,6 +302,7 @@ static void xsl_ext_function_php(xmlXPathParserContextPtr ctxt, int nargs, int t
 	if (obj->stringval == NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Handler name must be a string");
 		xmlXPathFreeObject(obj);
+		valuePush(ctxt, xmlXPathNewString(""));
 		if (fci.param_count > 0) {
 			for (i = 0; i < nargs - 1; i++) {
 				zval_ptr_dtor(&args[i]);
@@ -314,7 +324,7 @@ static void xsl_ext_function_php(xmlXPathParserContextPtr ctxt, int nargs, int t
 	/*fci.function_handler_cache = &function_ptr;*/
 	if (!zend_make_callable(&handler, &callable TSRMLS_CC)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to call handler %s()", callable);
-		
+		valuePush(ctxt, xmlXPathNewString(""));
 	} else if ( intern->registerPhpFunctions == 2 && zend_hash_exists(intern->registered_phpfunctions, callable, strlen(callable) + 1) == 0) { 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Not allowed to call handler '%s()'", callable);
 		/* Push an empty string, so that we at least have an xslt result... */
@@ -324,6 +334,7 @@ static void xsl_ext_function_php(xmlXPathParserContextPtr ctxt, int nargs, int t
 		if (result == FAILURE) {
 			if (Z_TYPE(handler) == IS_STRING) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to call handler %s()", Z_STRVAL_P(&handler));
+				valuePush(ctxt, xmlXPathNewString(""));
 			}
 		/* retval is == NULL, when an exception occured, don't report anything, because PHP itself will handle that */
 		} else if (retval == NULL) {
@@ -427,7 +438,7 @@ PHP_FUNCTION(xsl_xsltprocessor_import_stylesheet)
 	std_hnd = zend_get_std_object_handlers();
 	MAKE_STD_ZVAL(member);
 	ZVAL_STRING(member, "cloneDocument", 0);
-	cloneDocu = std_hnd->read_property(id, member, BP_VAR_IS TSRMLS_CC);
+	cloneDocu = std_hnd->read_property(id, member, BP_VAR_IS, NULL TSRMLS_CC);
 	if (Z_TYPE_P(cloneDocu) != IS_NULL) {
 		convert_to_long(cloneDocu);
 		clone_docu = Z_LVAL_P(cloneDocu);
@@ -475,6 +486,9 @@ static xmlDocPtr php_xsl_apply_stylesheet(zval *id, xsl_object *intern, xsltStyl
 	zval *doXInclude, *member;
 	zend_object_handlers *std_hnd;
 	FILE *f;
+	int secPrefsError = 0;
+	int secPrefsValue, secPrefsIni;
+	xsltSecurityPrefsPtr secPrefs = NULL;
 
 	node = php_libxml_import_node(docp TSRMLS_CC);
 	
@@ -524,18 +538,79 @@ static xmlDocPtr php_xsl_apply_stylesheet(zval *id, xsl_object *intern, xsltStyl
 
 	MAKE_STD_ZVAL(member);
 	ZVAL_STRING(member, "doXInclude", 0);
-	doXInclude = std_hnd->read_property(id, member, BP_VAR_IS TSRMLS_CC);
+	doXInclude = std_hnd->read_property(id, member, BP_VAR_IS, NULL TSRMLS_CC);
 	if (Z_TYPE_P(doXInclude) != IS_NULL) {
 		convert_to_long(doXInclude);
 		ctxt->xinclude = Z_LVAL_P(doXInclude);
 	}
 	efree(member);
 
-	newdocp = xsltApplyStylesheetUser(style, doc, (const char**) params,  NULL, f, ctxt);
+	secPrefsValue = intern->securityPrefs;
+	
+	/* This whole if block can be removed, when we remove the xsl.security_prefs php.ini option in PHP 6+ */
+	secPrefsIni= INI_INT("xsl.security_prefs");
+	/* if secPrefsIni has the same value as secPrefsValue, all is fine */
+	if (secPrefsIni != secPrefsValue) {
+		if (secPrefsIni != XSL_SECPREF_DEFAULT) {
+			/* if the ini value is not set to the default, throw an E_DEPRECATED warning */
+			php_error_docref(NULL TSRMLS_CC, E_DEPRECATED, "The xsl.security_prefs php.ini option is deprecated; use XsltProcessor->setSecurityPrefs() instead");
+			if (intern->securityPrefsSet == 0) {
+				/* if securityPrefs were not set through the setSecurityPrefs method, take the ini setting */
+				secPrefsValue = secPrefsIni;
+			} else {
+				/* else throw a notice, that the ini setting was not used */
+				php_error_docref(NULL TSRMLS_CC, E_NOTICE, "The xsl.security_prefs php.ini was not used, since the  XsltProcessor->setSecurityPrefs() method was used");
+			}
+		}
+	}
+
+	/* if securityPrefs is set to NONE, we don't have to do any checks, but otherwise... */
+	if (secPrefsValue != XSL_SECPREF_NONE) {
+		secPrefs = xsltNewSecurityPrefs(); 
+		if (secPrefsValue & XSL_SECPREF_READ_FILE ) { 
+			if (0 != xsltSetSecurityPrefs(secPrefs, XSLT_SECPREF_READ_FILE, xsltSecurityForbid)) { 
+				secPrefsError = 1;
+			}
+		}
+		if (secPrefsValue & XSL_SECPREF_WRITE_FILE ) { 
+			if (0 != xsltSetSecurityPrefs(secPrefs, XSLT_SECPREF_WRITE_FILE, xsltSecurityForbid)) { 
+				secPrefsError = 1;
+			}
+		}
+		if (secPrefsValue & XSL_SECPREF_CREATE_DIRECTORY ) { 
+			if (0 != xsltSetSecurityPrefs(secPrefs, XSLT_SECPREF_CREATE_DIRECTORY, xsltSecurityForbid)) { 
+				secPrefsError = 1;
+			}
+		}
+		if (secPrefsValue & XSL_SECPREF_READ_NETWORK) { 
+			if (0 != xsltSetSecurityPrefs(secPrefs, XSLT_SECPREF_READ_NETWORK, xsltSecurityForbid)) { 
+				secPrefsError = 1;
+			}
+		}
+		if (secPrefsValue & XSL_SECPREF_WRITE_NETWORK) { 
+			if (0 != xsltSetSecurityPrefs(secPrefs, XSLT_SECPREF_WRITE_NETWORK, xsltSecurityForbid)) { 
+				secPrefsError = 1;
+			}
+		}
+	
+		if (0 != xsltSetCtxtSecurityPrefs(secPrefs, ctxt)) { 
+			secPrefsError = 1;
+		}
+	}
+	
+	if (secPrefsError == 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Can't set libxslt security properties, not doing transformation for security reasons");
+	} else {
+		newdocp = xsltApplyStylesheetUser(style, doc, (const char**) params,  NULL, f, ctxt);
+	}
 	if (f) {
 		fclose(f);
 	}
+	
 	xsltFreeTransformContext(ctxt);
+	if (secPrefs) {
+		xsltFreeSecurityPrefs(secPrefs);
+	}
 
 	if (intern->node_list != NULL) {
 		zend_hash_destroy(intern->node_list);
@@ -566,7 +641,7 @@ Since:
 */
 PHP_FUNCTION(xsl_xsltprocessor_transform_to_doc)
 {
-	zval *id, *rv = NULL, *docp = NULL;
+	zval *id, *docp = NULL;
 	xmlDoc *newdocp;
 	xsltStylesheetPtr sheetp;
 	int ret, ret_class_len=0;
@@ -610,7 +685,7 @@ PHP_FUNCTION(xsl_xsltprocessor_transform_to_doc)
 			php_libxml_increment_doc_ref(interndoc, newdocp TSRMLS_CC);
 			php_libxml_increment_node_ptr(interndoc, (xmlNodePtr)newdocp, (void *)interndoc TSRMLS_CC);
 		} else {
-			DOM_RET_OBJ(rv, (xmlNodePtr) newdocp, &ret, NULL);
+			DOM_RET_OBJ((xmlNodePtr) newdocp, &ret, NULL);
 		}
 	} else {
 		RETURN_FALSE;
@@ -634,7 +709,7 @@ PHP_FUNCTION(xsl_xsltprocessor_transform_to_uri)
 	intern = (xsl_object *)zend_object_store_get_object(id TSRMLS_CC);
 	sheetp = (xsltStylesheetPtr) intern->ptr;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "os", &docp, &uri, &uri_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "op", &docp, &uri, &uri_len) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -642,10 +717,6 @@ PHP_FUNCTION(xsl_xsltprocessor_transform_to_uri)
 
 	ret = -1;
 	if (newdocp) {
-		if (strlen(uri) != uri_len) {
-			xmlFreeDoc(newdocp);
-			RETURN_FALSE;
-		}
 		ret = xsltSaveResultToFilename(uri, newdocp, sheetp, 0);
 		xmlFreeDoc(newdocp);
 	}
@@ -844,12 +915,12 @@ PHP_FUNCTION(xsl_xsltprocessor_set_profiling)
 	int filename_len;
 	DOM_GET_THIS(id);
 
-	if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "s!", &filename, &filename_len) == SUCCESS) {
+	if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "p!", &filename, &filename_len) == SUCCESS) {
 		intern = (xsl_object *)zend_object_store_get_object(id TSRMLS_CC);
 		if (intern->profiling) {
 			efree(intern->profiling);
 		}
-		if (filename != NULL && strlen(filename) == filename_len) {
+		if (filename != NULL) {
 			intern->profiling = estrndup(filename,filename_len);
 		} else {
 			intern->profiling = NULL;
@@ -860,6 +931,44 @@ PHP_FUNCTION(xsl_xsltprocessor_set_profiling)
 	}
 }
 /* }}} end xsl_xsltprocessor_set_profiling */
+
+/* {{{ proto long xsl_xsltprocessor_set_security_prefs(long securityPrefs) */
+PHP_FUNCTION(xsl_xsltprocessor_set_security_prefs)
+{
+	zval *id;
+	xsl_object *intern;
+	long securityPrefs, oldSecurityPrefs;
+
+	DOM_GET_THIS(id);
+ 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &securityPrefs) == FAILURE) {
+		return;
+	}
+	intern = (xsl_object *)zend_object_store_get_object(id TSRMLS_CC);
+	oldSecurityPrefs = intern->securityPrefs; 
+	intern->securityPrefs = securityPrefs;
+	/* set this to 1 so that we know, it was set through this method. Can be removed, when we remove the ini setting */
+	intern->securityPrefsSet = 1;
+	RETURN_LONG(oldSecurityPrefs);
+}
+/* }}} end xsl_xsltprocessor_set_security_prefs */
+
+/* {{{ proto long xsl_xsltprocessor_get_security_prefs() */
+PHP_FUNCTION(xsl_xsltprocessor_get_security_prefs)
+{
+	zval *id;
+	xsl_object *intern;
+
+	DOM_GET_THIS(id);
+	if (zend_parse_parameters_ex(ZEND_PARSE_PARAMS_QUIET, ZEND_NUM_ARGS() TSRMLS_CC, "") == SUCCESS) {
+		intern = (xsl_object *)zend_object_store_get_object(id TSRMLS_CC);
+		RETURN_LONG(intern->securityPrefs);
+	} else {
+		WRONG_PARAM_COUNT;
+	}
+}
+/* }}} end xsl_xsltprocessor_get_security_prefs */
+
+
 
 /* {{{ proto bool xsl_xsltprocessor_has_exslt_support();
 */

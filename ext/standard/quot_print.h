@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: quot_print.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: quot_print.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef QUOT_PRINT_H
 #define QUOT_PRINT_H

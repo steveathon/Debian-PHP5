@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: win95nt.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: win95nt.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 /* Defines and types for Windows 95/NT */
 #define HAVE_DECLARED_TIMEZONE

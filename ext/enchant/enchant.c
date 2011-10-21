@@ -16,7 +16,7 @@
   |         Ilia Alshanetsky <ilia@prohost.org>                          |
   +----------------------------------------------------------------------+
 
-  $Id: enchant.c 313665 2011-07-25 11:42:53Z felipe $
+  $Id: enchant.c 317599 2011-10-01 13:01:12Z felipe $
 */
 
 #ifdef HAVE_CONFIG_H
@@ -124,7 +124,7 @@ ZEND_END_ARG_INFO()
  *
  * Every user visible function must have an entry in enchant_functions[].
  */
-function_entry enchant_functions[] = {
+zend_function_entry enchant_functions[] = {
 	PHP_FE(enchant_broker_init, 			arginfo_enchant_broker_init)
 	PHP_FE(enchant_broker_free, 			arginfo_enchant_broker_free)
 	PHP_FE(enchant_broker_get_error, 		arginfo_enchant_broker_free)
@@ -244,8 +244,8 @@ static void php_enchant_broker_free(zend_rsrc_list_entry *rsrc TSRMLS_DC) /* {{{
 			if (broker->pbroker) {
 				if (broker->dictcnt && broker->dict) {
 					if (broker->dict) {
-						int total, tofree;
-						tofree = total = broker->dictcnt-1;
+						int total;
+						total = broker->dictcnt-1;
 						do {
 							zend_list_delete(broker->dict[total]->rsrc_id);
 							efree(broker->dict[total]);
@@ -326,7 +326,7 @@ PHP_MINFO_FUNCTION(enchant)
 #elif defined(HAVE_ENCHANT_BROKER_SET_PARAM)
 	php_info_print_table_row(2, "Libenchant Version", "1.5.0 or later");
 #endif
-	php_info_print_table_row(2, "Revision", "$Revision: 313665 $");
+	php_info_print_table_row(2, "Revision", "$Revision: 317599 $");
 	php_info_print_table_end();
 
 	php_info_print_table_start();
@@ -357,8 +357,8 @@ PHP_FUNCTION(enchant_broker_init)
 	enchant_broker *broker;
 	EnchantBroker *pbroker;
 
-	if (ZEND_NUM_ARGS()) {
-		ZEND_WRONG_PARAM_COUNT();
+	if (zend_parse_parameters_none() == FAILURE) {
+		return;
 	}
 
 	pbroker = enchant_broker_init();
@@ -542,6 +542,11 @@ PHP_FUNCTION(enchant_broker_request_dict)
 	}
 
 	PHP_ENCHANT_GET_BROKER;
+	
+	if (taglen == 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Tag cannot be empty");
+		RETURN_FALSE;
+	}
 
 	d = enchant_broker_request_dict(pbroker->pbroker, (const char *)tag);
 	if (d) {
@@ -586,11 +591,7 @@ PHP_FUNCTION(enchant_broker_request_pwl_dict)
 	int pwllen;
 	int pos;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &broker, &pwl, &pwllen) == FAILURE) {
-		RETURN_FALSE;
-	}
-
-	if (strlen(pwl) != pwllen) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rp", &broker, &pwl, &pwllen) == FAILURE) {
 		RETURN_FALSE;
 	}
 

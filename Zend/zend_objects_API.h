@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_objects_API.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: zend_objects_API.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef ZEND_OBJECTS_API_H
 #define ZEND_OBJECTS_API_H
@@ -68,7 +68,7 @@ ZEND_API void zend_objects_store_add_ref(zval *object TSRMLS_DC);
 ZEND_API void zend_objects_store_del_ref(zval *object TSRMLS_DC);
 ZEND_API void zend_objects_store_add_ref_by_handle(zend_object_handle handle TSRMLS_DC);
 ZEND_API void zend_objects_store_del_ref_by_handle_ex(zend_object_handle handle, const zend_object_handlers *handlers TSRMLS_DC);
-static inline void zend_objects_store_del_ref_by_handle(zend_object_handle handle TSRMLS_DC) {
+static zend_always_inline void zend_objects_store_del_ref_by_handle(zend_object_handle handle TSRMLS_DC) {
 	zend_objects_store_del_ref_by_handle_ex(handle, NULL TSRMLS_CC);
 }
 ZEND_API zend_uint zend_objects_store_get_refcount(zval *object TSRMLS_DC);

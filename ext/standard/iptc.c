@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: iptc.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: iptc.c 311870 2011-06-06 21:28:16Z felipe $ */
 
 /*
  * Functions to parse & compse IPTC data.
@@ -181,21 +181,14 @@ PHP_FUNCTION(iptcembed)
 	int iptcdata_len, jpeg_file_len;
 	long spool = 0;
 	FILE *fp;
-	unsigned int marker, done = 0, inx;
+	unsigned int marker, done = 0;
+	int inx;
 	unsigned char *spoolbuf = NULL, *poi = NULL;
 	struct stat sb;
 	zend_bool written = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &iptcdata, &iptcdata_len, &jpeg_file, &jpeg_file_len, &spool) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sp|l", &iptcdata, &iptcdata_len, &jpeg_file, &jpeg_file_len, &spool) != SUCCESS) {
 		return;
-	}
-
-	if (strlen(jpeg_file) != jpeg_file_len) {
-		RETURN_FALSE;
-	}
-
-	if (PG(safe_mode) && (!php_checkuid(jpeg_file, NULL, CHECKUID_CHECK_FILE_AND_DIR))) {
-		RETURN_FALSE;
 	}
 
 	if (php_check_open_basedir(jpeg_file TSRMLS_CC)) {
@@ -303,7 +296,8 @@ PHP_FUNCTION(iptcembed)
    Parse binary IPTC-data into associative array */
 PHP_FUNCTION(iptcparse)
 {
-	unsigned int inx = 0, len, tagsfound = 0;
+	int inx = 0, len;
+	unsigned int tagsfound = 0;
 	unsigned char *buffer, recnum, dataset, key[ 16 ];
 	char *str;
 	int str_len;

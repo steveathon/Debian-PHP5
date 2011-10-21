@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: hash_tiger.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: hash_tiger.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "php_hash.h"
 #include "php_hash_tiger.h"
@@ -120,7 +120,7 @@
 { \
 	register php_hash_uint64 a, b, c, tmpa, x0, x1, x2, x3, x4, x5, x6, x7; \
 	php_hash_uint64 aa, bb, cc; \
-	int pass_no; \
+	unsigned int pass_no; \
 	\
 	a = state[0]; \
 	b = state[1]; \

@@ -15,7 +15,7 @@
    | Author: Edin Kadribasic <edink@php.net>                              |
    +----------------------------------------------------------------------+
 */
-/* $Id: php_embed.c 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_embed.c 306938 2011-01-01 02:17:06Z felipe $ */
 
 #include "php_embed.h"
 #include "ext/standard/php_standard.h"
@@ -90,7 +90,7 @@ static void php_embed_send_header(sapi_header_struct *sapi_header, void *server_
 {
 }
 
-static void php_embed_log_message(char *message)
+static void php_embed_log_message(char *message TSRMLS_DC)
 {
 	fprintf (stderr, "%s\n", message);
 }

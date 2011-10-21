@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_reflection.h 306939 2011-01-01 02:19:59Z felipe $ */
+/* $Id: php_reflection.h 306938 2011-01-01 02:17:06Z felipe $ */
 
 #ifndef PHP_REFLECTION_H
 #define PHP_REFLECTION_H
@@ -40,6 +40,7 @@ extern PHPAPI zend_class_entry *reflection_object_ptr;
 extern PHPAPI zend_class_entry *reflection_method_ptr;
 extern PHPAPI zend_class_entry *reflection_property_ptr;
 extern PHPAPI zend_class_entry *reflection_extension_ptr;
+extern PHPAPI zend_class_entry *reflection_zend_extension_ptr;
 
 PHPAPI void zend_reflection_class_factory(zend_class_entry *ce, zval *object TSRMLS_DC);
 	

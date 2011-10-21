@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: xpath.c 313665 2011-07-25 11:42:53Z felipe $ */
+/* $Id: xpath.c 314515 2011-08-08 13:45:18Z iliaa $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -164,7 +164,7 @@ static void dom_xpath_ext_function_php(xmlXPathParserContextPtr ctxt, int nargs,
 								node->parent = nsparent;
 								node->ns = curns;
 							}
-							child = php_dom_create_object(node, &ret, NULL, child, (dom_object *)intern TSRMLS_CC);
+							child = php_dom_create_object(node, &ret, child, (dom_object *)intern TSRMLS_CC);
 							add_next_index_zval(args[i], child);
 						}
 					}
@@ -329,7 +329,7 @@ int dom_xpath_document_read(dom_object *obj, zval **retval TSRMLS_DC)
 	}
 
 	ALLOC_ZVAL(*retval);
-	if (NULL == (*retval = php_dom_create_object((xmlNodePtr) docp, &ret, NULL, *retval, obj TSRMLS_CC))) {
+	if (NULL == (*retval = php_dom_create_object((xmlNodePtr) docp, &ret, *retval, obj TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot create required DOM object");
 		return FAILURE;
 	}
@@ -492,7 +492,7 @@ static void php_xpath_eval(INTERNAL_FUNCTION_PARAMETERS, int type) /* {{{ */
 						node->parent = nsparent;
 						node->ns = curns;
 					}
-					child = php_dom_create_object(node, &ret, NULL, child, (dom_object *)intern TSRMLS_CC);
+					child = php_dom_create_object(node, &ret, child, (dom_object *)intern TSRMLS_CC);
 					add_next_index_zval(retval, child);
 				}
 			}
