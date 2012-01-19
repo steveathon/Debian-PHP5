@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: multicast.h 312069 2011-06-11 20:20:50Z cataphract $ */
+/* $Id: multicast.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #if defined(MCAST_JOIN_GROUP) && \
 	(!defined(PHP_WIN32) || (_WIN32_WINNT >= 0x600 && SOCKETS_ENABLE_VISTA_API))

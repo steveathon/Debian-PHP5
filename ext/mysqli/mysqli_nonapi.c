@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
   |          Ulf Wendel <uw@php.net>                                     |
   +----------------------------------------------------------------------+
 
-  $Id: mysqli_nonapi.c 314838 2011-08-12 14:55:00Z andrey $
+  $Id: mysqli_nonapi.c 321634 2012-01-01 13:15:04Z felipe $
 */
 
 #ifdef HAVE_CONFIG_H
@@ -431,12 +431,12 @@ PHP_FUNCTION(mysqli_error_list)
 	MYSQLI_FETCH_RESOURCE_CONN(mysql, &mysql_link, MYSQLI_STATUS_VALID);
 	array_init(return_value);
 #if defined(MYSQLI_USE_MYSQLND)
-	if (mysql->mysql->error_info.error_list) {
+	if (mysql->mysql->data->error_info->error_list) {
 		MYSQLND_ERROR_LIST_ELEMENT * message;
 		zend_llist_position pos;
-		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->error_info.error_list, &pos);
+		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->data->error_info->error_list, &pos);
 			 message;
-			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->error_info.error_list, &pos)) 
+			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->data->error_info->error_list, &pos)) 
 		{
 			zval * single_error;
 			MAKE_STD_ZVAL(single_error);
@@ -475,12 +475,12 @@ PHP_FUNCTION(mysqli_stmt_error_list)
 	MYSQLI_FETCH_RESOURCE_STMT(stmt, &mysql_stmt, MYSQLI_STATUS_INITIALIZED);
 	array_init(return_value);
 #if defined(MYSQLI_USE_MYSQLND)
-	if (stmt->stmt && stmt->stmt->data && stmt->stmt->data->error_info.error_list) {
+	if (stmt->stmt && stmt->stmt->data && stmt->stmt->data->error_info->error_list) {
 		MYSQLND_ERROR_LIST_ELEMENT * message;
 		zend_llist_position pos;
-		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info.error_list, &pos);
+		for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info->error_list, &pos);
 			 message;
-			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info.error_list, &pos)) 
+			 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info->error_list, &pos)) 
 		{
 			zval * single_error;
 			MAKE_STD_ZVAL(single_error);
@@ -539,7 +539,7 @@ PHP_FUNCTION(mysqli_multi_query)
 		strcpy(s_sqlstate, mysql_sqlstate(mysql->mysql));
 		s_errno = mysql_errno(mysql->mysql);
 #else
-		MYSQLND_ERROR_INFO error_info = mysql->mysql->error_info;
+		MYSQLND_ERROR_INFO error_info = *mysql->mysql->data->error_info;
 #endif
 		MYSQLI_REPORT_MYSQL_ERROR(mysql->mysql);
 		MYSQLI_DISABLE_MQ;
@@ -550,7 +550,7 @@ PHP_FUNCTION(mysqli_multi_query)
 		strcpy(mysql->mysql->net.sqlstate, s_sqlstate);
 		mysql->mysql->net.last_errno = s_errno;
 #else
-		mysql->mysql->error_info = error_info;
+		*mysql->mysql->data->error_info = error_info;
 #endif
 		RETURN_FALSE;
 	}
@@ -913,7 +913,11 @@ PHP_FUNCTION(mysqli_get_warnings)
 	MYSQLI_FETCH_RESOURCE_CONN(mysql, &mysql_link, MYSQLI_STATUS_VALID);
 
 	if (mysql_warning_count(mysql->mysql)) {
+#ifdef MYSQLI_USE_MYSQLND
+		w = php_get_warnings(mysql->mysql->data TSRMLS_CC);
+#else
 		w = php_get_warnings(mysql->mysql TSRMLS_CC);
+#endif
 	} else {
 		RETURN_FALSE;
 	}
@@ -923,6 +927,7 @@ PHP_FUNCTION(mysqli_get_warnings)
 	MYSQLI_RETURN_RESOURCE(mysqli_resource, mysqli_warning_class_entry);
 }
 /* }}} */
+
 
 /* {{{ proto object mysqli_stmt_get_warnings(object link) */
 PHP_FUNCTION(mysqli_stmt_get_warnings)
@@ -948,6 +953,7 @@ PHP_FUNCTION(mysqli_stmt_get_warnings)
 	MYSQLI_RETURN_RESOURCE(mysqli_resource, mysqli_warning_class_entry);
 }
 /* }}} */
+
 
 #ifdef HAVE_MYSQLI_SET_CHARSET
 /* {{{ proto bool mysqli_set_charset(object link, string csname)
@@ -1004,7 +1010,7 @@ PHP_FUNCTION(mysqli_get_charset)
 	state = cs.state;
 	comment = cs.comment;
 #else
-	cs = mysql->mysql->charset;
+	cs = mysql->mysql->data->charset;
 	if (!cs) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "The connection has no charset associated");
 		RETURN_NULL();

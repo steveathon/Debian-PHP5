@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_vm_def.h 318191 2011-10-18 19:42:42Z lbarnaud $ */
+/* $Id: zend_vm_def.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 /* If you change this file, please regenerate the zend_vm_execute.h and
  * zend_vm_opcodes.h files by running:
@@ -2187,7 +2187,7 @@ ZEND_VM_HANDLER(112, ZEND_INIT_METHOD_CALL, TMP|VAR|UNUSED|CV, CONST|TMP|VAR|CV)
 				zend_error_noreturn(E_ERROR, "Call to undefined method %s::%s()", Z_OBJ_CLASS_NAME_P(EX(object)), function_name_strval);
 			}
 			if (OP2_TYPE == IS_CONST &&
-			    EXPECTED((EX(fbc)->common.fn_flags & ZEND_ACC_CALL_VIA_HANDLER) == 0) &&
+			    EXPECTED((EX(fbc)->common.fn_flags & (ZEND_ACC_CALL_VIA_HANDLER|ZEND_ACC_NEVER_CACHE)) == 0) &&
 			    EXPECTED(EX(object) == object)) {
 				CACHE_POLYMORPHIC_PTR(opline->op2.literal->cache_slot, EX(called_scope), EX(fbc));
 			}
@@ -2284,7 +2284,7 @@ ZEND_VM_HANDLER(113, ZEND_INIT_STATIC_METHOD_CALL, CONST|VAR, CONST|TMP|VAR|UNUS
 			if (UNEXPECTED(EX(fbc) == NULL)) {
 				zend_error_noreturn(E_ERROR, "Call to undefined method %s::%s()", ce->name, function_name_strval);
 			}
-			if (OP2_TYPE == IS_CONST && EXPECTED((EX(fbc)->common.fn_flags & ZEND_ACC_CALL_VIA_HANDLER) == 0)) {
+			if (OP2_TYPE == IS_CONST && EXPECTED((EX(fbc)->common.fn_flags & (ZEND_ACC_CALL_VIA_HANDLER|ZEND_ACC_NEVER_CACHE)) == 0)) {
 				if (OP1_TYPE == IS_CONST) {
 					CACHE_PTR(opline->op2.literal->cache_slot, EX(fbc));
 				} else {
@@ -2391,7 +2391,7 @@ ZEND_VM_HANDLER(59, ZEND_INIT_FCALL_BY_NAME, ANY, CONST|TMP|VAR|CV)
 			CHECK_EXCEPTION();
 			ZEND_VM_NEXT_OPCODE();
 		} else if (OP2_TYPE != IS_CONST &&
-			EXPECTED(Z_TYPE_P(function_name) == IS_ARRAY) && 
+			EXPECTED(Z_TYPE_P(function_name) == IS_ARRAY) &&
 			zend_hash_num_elements(Z_ARRVAL_P(function_name)) == 2) {
 			zend_class_entry *ce;
 			zval **method = NULL;
@@ -2399,15 +2399,15 @@ ZEND_VM_HANDLER(59, ZEND_INIT_FCALL_BY_NAME, ANY, CONST|TMP|VAR|CV)
 
 			zend_hash_index_find(Z_ARRVAL_P(function_name), 0, (void **) &obj);
 			zend_hash_index_find(Z_ARRVAL_P(function_name), 1, (void **) &method);
-			
+
 			if (Z_TYPE_PP(obj) != IS_STRING && Z_TYPE_PP(obj) != IS_OBJECT) {
 				zend_error_noreturn(E_ERROR, "First array member is not a valid class name or object");
 			}
-			
+
 			if (Z_TYPE_PP(method) != IS_STRING) {
 				zend_error_noreturn(E_ERROR, "Second array member is not a valid method");
 			}
-			
+
 			if (Z_TYPE_PP(obj) == IS_STRING) {
 				ce = zend_fetch_class_by_name(Z_STRVAL_PP(obj), Z_STRLEN_PP(obj), NULL, 0 TSRMLS_CC);
 				if (UNEXPECTED(ce == NULL)) {
@@ -2415,7 +2415,7 @@ ZEND_VM_HANDLER(59, ZEND_INIT_FCALL_BY_NAME, ANY, CONST|TMP|VAR|CV)
 				}
 				EX(called_scope) = ce;
 				EX(object) = NULL;
-				
+
 				if (ce->get_static_method) {
 					EX(fbc) = ce->get_static_method(ce, Z_STRVAL_PP(method), Z_STRLEN_PP(method) TSRMLS_CC);
 				} else {
@@ -2429,7 +2429,7 @@ ZEND_VM_HANDLER(59, ZEND_INIT_FCALL_BY_NAME, ANY, CONST|TMP|VAR|CV)
 				if (UNEXPECTED(EX(fbc) == NULL)) {
 					zend_error_noreturn(E_ERROR, "Call to undefined method %s::%s()", Z_OBJ_CLASS_NAME_P(EX(object)), Z_STRVAL_PP(method));
 				}
-				
+
 				if ((EX(fbc)->common.fn_flags & ZEND_ACC_STATIC) != 0) {
 					EX(object) = NULL;
 				} else {
@@ -4507,10 +4507,17 @@ ZEND_VM_C_LABEL(num_index_prop):
 		zval tmp;
 
 		if (Z_TYPE_P(offset) != IS_LONG) {
-			ZVAL_COPY_VALUE(&tmp, offset);
-			zval_copy_ctor(&tmp);
-			convert_to_long(&tmp);
-			offset = &tmp;
+			if (Z_TYPE_P(offset) <= IS_BOOL /* simple scalar types */
+				|| (Z_TYPE_P(offset) == IS_STRING /* or numeric string */
+						&& IS_LONG == is_numeric_string(Z_STRVAL_P(offset), Z_STRLEN_P(offset), NULL, NULL, 0))) {
+				ZVAL_COPY_VALUE(&tmp, offset);
+				zval_copy_ctor(&tmp);
+				convert_to_long(&tmp);
+				offset = &tmp;
+			} else {
+				/* can not be converted to proper offset, return "not set" */
+				result = 0;
+			}
 		}
 		if (Z_TYPE_P(offset) == IS_LONG) {
 			if (opline->extended_value & ZEND_ISSET) {
@@ -4689,12 +4696,12 @@ ZEND_VM_HANDLER(158, ZEND_JMP_SET_VAR, CONST|TMP|VAR|CV, ANY)
 		if (OP1_TYPE == IS_VAR || OP1_TYPE == IS_CV) {
 			Z_ADDREF_P(value);
 			EX_T(opline->result.var).var.ptr = value;
-			EX_T(opline->result.var).var.ptr_ptr = NULL;
+			EX_T(opline->result.var).var.ptr_ptr = &EX_T(opline->result.var).var.ptr;
 		} else {
 			ALLOC_ZVAL(ret);
 			INIT_PZVAL_COPY(ret, value);
 			EX_T(opline->result.var).var.ptr = ret;
-			EX_T(opline->result.var).var.ptr_ptr = NULL;
+			EX_T(opline->result.var).var.ptr_ptr = &EX_T(opline->result.var).var.ptr;
 			if (!IS_OP1_TMP_FREE()) {
 				zval_copy_ctor(EX_T(opline->result.var).var.ptr);
 			}
@@ -4741,12 +4748,12 @@ ZEND_VM_HANDLER(157, ZEND_QM_ASSIGN_VAR, CONST|TMP|VAR|CV, ANY)
 	if (OP1_TYPE == IS_VAR || OP1_TYPE == IS_CV) {
 		Z_ADDREF_P(value);
 		EX_T(opline->result.var).var.ptr = value;
-		EX_T(opline->result.var).var.ptr_ptr = NULL;
+		EX_T(opline->result.var).var.ptr_ptr = &EX_T(opline->result.var).var.ptr;
 	} else {
 		ALLOC_ZVAL(ret);
 		INIT_PZVAL_COPY(ret, value);
 		EX_T(opline->result.var).var.ptr = ret;
-		EX_T(opline->result.var).var.ptr_ptr = NULL;
+		EX_T(opline->result.var).var.ptr_ptr = &EX_T(opline->result.var).var.ptr;
 		if (!IS_OP1_TMP_FREE()) {
 			zval_copy_ctor(EX_T(opline->result.var).var.ptr);
 		}

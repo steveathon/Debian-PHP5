@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,13 +12,13 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@mysql.com>                             |
-  |          Andrey Hristov <andrey@mysql.com>                           |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_wireprotocol.h 309494 2011-03-21 13:58:11Z andrey $ */
+/* $Id: mysqlnd_wireprotocol.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef MYSQLND_WIREPROTOCOL_H
 #define MYSQLND_WIREPROTOCOL_H
@@ -51,8 +51,8 @@ PHPAPI extern const char * const mysqlnd_command_to_text[COM_END];
 /* Low-level extraction functionality */
 typedef struct st_mysqlnd_packet_methods {
 	size_t				struct_size;
-	enum_func_status	(*read_from_net)(void *packet, MYSQLND *conn TSRMLS_DC);
-	size_t				(*write_to_net)(void *packet, MYSQLND *conn TSRMLS_DC);
+	enum_func_status	(*read_from_net)(void * packet, MYSQLND_CONN_DATA * conn TSRMLS_DC);
+	size_t				(*write_to_net)(void * packet, MYSQLND_CONN_DATA * conn TSRMLS_DC);
 	void				(*free_mem)(void *packet, zend_bool stack_allocation TSRMLS_DC);
 } mysqlnd_packet_methods;
 
@@ -308,7 +308,6 @@ enum_func_status php_mysqlnd_rowp_read_text_protocol(MYSQLND_MEMORY_POOL_CHUNK *
 
 PHPAPI MYSQLND_PROTOCOL * mysqlnd_protocol_init(zend_bool persistent TSRMLS_DC);
 PHPAPI void mysqlnd_protocol_free(MYSQLND_PROTOCOL * const protocol TSRMLS_DC);
-PHPAPI struct st_mysqlnd_protocol_methods * mysqlnd_protocol_get_methods();
 
 #endif /* MYSQLND_WIREPROTOCOL_H */
 

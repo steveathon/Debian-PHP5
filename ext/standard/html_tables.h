@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -14,7 +14,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: html_tables.h 315847 2011-08-31 05:47:19Z cataphract $ */
+/* $Id: html_tables.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef HTML_TABLES_H
 #define HTML_TABLES_H
@@ -57,8 +57,11 @@ static const struct {
 	{ "Shift_JIS",		cs_sjis },
 	{ "SJIS",			cs_sjis },
 	{ "932",			cs_sjis },
+	{ "SJIS-win",		cs_sjis },
+	{ "CP932",			cs_sjis },
 	{ "EUCJP",			cs_eucjp },
 	{ "EUC-JP",			cs_eucjp },
+	{ "eucJP-win",		cs_eucjp },
 	{ "KOI8-R",			cs_koi8r },
 	{ "koi8-ru",		cs_koi8r },
 	{ "koi8r",			cs_koi8r },

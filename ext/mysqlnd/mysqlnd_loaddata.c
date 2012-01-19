@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,9 +12,9 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@mysql.com>                             |
-  |          Andrey Hristov <andrey@mysql.com>                           |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
 
@@ -27,7 +27,7 @@
 
 /* {{{ mysqlnd_local_infile_init */
 static
-int mysqlnd_local_infile_init(void **ptr, char *filename, void **userdata TSRMLS_DC)
+int mysqlnd_local_infile_init(void ** ptr, char * filename, void ** userdata TSRMLS_DC)
 {
 	MYSQLND_INFILE_INFO	*info;
 	php_stream_context	*context = NULL;
@@ -66,7 +66,7 @@ int mysqlnd_local_infile_init(void **ptr, char *filename, void **userdata TSRMLS
 
 /* {{{ mysqlnd_local_infile_read */
 static
-int mysqlnd_local_infile_read(void *ptr, zend_uchar * buf, unsigned int buf_len TSRMLS_DC)
+int mysqlnd_local_infile_read(void * ptr, zend_uchar * buf, unsigned int buf_len TSRMLS_DC)
 {
 	MYSQLND_INFILE_INFO	*info = (MYSQLND_INFILE_INFO *)ptr;
 	int count;
@@ -87,7 +87,7 @@ int mysqlnd_local_infile_read(void *ptr, zend_uchar * buf, unsigned int buf_len 
 
 /* {{{ mysqlnd_local_infile_error */
 static
-int	mysqlnd_local_infile_error(void *ptr, char *error_buf, unsigned int error_buf_len TSRMLS_DC)
+int	mysqlnd_local_infile_error(void * ptr, char *error_buf, unsigned int error_buf_len TSRMLS_DC)
 {
 	MYSQLND_INFILE_INFO	*info = (MYSQLND_INFILE_INFO *)ptr;
 
@@ -108,7 +108,7 @@ int	mysqlnd_local_infile_error(void *ptr, char *error_buf, unsigned int error_bu
 
 /* {{{ mysqlnd_local_infile_end */
 static
-void mysqlnd_local_infile_end(void *ptr TSRMLS_DC)
+void mysqlnd_local_infile_end(void * ptr TSRMLS_DC)
 {
 	MYSQLND_INFILE_INFO	*info = (MYSQLND_INFILE_INFO *)ptr;
 
@@ -125,7 +125,8 @@ void mysqlnd_local_infile_end(void *ptr TSRMLS_DC)
 
 
 /* {{{ mysqlnd_local_infile_default */
-PHPAPI void mysqlnd_local_infile_default(MYSQLND *conn)
+PHPAPI void
+mysqlnd_local_infile_default(MYSQLND_CONN_DATA * conn)
 {
 	conn->infile.local_infile_init = mysqlnd_local_infile_init;
 	conn->infile.local_infile_read = mysqlnd_local_infile_read;
@@ -134,8 +135,10 @@ PHPAPI void mysqlnd_local_infile_default(MYSQLND *conn)
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_set_local_infile_handler */
-PHPAPI void mysqlnd_set_local_infile_handler(MYSQLND * const conn, const char * const funcname)
+PHPAPI void
+mysqlnd_set_local_infile_handler(MYSQLND_CONN_DATA * const conn, const char * const funcname)
 {
 	if (!conn->infile.callback) {
 		MAKE_STD_ZVAL(conn->infile.callback);
@@ -152,7 +155,7 @@ static const char *lost_conn = "Lost connection to MySQL server during LOAD DATA
 
 /* {{{ mysqlnd_handle_local_infile */
 enum_func_status
-mysqlnd_handle_local_infile(MYSQLND *conn, const char *filename, zend_bool *is_warning TSRMLS_DC)
+mysqlnd_handle_local_infile(MYSQLND_CONN_DATA * conn, const char * filename, zend_bool * is_warning TSRMLS_DC)
 {
 	zend_uchar			*buf = NULL;
 	zend_uchar			empty_packet[MYSQLND_HEADER_SIZE];
@@ -166,10 +169,10 @@ mysqlnd_handle_local_infile(MYSQLND *conn, const char *filename, zend_bool *is_w
 
 	DBG_ENTER("mysqlnd_handle_local_infile");
 
-	if (!(conn->options.flags & CLIENT_LOCAL_FILES)) {
+	if (!(conn->options->flags & CLIENT_LOCAL_FILES)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "LOAD DATA LOCAL INFILE forbidden");
 		/* write empty packet to server */
-		ret = net->m.send_ex(net, empty_packet, 0, conn->stats, &conn->error_info TSRMLS_CC);
+		ret = net->m.send_ex(net, empty_packet, 0, conn->stats, conn->error_info TSRMLS_CC);
 		*is_warning = TRUE;
 		goto infile_error;
 	}
@@ -182,40 +185,40 @@ mysqlnd_handle_local_infile(MYSQLND *conn, const char *filename, zend_bool *is_w
 
 	/* init handler: allocate read buffer and open file */
 	if (infile.local_infile_init(&info, (char *)filename, conn->infile.userdata TSRMLS_CC)) {
-		char tmp_buf[sizeof(conn->error_info.error)];
+		char tmp_buf[sizeof(conn->error_info->error)];
 		int tmp_error_no;
 		*is_warning = TRUE;
 		/* error occured */
 		tmp_error_no = infile.local_infile_error(info, tmp_buf, sizeof(tmp_buf) TSRMLS_CC);
-		SET_CLIENT_ERROR(conn->error_info, tmp_error_no, UNKNOWN_SQLSTATE, tmp_buf);
+		SET_CLIENT_ERROR(*conn->error_info, tmp_error_no, UNKNOWN_SQLSTATE, tmp_buf);
 		/* write empty packet to server */
-		ret = net->m.send_ex(net, empty_packet, 0, conn->stats, &conn->error_info TSRMLS_CC);
+		ret = net->m.send_ex(net, empty_packet, 0, conn->stats, conn->error_info TSRMLS_CC);
 		goto infile_error;
 	}
 
 	/* read data */
 	while ((bufsize = infile.local_infile_read (info, buf + MYSQLND_HEADER_SIZE, buflen - MYSQLND_HEADER_SIZE TSRMLS_CC)) > 0) {
-		if ((ret = net->m.send_ex(net, buf, bufsize, conn->stats, &conn->error_info TSRMLS_CC)) == 0) {
+		if ((ret = net->m.send_ex(net, buf, bufsize, conn->stats, conn->error_info TSRMLS_CC)) == 0) {
 			DBG_ERR_FMT("Error during read : %d %s %s", CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
-			SET_CLIENT_ERROR(conn->error_info, CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
+			SET_CLIENT_ERROR(*conn->error_info, CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
 			goto infile_error;
 		}
 	}
 
 	/* send empty packet for eof */
-	if ((ret = net->m.send_ex(net, empty_packet, 0, conn->stats, &conn->error_info TSRMLS_CC)) == 0) {
-		SET_CLIENT_ERROR(conn->error_info, CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
+	if ((ret = net->m.send_ex(net, empty_packet, 0, conn->stats, conn->error_info TSRMLS_CC)) == 0) {
+		SET_CLIENT_ERROR(*conn->error_info, CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
 		goto infile_error;
 	}
 
 	/* error during read occured */
 	if (bufsize < 0) {
-		char tmp_buf[sizeof(conn->error_info.error)];
+		char tmp_buf[sizeof(conn->error_info->error)];
 		int tmp_error_no;
 		*is_warning = TRUE;
 		DBG_ERR_FMT("Bufsize < 0, warning,  %d %s %s", CR_SERVER_LOST, UNKNOWN_SQLSTATE, lost_conn);
 		tmp_error_no = infile.local_infile_error(info, tmp_buf, sizeof(tmp_buf) TSRMLS_CC);
-		SET_CLIENT_ERROR(conn->error_info, tmp_error_no, UNKNOWN_SQLSTATE, tmp_buf);
+		SET_CLIENT_ERROR(*conn->error_info, tmp_error_no, UNKNOWN_SQLSTATE, tmp_buf);
 		goto infile_error;
 	}
 

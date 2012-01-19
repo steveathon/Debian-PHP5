@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -19,7 +19,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: output.c 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: output.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef PHP_OUTPUT_DEBUG
 # define PHP_OUTPUT_DEBUG 0
@@ -338,6 +338,14 @@ PHPAPI int php_output_get_length(zval *p TSRMLS_DC)
 }
 /* }}} */
 
+/* {{{ php_output_handler* php_output_get_active_handler(TSRMLS_D)
+ * Get active output handler */
+PHPAPI php_output_handler* php_output_get_active_handler(TSRMLS_D)
+{
+	return OG(active);
+}
+/* }}} */
+
 /* {{{ SUCCESS|FAILURE php_output_handler_start_default(TSRMLS_D)
  * Start a "default output handler" */
 PHPAPI int php_output_start_default(TSRMLS_D)
@@ -508,14 +516,14 @@ PHPAPI int php_output_handler_start(php_output_handler *handler TSRMLS_DC)
  * Check whether a certain output handler is in use */
 PHPAPI int php_output_handler_started(const char *name, size_t name_len TSRMLS_DC)
 {
-	php_output_handler **handlers;
+	php_output_handler ***handlers;
 	int i, count = php_output_get_level(TSRMLS_C);
 
 	if (count) {
-		handlers = *(php_output_handler ***) zend_stack_base(&OG(handlers));
+		handlers = (php_output_handler ***) zend_stack_base(&OG(handlers));
 
 		for (i = 0; i < count; ++i) {
-			if (name_len == handlers[i]->name_len && !memcmp(handlers[i]->name, name, name_len)) {
+			if (name_len == (*(handlers[i]))->name_len && !memcmp((*(handlers[i]))->name, name, name_len)) {
 				return 1;
 			}
 		}
@@ -1360,6 +1368,10 @@ PHP_FUNCTION(ob_get_clean)
 		return;
 	}
 
+	if(!OG(active)) {
+		RETURN_FALSE;
+	}
+
 	if (php_output_get_contents(return_value TSRMLS_CC) == FAILURE) {
 		php_error_docref("ref.outcontrol" TSRMLS_CC, E_NOTICE, "failed to delete buffer. No buffer to delete");
 		RETURN_FALSE;
@@ -1439,11 +1451,11 @@ PHP_FUNCTION(ob_get_status)
 		return;
 	}
 
-	if (!OG(active)) {
-		RETURN_FALSE;
-	}
-
 	array_init(return_value);
+
+	if (!OG(active)) {
+		return;
+	}
 
 	if (full_status) {
 		zend_stack_apply_with_argument(&OG(handlers), ZEND_STACK_APPLY_BOTTOMUP, php_output_stack_apply_status, return_value);

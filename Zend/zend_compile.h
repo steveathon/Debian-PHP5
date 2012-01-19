@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_compile.h 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: zend_compile.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef ZEND_COMPILE_H
 #define ZEND_COMPILE_H
@@ -197,6 +197,9 @@ typedef struct _zend_try_catch_element {
 
 /* function flag for internal user call handlers __call, __callstatic */
 #define ZEND_ACC_CALL_VIA_HANDLER     0x200000
+
+/* disable inline caching */
+#define ZEND_ACC_NEVER_CACHE          0x400000
 
 #define ZEND_ACC_PASS_REST_BY_REFERENCE 0x1000000
 #define ZEND_ACC_PASS_REST_PREFER_REF	0x2000000

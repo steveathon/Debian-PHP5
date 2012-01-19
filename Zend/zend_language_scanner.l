@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -21,7 +21,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_language_scanner.l 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: zend_language_scanner.l 321655 2012-01-01 22:45:58Z nlopess $ */
 
 #if 0
 # define YYDEBUG(s, c) printf("state: %d char: %c\n", s, c)
@@ -756,6 +756,8 @@ zend_op_array *compile_string(zval *source_string, char *filename TSRMLS_DC)
 		if (compiler_result==1) {
 			CG(active_op_array) = original_active_op_array;
 			CG(unclean_shutdown)=1;
+			destroy_op_array(op_array TSRMLS_CC);
+			efree(op_array);
 			retval = NULL;
 		} else {
 			zend_do_return(NULL, 0 TSRMLS_CC);
@@ -900,6 +902,10 @@ static void zend_scan_escape_string(zval *zendlval, char *str, int len, char quo
 					break;
 				case 'v':
 					*t++ = '\v';
+					zendlval->value.str.len--;
+					break;
+				case 'e':
+					*t++ = '\e';
 					zendlval->value.str.len--;
 					break;
 				case '"':

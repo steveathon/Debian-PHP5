@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
   |          Dmitry Stogov <dmitry@zend.com>                             |
   +----------------------------------------------------------------------+
 */
-/* $Id: php_http.c 318136 2011-10-15 23:57:33Z stas $ */
+/* $Id: php_http.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "php_soap.h"
 #include "ext/standard/base64.h"
@@ -433,12 +433,14 @@ try_again:
 			smart_str_appendc(&soap_headers, ':');
 			smart_str_append_unsigned(&soap_headers, phpurl->port);
 		}
-		if (http_1_1) {
-			smart_str_append_const(&soap_headers, "\r\n"
-				"Connection: Keep-Alive\r\n");
-		} else {
+		if (!http_1_1 ||
+			(zend_hash_find(Z_OBJPROP_P(this_ptr), "_keep_alive", sizeof("_keep_alive"), (void **)&tmp) == SUCCESS &&
+			 Z_LVAL_PP(tmp) == 0)) {
 			smart_str_append_const(&soap_headers, "\r\n"
 				"Connection: close\r\n");
+		} else {
+			smart_str_append_const(&soap_headers, "\r\n"
+				"Connection: Keep-Alive\r\n");
 		}
 		if (zend_hash_find(Z_OBJPROP_P(this_ptr), "_user_agent", sizeof("_user_agent"), (void **)&tmp) == SUCCESS &&
 		    Z_TYPE_PP(tmp) == IS_STRING) {
@@ -1383,7 +1385,7 @@ static int get_http_body(php_stream *stream, int close, char *headers,  char **r
 		}
 
 	} else if (header_length) {
-		if (header_length < 0) {
+		if (header_length < 0 || header_length >= INT_MAX) {
 			return FALSE;
 		}
 		http_buf = safe_emalloc(1, header_length, 1);

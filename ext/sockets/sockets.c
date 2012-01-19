@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -20,7 +20,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: sockets.c 318094 2011-10-13 22:56:05Z felipe $ */
+/* $Id: sockets.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -2189,8 +2189,16 @@ PHP_FUNCTION(socket_set_option)
 			goto dosockopt;
 
 		case IP_MULTICAST_LOOP:
+			convert_to_boolean_ex(arg4);
+			goto ipv4_loop_ttl;
 		case IP_MULTICAST_TTL:
 			convert_to_long_ex(arg4);
+			if (Z_LVAL_PP(arg4) < 0L || Z_LVAL_PP(arg4) > 255L) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+						"Expected a value between 0 and 255");
+				RETURN_FALSE;
+			}
+ipv4_loop_ttl:
 			ipv4_mcast_ttl_lback = (unsigned char) Z_LVAL_PP(arg4);
 			opt_ptr = &ipv4_mcast_ttl_lback;
 			optlen	= sizeof(ipv4_mcast_ttl_lback);
@@ -2225,8 +2233,16 @@ PHP_FUNCTION(socket_set_option)
 			goto dosockopt;
 
 		case IPV6_MULTICAST_LOOP:
+			convert_to_boolean_ex(arg4);
+			goto ipv6_loop_hops;
 		case IPV6_MULTICAST_HOPS:
 			convert_to_long_ex(arg4);
+			if (Z_LVAL_PP(arg4) < -1L || Z_LVAL_PP(arg4) > 255L) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+						"Expected a value between -1 and 255");
+				RETURN_FALSE;
+			}
+ipv6_loop_hops:
 			ov = (int) Z_LVAL_PP(arg4);
 			opt_ptr = &ov;
 			optlen	= sizeof(ov);

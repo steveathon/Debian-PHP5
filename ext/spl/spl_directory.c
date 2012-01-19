@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_directory.c 317499 2011-09-30 14:12:26Z bjori $ */
+/* $Id: spl_directory.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -48,8 +48,10 @@
 
 /* declare the class handlers */
 static zend_object_handlers spl_filesystem_object_handlers;
+/* includes handler to validate object state when retrieving methods */
+static zend_object_handlers spl_filesystem_object_check_handlers;
 
-/* declare the class entry */
+/* decalre the class entry */
 PHPAPI zend_class_entry *spl_ce_SplFileInfo;
 PHPAPI zend_class_entry *spl_ce_DirectoryIterator;
 PHPAPI zend_class_entry *spl_ce_FilesystemIterator;
@@ -142,16 +144,13 @@ static zend_object_value spl_filesystem_object_new_ex(zend_class_entry *class_ty
 	/* intern->type = SPL_FS_INFO; done by set 0 */
 	intern->file_class = spl_ce_SplFileObject;
 	intern->info_class = spl_ce_SplFileInfo;
-	if (obj) {
-		*obj = intern;
-	}
+	if (obj) *obj = intern;
 
 	zend_object_std_init(&intern->std, class_type TSRMLS_CC);
 	object_properties_init(&intern->std, class_type);
 
 	retval.handle = zend_objects_store_put(intern, (zend_objects_store_dtor_t) zend_objects_destroy_object, (zend_objects_free_object_storage_t) spl_filesystem_object_free_storage, NULL TSRMLS_CC);
 	retval.handlers = &spl_filesystem_object_handlers;
-	
 	return retval;
 }
 /* }}} */
@@ -163,6 +162,16 @@ static zend_object_value spl_filesystem_object_new(zend_class_entry *class_type 
 	return spl_filesystem_object_new_ex(class_type, NULL TSRMLS_CC);
 }
 /* }}} */
+
+/* {{{ spl_filesystem_object_new_ex */
+static zend_object_value spl_filesystem_object_new_check(zend_class_entry *class_type TSRMLS_DC)
+{
+	zend_object_value ret = spl_filesystem_object_new_ex(class_type, NULL TSRMLS_CC);
+	ret.handlers = &spl_filesystem_object_check_handlers;
+	return ret;
+}
+/* }}} */
+
 
 PHPAPI char* spl_filesystem_object_get_path(spl_filesystem_object *intern, int *len TSRMLS_DC) /* {{{ */
 {
@@ -634,25 +643,17 @@ static HashTable* spl_filesystem_object_get_debug_info(zval *obj, int *is_temp T
 }
 /* }}} */
 
-static int spl_filesystem_object_constructor_validator(void *object_data TSRMLS_DC) /* {{{ */
+zend_function *spl_filesystem_object_get_method_check(zval **object_ptr, char *method, int method_len, const struct _zend_literal *key TSRMLS_DC) /* {{{ */
 {
-	spl_filesystem_object *fsobj = object_data;
+	spl_filesystem_object *fsobj = zend_object_store_get_object(*object_ptr TSRMLS_CC);
 	
-	/* check if GlobIterator and Spl[Temp]FileObject had their constructor 
-	 * and check if everything went smoothly/there was an exception not cleared
-	 * or if there was an userspace class that did not call the parent
-	 * constructor or cleared its exception */
+	if (fsobj->u.dir.entry.d_name[0] == '\0' && fsobj->orig_path == NULL) {
+		method = "_bad_state_ex";
+		method_len = sizeof("_bad_state_ex") - 1;
+		key = NULL;
+	}
 	
-	return (fsobj->u.dir.entry.d_name[0] != '\0' /* GlobIterator */ ||
-			fsobj->_path != NULL /* SplFileInfo */ ||
-			fsobj->orig_path != NULL /* Spl[Temp]FileObject */);
-}
-/* }}} */
-
-static zend_function *spl_filesystem_object_get_constructor(zval *object TSRMLS_DC) /* {{{ */
-{
-	return php_spl_get_constructor_helper(object,
-			spl_filesystem_object_constructor_validator TSRMLS_CC);
+	return zend_get_std_object_handlers()->get_method(object_ptr, method, method_len, key TSRMLS_CC);
 }
 /* }}} */
 
@@ -1229,7 +1230,10 @@ SPL_METHOD(SplFileInfo, getLinkTarget)
 	zend_replace_error_handling(EH_THROW, spl_ce_RuntimeException, &error_handling TSRMLS_CC);
 
 #if defined(PHP_WIN32) || HAVE_SYMLINK
-	if (!IS_ABSOLUTE_PATH(intern->file_name, intern->file_name_len)) {
+	if (intern->file_name == NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Empty filename");
+		RETURN_FALSE;
+	} else if (!IS_ABSOLUTE_PATH(intern->file_name, intern->file_name_len)) {
 		char expanded_path[MAXPATHLEN];
 		if (!expand_filepath_with_mode(intern->file_name, expanded_path, NULL, 0, CWD_EXPAND  TSRMLS_CC)) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "No such file or directory");
@@ -1386,6 +1390,15 @@ SPL_METHOD(SplFileInfo, getPathInfo)
 	}
 
 	zend_restore_error_handling(&error_handling TSRMLS_CC);
+}
+/* }}} */
+
+/* {{{ */
+SPL_METHOD(SplFileInfo, _bad_state_ex)
+{
+	zend_throw_exception_ex(spl_ce_LogicException, 0 TSRMLS_CC,
+		"The parent constructor was not called: the object is in an "
+		"invalid state ");
 }
 /* }}} */
 
@@ -1926,6 +1939,7 @@ static const zend_function_entry spl_SplFileInfo_functions[] = {
 	SPL_ME(SplFileInfo,       openFile,      arginfo_info_openFile,         ZEND_ACC_PUBLIC)
 	SPL_ME(SplFileInfo,       setFileClass,  arginfo_info_optinalFileClass, ZEND_ACC_PUBLIC)
 	SPL_ME(SplFileInfo,       setInfoClass,  arginfo_info_optinalFileClass, ZEND_ACC_PUBLIC)
+	SPL_ME(SplFileInfo,       _bad_state_ex, NULL,							ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	SPL_MA(SplFileInfo,       __toString, SplFileInfo, getPathname, arginfo_splfileinfo_void, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
@@ -2866,6 +2880,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_file_object_fgetcsv, 0, 0, 0)
 	ZEND_ARG_INFO(0, delimiter)
 	ZEND_ARG_INFO(0, enclosure)
+	ZEND_ARG_INFO(0, escape)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_file_object_fputcsv, 0, 0, 1)
@@ -2961,8 +2976,6 @@ PHP_MINIT_FUNCTION(spl_directory)
 	spl_filesystem_object_handlers.clone_obj       = spl_filesystem_object_clone;
 	spl_filesystem_object_handlers.cast_object     = spl_filesystem_object_cast;
 	spl_filesystem_object_handlers.get_debug_info  = spl_filesystem_object_get_debug_info;
-	spl_filesystem_object_handlers.get_constructor = spl_filesystem_object_get_constructor;
-	
 	spl_ce_SplFileInfo->serialize = zend_class_serialize_deny;
 	spl_ce_SplFileInfo->unserialize = zend_class_unserialize_deny;
 
@@ -2971,7 +2984,7 @@ PHP_MINIT_FUNCTION(spl_directory)
 	REGISTER_SPL_IMPLEMENTS(DirectoryIterator, SeekableIterator);
 
 	spl_ce_DirectoryIterator->get_iterator = spl_filesystem_dir_get_iterator;
-	
+
 	REGISTER_SPL_SUB_CLASS_EX(FilesystemIterator, DirectoryIterator, spl_filesystem_object_new, spl_FilesystemIterator_functions);
 
 	REGISTER_SPL_CLASS_CONST_LONG(FilesystemIterator, "CURRENT_MODE_MASK",   SPL_FILE_DIR_CURRENT_MODE_MASK);
@@ -2991,12 +3004,15 @@ PHP_MINIT_FUNCTION(spl_directory)
 	REGISTER_SPL_SUB_CLASS_EX(RecursiveDirectoryIterator, FilesystemIterator, spl_filesystem_object_new, spl_RecursiveDirectoryIterator_functions);
 	REGISTER_SPL_IMPLEMENTS(RecursiveDirectoryIterator, RecursiveIterator);
 	
+	memcpy(&spl_filesystem_object_check_handlers, &spl_filesystem_object_handlers, sizeof(zend_object_handlers));
+	spl_filesystem_object_check_handlers.get_method = spl_filesystem_object_get_method_check;
+
 #ifdef HAVE_GLOB
-	REGISTER_SPL_SUB_CLASS_EX(GlobIterator, FilesystemIterator, spl_filesystem_object_new, spl_GlobIterator_functions);
+	REGISTER_SPL_SUB_CLASS_EX(GlobIterator, FilesystemIterator, spl_filesystem_object_new_check, spl_GlobIterator_functions);
 	REGISTER_SPL_IMPLEMENTS(GlobIterator, Countable);
 #endif
 
-	REGISTER_SPL_SUB_CLASS_EX(SplFileObject, SplFileInfo, spl_filesystem_object_new, spl_SplFileObject_functions);
+	REGISTER_SPL_SUB_CLASS_EX(SplFileObject, SplFileInfo, spl_filesystem_object_new_check, spl_SplFileObject_functions);
 	REGISTER_SPL_IMPLEMENTS(SplFileObject, RecursiveIterator);
 	REGISTER_SPL_IMPLEMENTS(SplFileObject, SeekableIterator);
 
@@ -3005,7 +3021,7 @@ PHP_MINIT_FUNCTION(spl_directory)
 	REGISTER_SPL_CLASS_CONST_LONG(SplFileObject, "SKIP_EMPTY",    SPL_FILE_OBJECT_SKIP_EMPTY);
 	REGISTER_SPL_CLASS_CONST_LONG(SplFileObject, "READ_CSV",      SPL_FILE_OBJECT_READ_CSV);
 	
-	REGISTER_SPL_SUB_CLASS_EX(SplTempFileObject, SplFileObject, spl_filesystem_object_new, spl_SplTempFileObject_functions);
+	REGISTER_SPL_SUB_CLASS_EX(SplTempFileObject, SplFileObject, spl_filesystem_object_new_check, spl_SplTempFileObject_functions);
 	return SUCCESS;
 }
 /* }}} */

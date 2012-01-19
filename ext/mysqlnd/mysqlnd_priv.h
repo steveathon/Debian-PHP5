@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,13 +12,13 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@mysql.com>                             |
-  |          Andrey Hristov <andrey@mysql.com>                           |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysqlnd_priv.h 314239 2011-08-04 09:51:26Z andrey $ */
+/* $Id: mysqlnd_priv.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef MYSQLND_PRIV_H
 #define MYSQLND_PRIV_H
@@ -46,10 +46,6 @@
 #ifndef pestrndup
 #define pestrndup(s, length, persistent) ((persistent)?zend_strndup((s),(length)):estrndup((s),(length)))
 #endif
-
-#define MYSQLND_CLASS_METHOD_TABLE_NAME(class) mysqlnd_##class##_methods
-#define MYSQLND_CLASS_METHODS_START(class)	struct st_##class##_methods MYSQLND_CLASS_METHOD_TABLE_NAME(class) = {
-#define MYSQLND_CLASS_METHODS_END			}
 
 #if MYSQLND_UNICODE
 #define mysqlnd_array_init(arg, field_count) \
@@ -103,7 +99,7 @@
 #define MAX_CHARSET_LEN			32
 
 
-#define SET_ERROR_AFF_ROWS(s)	(s)->upsert_status.affected_rows = (uint64_t) ~0
+#define SET_ERROR_AFF_ROWS(s)	(s)->upsert_status->affected_rows = (uint64_t) ~0
 
 /* Error handling */
 #define SET_NEW_MESSAGE(buf, buf_len, message, len, persistent) \
@@ -172,17 +168,10 @@
 #define SET_OOM_ERROR(error_info) SET_CLIENT_ERROR((error_info), CR_OUT_OF_MEMORY, UNKNOWN_SQLSTATE, mysqlnd_out_of_memory)
 
 
-#define SET_STMT_ERROR(stmt, a, b, c)	SET_CLIENT_ERROR((stmt)->error_info, a, b, c)
+#define SET_STMT_ERROR(stmt, a, b, c)	SET_CLIENT_ERROR(*(stmt)->error_info, a, b, c)
 
-
-#ifdef ZTS
 #define CONN_GET_STATE(c)		(c)->m->get_state((c) TSRMLS_CC)
 #define CONN_SET_STATE(c, s)	(c)->m->set_state((c), (s) TSRMLS_CC)
-#else
-#define CONN_GET_STATE(c)		((c)->state)
-#define CONN_SET_STATE(c, s)	((c)->state = (s))
-#endif
-
 
 /* PS stuff */
 typedef void (*ps_field_fetch_func)(zval *zv, const MYSQLND_FIELD * const field,
@@ -204,7 +193,14 @@ PHPAPI extern const char * const mysqlnd_out_of_sync;
 PHPAPI extern const char * const mysqlnd_server_gone;
 PHPAPI extern const char * const mysqlnd_out_of_memory;
 
-enum_func_status mysqlnd_handle_local_infile(MYSQLND *conn, const char *filename, zend_bool *is_warning TSRMLS_DC);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_object_factory);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_conn);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_conn_data);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_res);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_protocol);
+extern MYSQLND_CLASS_METHOD_TABLE_NAME_FORWARD(mysqlnd_net);
+
+enum_func_status mysqlnd_handle_local_infile(MYSQLND_CONN_DATA * conn, const char *filename, zend_bool *is_warning TSRMLS_DC);
 
 
 
@@ -226,7 +222,7 @@ struct st_mysqlnd_packet_greet;
 struct st_mysqlnd_authentication_plugin;
 
 enum_func_status
-mysqlnd_auth_handshake(MYSQLND * conn,
+mysqlnd_auth_handshake(MYSQLND_CONN_DATA * conn,
 						const char * const user,
 						const char * const passwd,
 						const size_t passwd_len,
@@ -246,7 +242,7 @@ mysqlnd_auth_handshake(MYSQLND * conn,
 						TSRMLS_DC);
 
 enum_func_status
-mysqlnd_auth_change_user(MYSQLND * const conn,
+mysqlnd_auth_change_user(MYSQLND_CONN_DATA * const conn,
 								const char * const user,
 								const size_t user_len,
 								const char * const passwd,

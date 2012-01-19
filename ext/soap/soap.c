@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
   |          Dmitry Stogov <dmitry@zend.com>                             |
   +----------------------------------------------------------------------+
 */
-/* $Id: soap.c 313663 2011-07-25 11:35:02Z felipe $ */
+/* $Id: soap.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -93,6 +93,7 @@ static void soap_error_handler(int error_num, const char *error_filename, const 
 	zend_bool _old_in_compilation = CG(in_compilation); \
 	zend_bool _old_in_execution = EG(in_execution); \
 	zend_execute_data *_old_current_execute_data = EG(current_execute_data); \
+	void **_old_stack_top = EG(argument_stack)->top; \
 	int _bailout = 0;\
 	SOAP_GLOBAL(use_soap_error_handler) = 1;\
 	SOAP_GLOBAL(error_code) = "Client";\
@@ -109,6 +110,16 @@ static void soap_error_handler(int error_num, const char *error_filename, const 
 		    !instanceof_function(Z_OBJCE_P(EG(exception)), soap_fault_class_entry TSRMLS_CC)) {\
 			_bailout = 1;\
 		}\
+		if (_old_stack_top != EG(argument_stack)->top) { \
+			while (EG(argument_stack)->prev != NULL && \
+			       ((char*)_old_stack_top < (char*)EG(argument_stack) || \
+			        (char*) _old_stack_top > (char*)EG(argument_stack)->end)) { \
+				zend_vm_stack tmp = EG(argument_stack)->prev; \
+				efree(EG(argument_stack)); \
+				EG(argument_stack) = tmp; \
+			} \
+			EG(argument_stack)->top = _old_stack_top; \
+		} \
 	} zend_end_try();\
 	SOAP_GLOBAL(use_soap_error_handler) = _old_handler;\
 	SOAP_GLOBAL(error_code) = _old_error_code;\
@@ -2468,6 +2479,11 @@ PHP_METHOD(SoapClient, SoapClient)
 		if (zend_hash_find(ht, "user_agent", sizeof("user_agent"), (void**)&tmp) == SUCCESS &&
 		    Z_TYPE_PP(tmp) == IS_STRING) {
 			add_property_stringl(this_ptr, "_user_agent", Z_STRVAL_PP(tmp), Z_STRLEN_PP(tmp), 1);
+		}
+		
+		if (zend_hash_find(ht, "keep_alive", sizeof("keep_alive"), (void**)&tmp) == SUCCESS &&
+				(Z_TYPE_PP(tmp) == IS_BOOL || Z_TYPE_PP(tmp) == IS_LONG) && Z_LVAL_PP(tmp) == 0) {
+			add_property_long(this_ptr, "_keep_alive", 0);
 		}
 	} else if (Z_TYPE_P(wsdl) == IS_NULL) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "'location' and 'uri' options are required in nonWSDL mode");

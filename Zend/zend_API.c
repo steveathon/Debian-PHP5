@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_API.c 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: zend_API.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "zend.h"
 #include "zend_execute.h"
@@ -1107,7 +1107,9 @@ ZEND_API int _object_and_properties_init(zval *arg, zend_class_entry *class_type
 	zend_object *object;
 
 	if (class_type->ce_flags & (ZEND_ACC_INTERFACE|ZEND_ACC_IMPLICIT_ABSTRACT_CLASS|ZEND_ACC_EXPLICIT_ABSTRACT_CLASS)) {
-		char *what = class_type->ce_flags & ZEND_ACC_INTERFACE ? "interface" : "abstract class";
+		char *what =   (class_type->ce_flags & ZEND_ACC_INTERFACE)                ? "interface"
+					 :((class_type->ce_flags & ZEND_ACC_TRAIT) == ZEND_ACC_TRAIT) ? "trait"
+					 :                                                              "abstract class";
 		zend_error(E_ERROR, "Cannot instantiate %s %s", what, class_type->name);
 	}
 

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_execute.c 316887 2011-09-17 00:16:11Z felipe $ */
+/* $Id: zend_execute.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #define ZEND_INTENSIVE_DEBUGGING 0
 
@@ -1147,13 +1147,22 @@ convert_to_array:
 				}
 
 				if (Z_TYPE_P(dim) != IS_LONG) {
+
 					switch(Z_TYPE_P(dim)) {
 						/* case IS_LONG: */
 						case IS_STRING:
+							if (IS_LONG == is_numeric_string(Z_STRVAL_P(dim), Z_STRLEN_P(dim), NULL, NULL, -1)) {
+								break;
+							}
+							if (type != BP_VAR_UNSET) {
+								zend_error(E_WARNING, "Illegal string offset '%s'", dim->value.str.val);
+							}
+
+							break;
 						case IS_DOUBLE:
 						case IS_NULL:
 						case IS_BOOL:
-							/* do nothing */
+							zend_error(E_NOTICE, "String offset cast occured");
 							break;
 						default:
 							zend_error(E_WARNING, "Illegal offset type");
@@ -1265,10 +1274,19 @@ static void zend_fetch_dimension_address_read(temp_variable *result, zval **cont
 					switch(Z_TYPE_P(dim)) {
 						/* case IS_LONG: */
 						case IS_STRING:
+							if (IS_LONG == is_numeric_string(Z_STRVAL_P(dim), Z_STRLEN_P(dim), NULL, NULL, -1)) {
+								break;
+							}
+							if (type != BP_VAR_IS) {
+								zend_error(E_WARNING, "Illegal string offset '%s'", dim->value.str.val);
+							}
+							break;
 						case IS_DOUBLE:
 						case IS_NULL:
 						case IS_BOOL:
-							/* do nothing */
+							if (type != BP_VAR_IS) {
+								zend_error(E_NOTICE, "String offset cast occured");
+							}
 							break;
 						default:
 							zend_error(E_WARNING, "Illegal offset type");

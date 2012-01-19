@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: pdo_dbh.c 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: pdo_dbh.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 /* The PDO Database Handle Class */
 
@@ -1310,9 +1310,9 @@ int pdo_hash_methods(pdo_dbh_t *dbh, int kind TSRMLS_DC)
 		ifunc->scope = dbh->std.ce;
 		ifunc->prototype = NULL;
 		if (funcs->flags) {
-			ifunc->fn_flags = funcs->flags;
+			ifunc->fn_flags = funcs->flags | ZEND_ACC_NEVER_CACHE;
 		} else {
-			ifunc->fn_flags = ZEND_ACC_PUBLIC;
+			ifunc->fn_flags = ZEND_ACC_PUBLIC | ZEND_ACC_NEVER_CACHE;
 		}
 		if (funcs->arg_info) {
 			zend_internal_function_info *info = (zend_internal_function_info*)funcs->arg_info;

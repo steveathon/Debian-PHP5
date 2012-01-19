@@ -4,7 +4,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -22,7 +22,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_ini_scanner.c 313641 2011-07-23 20:23:21Z pajoye $ */
+/* $Id: zend_ini_scanner.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include <errno.h>
 #include "zend.h"

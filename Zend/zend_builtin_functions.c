@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_builtin_functions.c 317300 2011-09-26 03:57:22Z stas $ */
+/* $Id: zend_builtin_functions.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "zend.h"
 #include "zend_API.h"
@@ -143,6 +143,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_is_subclass_of, 0, 0, 2)
 	ZEND_ARG_INFO(0, object)
 	ZEND_ARG_INFO(0, class_name)
+	ZEND_ARG_INFO(0, allow_string)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_get_class_vars, 0, 0, 1)
@@ -706,6 +707,9 @@ repeat:
 	}
 	c.flags = case_sensitive; /* non persistent */
 	c.name = IS_INTERNED(name) ? name : zend_strndup(name, name_len);
+	if(c.name == NULL) {
+		RETURN_FALSE;
+	}
 	c.name_len = name_len+1;
 	c.module_number = PHP_USER_CONSTANT;
 	if (zend_register_constant(&c TSRMLS_CC) == SUCCESS) {
@@ -839,13 +843,20 @@ static void is_a_impl(INTERNAL_FUNCTION_PARAMETERS, zend_bool only_subclass)
 	int class_name_len;
 	zend_class_entry *instance_ce;
 	zend_class_entry **ce;
+	zend_bool allow_string = only_subclass;
 	zend_bool retval;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", &obj, &class_name, &class_name_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs|b", &obj, &class_name, &class_name_len, &allow_string) == FAILURE) {
 		return;
 	}
-	
-	if (Z_TYPE_P(obj) == IS_STRING) {
+	/*
+	 * allow_string - is_a default is no, is_subclass_of is yes. 
+	 *   if it's allowed, then the autoloader will be called if the class does not exist.
+	 *   default behaviour is different, as 'is_a' used to be used to test mixed return values
+	 *   and there is no easy way to deprecate this.
+	 */
+
+	if (allow_string && Z_TYPE_P(obj) == IS_STRING) {
 		zend_class_entry **the_ce;
 		if (zend_lookup_class(Z_STRVAL_P(obj), Z_STRLEN_P(obj), &the_ce TSRMLS_CC) == FAILURE) {
 			RETURN_FALSE;
@@ -871,7 +882,7 @@ static void is_a_impl(INTERNAL_FUNCTION_PARAMETERS, zend_bool only_subclass)
 }
 
 
-/* {{{ proto bool is_subclass_of(mixed object, string class_name)
+/* {{{ proto bool is_subclass_of(mixed object_or_string, string class_name [, bool allow_string=true])
    Returns true if the object has this class as one of its parents */
 ZEND_FUNCTION(is_subclass_of)
 {
@@ -880,8 +891,8 @@ ZEND_FUNCTION(is_subclass_of)
 /* }}} */
 
 
-/* {{{ proto bool is_a(mixed object, string class_name)
-   Returns true if the object is of this class or has this class as one of its parents */
+/* {{{ proto bool is_a(mixed object_or_string, string class_name [, bool allow_string=false])
+   Returns true if the first argument is an object and is this class or has this class as one of its parents, */
 ZEND_FUNCTION(is_a)
 {
 	is_a_impl(INTERNAL_FUNCTION_PARAM_PASSTHRU, 0);

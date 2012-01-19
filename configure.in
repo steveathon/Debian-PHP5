@@ -1,4 +1,4 @@
-## $Id: configure.in 318242 2011-10-20 06:05:30Z stas $ -*- autoconf -*-
+## $Id: configure.in 321780 2012-01-05 07:22:29Z stas $ -*- autoconf -*-
 dnl ## Process this file with autoconf to produce a configure script.
 
 dnl include Zend specific macro definitions first
@@ -120,7 +120,7 @@ int zend_sprintf(char *buffer, const char *format, ...);
 PHP_MAJOR_VERSION=5
 PHP_MINOR_VERSION=4
 PHP_RELEASE_VERSION=0
-PHP_EXTRA_VERSION="beta2"
+PHP_EXTRA_VERSION="RC5"
 PHP_VERSION="$PHP_MAJOR_VERSION.$PHP_MINOR_VERSION.$PHP_RELEASE_VERSION$PHP_EXTRA_VERSION"
 PHP_VERSION_ID=`expr [$]PHP_MAJOR_VERSION \* 10000 + [$]PHP_MINOR_VERSION \* 100 + [$]PHP_RELEASE_VERSION`
 
@@ -737,6 +737,13 @@ if test "$ac_cv_func_getaddrinfo" = yes; then
   AC_DEFINE(HAVE_GETADDRINFO,1,[Define if you have the getaddrinfo function])
 fi
 
+dnl Check for the __sync_fetch_and_add builtin
+AC_CACHE_CHECK([for __sync_fetch_and_add], ac_cv_func_sync_fetch_and_add,
+[AC_TRY_LINK([],[int x;__sync_fetch_and_add(&x,1);],ac_cv_func_sync_fetch_and_add=yes,ac_cv_func_sync_fetch_and_add=no)])
+if test "$ac_cv_func_sync_fetch_and_add" = yes; then
+  AC_DEFINE(HAVE_SYNC_FETCH_AND_ADD,1,[Define if you have the __sync_fetch_and_add function])
+fi
+
 AC_REPLACE_FUNCS(strlcat strlcpy getopt)
 AC_FUNC_UTIME_NULL
 AC_FUNC_ALLOCA
@@ -856,7 +863,7 @@ fi
 
 PHP_ARG_WITH(layout, layout of installed files,
 [  --with-layout=TYPE      Set how installed files will be laid out.  Type can
-                          be either PHP or GNU [PHP]], PHP, no)
+                          be either PHP or GNU @<:@PHP@:>@], PHP, no)
 
 case $PHP_LAYOUT in
   GNU)
@@ -869,7 +876,7 @@ esac
 
 PHP_ARG_WITH(config-file-path, path to configuration file,
 [  --with-config-file-path=PATH
-                          Set the path in which to look for php.ini [PREFIX/lib]], DEFAULT, no)
+                          Set the path in which to look for php.ini @<:@PREFIX/lib@:>@], DEFAULT, no)
 
 if test "$PHP_CONFIG_FILE_PATH" = "DEFAULT"; then
   case $PHP_LAYOUT in
@@ -1061,7 +1068,7 @@ if test "$PHP_CLI" = "no"; then
 fi
 
 PHP_ARG_WITH(pear, [whether to install PEAR],
-[  --with-pear=DIR         Install PEAR in DIR [PREFIX/lib/php]
+[  --with-pear=DIR         Install PEAR in DIR @<:@PREFIX/lib/php@:>@
   --without-pear          Do not install PEAR], DEFAULT, yes)
 
 if test "$PHP_PEAR" != "no"; then

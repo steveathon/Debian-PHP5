@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    |         Ilia Alshanetsky <iliaa@php.net>                             |
    +----------------------------------------------------------------------+
  */
-/* $Id: exec.c 313575 2011-07-22 11:25:30Z pajoye $ */
+/* $Id: exec.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include <stdio.h>
 #include "php.h"
@@ -272,8 +272,8 @@ PHPAPI char *php_escape_shell_cmd(char *str)
 					p = NULL;
 				} else {
 					cmd[y++] = '\\';
+					cmd[y++] = str[x];
 				}
-				cmd[y++] = str[x];
 				break;
 #else
 			/* % is Windows specific for enviromental variables, ^%PATH% will 

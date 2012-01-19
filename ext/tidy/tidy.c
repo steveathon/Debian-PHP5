@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: tidy.c 313663 2011-07-25 11:35:02Z felipe $ */
+/* $Id: tidy.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -1099,7 +1099,7 @@ static PHP_MINFO_FUNCTION(tidy)
 	php_info_print_table_start();
 	php_info_print_table_header(2, "Tidy support", "enabled");
 	php_info_print_table_row(2, "libTidy Release", (char *)tidyReleaseDate());
-	php_info_print_table_row(2, "Extension Version", PHP_TIDY_MODULE_VERSION " ($Id: tidy.c 313663 2011-07-25 11:35:02Z felipe $)");
+	php_info_print_table_row(2, "Extension Version", PHP_TIDY_MODULE_VERSION " ($Id: tidy.c 321634 2012-01-01 13:15:04Z felipe $)");
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
@@ -1336,7 +1336,7 @@ static PHP_FUNCTION(tidy_diagnose)
 {
 	TIDY_FETCH_OBJECT;
 
-	if (tidyRunDiagnostics(obj->ptdoc->doc) >= 0) {
+	if (tidyStatus(obj->ptdoc->doc) != 0 && tidyRunDiagnostics(obj->ptdoc->doc) >= 0) {
 		tidy_doc_update_properties(obj TSRMLS_CC);
 		RETURN_TRUE;
 	}

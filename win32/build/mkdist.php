@@ -1,4 +1,4 @@
-<?php # $Id: mkdist.php 306376 2010-12-15 02:01:21Z pajoye $
+<?php # $Id: mkdist.php 320909 2011-12-12 15:09:52Z pajoye $
 /* piece together a windows binary distro */
 
 $build_dir = $argv[1];
@@ -459,6 +459,7 @@ $dirs = array(
 foreach ($dirs as $dir) {
 	copy_test_dir($dir, $test_dir);
 }
+copy('run-tests.php', $test_dir . '/run-test.php');
 
 /* change this next line to true to use good-old
  * hand-assembled go-pear-bundle from the snapshot template */

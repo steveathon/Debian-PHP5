@@ -1,5 +1,10 @@
 --TEST--
-Test ksort() function : usage variations - sort strings  
+Test ksort() function : usage variations - sort strings
+--SKIPIF--
+<?php
+if (substr(PHP_OS, 0, 3) == 'WIN') {
+  die("skip Output tested contains chars that are not shown the same on windows concole (ESC and co)");
+}
 --FILE--
 <?php
 /* Prototype  : bool ksort ( array &$array [, int $sort_flags] )
@@ -80,14 +85,14 @@ array(11) {
   string(1) ""
   [""]=>
   string(1) ""
+  [""]=>
+  string(1) ""
   ["\a"]=>
   string(2) "\a"
   ["\cx"]=>
   string(3) "\cx"
   ["\ddd"]=>
   string(4) "\ddd"
-  ["\e"]=>
-  string(2) "\e"
   ["\xhh"]=>
   string(4) "\xhh"
 }
@@ -108,14 +113,14 @@ array(11) {
   string(1) ""
   [""]=>
   string(1) ""
+  [""]=>
+  string(1) ""
   ["\a"]=>
   string(2) "\a"
   ["\cx"]=>
   string(3) "\cx"
   ["\ddd"]=>
   string(4) "\ddd"
-  ["\e"]=>
-  string(2) "\e"
   ["\xhh"]=>
   string(4) "\xhh"
 }
@@ -136,14 +141,14 @@ array(11) {
   string(1) ""
   [""]=>
   string(1) ""
+  [""]=>
+  string(1) ""
   ["\a"]=>
   string(2) "\a"
   ["\cx"]=>
   string(3) "\cx"
   ["\ddd"]=>
   string(4) "\ddd"
-  ["\e"]=>
-  string(2) "\e"
   ["\xhh"]=>
   string(4) "\xhh"
 }

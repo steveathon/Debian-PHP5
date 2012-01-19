@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: rfc1867.c 316373 2011-09-07 16:19:09Z bjori $ */
+/* $Id: rfc1867.c 321664 2012-01-01 23:54:25Z stas $ */
 
 /*
  *  This product includes software developed by the Apache Group
@@ -556,7 +556,7 @@ static char *php_ap_basename(const zend_encoding *encoding, char *path TSRMLS_DC
 {
 	char *s = strrchr(path, '\\');
 	char *s2 = strrchr(path, '/');
-	
+
 	if (s && s2) {
 		if (s > s2) {
 			++s;
@@ -942,6 +942,10 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 					}
 					tmp++;
 				}
+				/* Brackets should always be closed */
+				if(c != 0) {
+					skip_upload = 1;
+				}
 			}
 
 			total_bytes = cancel_upload = 0;
@@ -977,7 +981,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 
 			offset = 0;
 			end = 0;
-			
+
 			if (!cancel_upload) {
 				/* only bother to open temp file if we have data */
 				blen = multipart_buffer_read(mbuff, buff, sizeof(buff), &end TSRMLS_CC);
@@ -1275,7 +1279,7 @@ SAPI_API void php_rfc1867_set_multibyte_callbacks(
 	php_rfc1867_getword = getword;
 	php_rfc1867_getword_conf = getword_conf;
 	php_rfc1867_basename = basename;
-}	
+}
 /* }}} */
 
 /*

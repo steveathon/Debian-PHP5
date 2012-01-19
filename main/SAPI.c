@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: SAPI.c 317225 2011-09-24 01:05:43Z laruence $ */
+/* $Id: SAPI.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include <ctype.h>
 #include <sys/stat.h>
@@ -712,7 +712,7 @@ SAPI_API int sapi_header_op(sapi_header_op_enum op, void *arg TSRMLS_DC)
 	} else {
 		/* new line safety check */
 		char *s = header_line, *e = header_line + header_line_len, *p;
-		while (s < e && (p = memchr(s, '\n', (e - s)))) {
+		while (s < e && ((p = memchr(s, '\n', (e - s))) || (p = memchr(s, '\r', (e - s))))) {
 			if (*(p + 1) == ' ' || *(p + 1) == '\t') {
 				s = p + 1;
 				continue;

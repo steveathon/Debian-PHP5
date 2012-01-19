@@ -1,5 +1,10 @@
 --TEST--
 Test rsort() function : usage variations - String values
+--SKIPIF--
+<?php
+if (substr(PHP_OS, 0, 3) == 'WIN') {
+  die("skip Output tested contains chars that are not shown the same on windows concole (ESC and co)");
+}
 --FILE--
 <?php
 /* Prototype  : bool rsort(array &$array_arg [, int $sort_flags])
@@ -57,13 +62,13 @@ array(11) {
   [0]=>
   string(4) "\xhh"
   [1]=>
-  string(2) "\e"
-  [2]=>
   string(4) "\ddd"
-  [3]=>
+  [2]=>
   string(3) "\cx"
-  [4]=>
+  [3]=>
   string(2) "\a"
+  [4]=>
+  string(1) ""
   [5]=>
   string(1) ""
   [6]=>
@@ -84,13 +89,13 @@ array(11) {
   [0]=>
   string(4) "\xhh"
   [1]=>
-  string(2) "\e"
-  [2]=>
   string(4) "\ddd"
-  [3]=>
+  [2]=>
   string(3) "\cx"
-  [4]=>
+  [3]=>
   string(2) "\a"
+  [4]=>
+  string(1) ""
   [5]=>
   string(1) ""
   [6]=>
@@ -111,13 +116,13 @@ array(11) {
   [0]=>
   string(4) "\xhh"
   [1]=>
-  string(2) "\e"
-  [2]=>
   string(4) "\ddd"
-  [3]=>
+  [2]=>
   string(3) "\cx"
-  [4]=>
+  [3]=>
   string(2) "\a"
+  [4]=>
+  string(1) ""
   [5]=>
   string(1) ""
   [6]=>

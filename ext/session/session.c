@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: session.c 316689 2011-09-13 23:07:08Z arpad $ */
+/* $Id: session.c 321738 2012-01-04 01:16:45Z arpad $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -66,6 +66,9 @@ static int (*php_session_rfc1867_orig_callback)(unsigned int event, void *event_
 
 /* SessionHandler class */
 zend_class_entry *php_session_class_entry;
+
+/* SessionHandlerInterface */
+zend_class_entry *php_session_iface_entry;
 
 /* ***********
    * Helpers *
@@ -1598,8 +1601,8 @@ static PHP_FUNCTION(session_set_save_handler)
 		php_shutdown_function_entry shutdown_function_entry;
 		zend_bool register_shutdown = 1;
 
-		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|b", &obj, php_session_class_entry, &register_shutdown) == FAILURE) {
-			return;
+		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "O|b", &obj, php_session_iface_entry, &register_shutdown) == FAILURE) {
+			RETURN_FALSE;
 		}
 
 		/* Find implemented methods */
@@ -1638,7 +1641,7 @@ static PHP_FUNCTION(session_set_save_handler)
 			shutdown_function_entry.arguments[0] = callback;
 
 			/* add shutdown function, removing the old one if it exists */
-			if (!register_user_shutdown_function("session_shutdown", &shutdown_function_entry TSRMLS_CC)) {
+			if (!register_user_shutdown_function("session_shutdown", sizeof("session_shutdown"), &shutdown_function_entry TSRMLS_CC)) {
 				zval_ptr_dtor(&callback);
 				efree(shutdown_function_entry.arguments);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to register session shutdown function");
@@ -1646,10 +1649,9 @@ static PHP_FUNCTION(session_set_save_handler)
 			}
 		} else {
 			/* remove shutdown function */
-			remove_user_shutdown_function("session_shutdown" TSRMLS_CC);
+			remove_user_shutdown_function("session_shutdown", sizeof("session_shutdown") TSRMLS_CC);
 		}
 
-		PS(mod_user_implemented) = 1;
 		if (PS(mod) && PS(session_status) == php_session_none && PS(mod) != &ps_mod_user) {
 			zend_alter_ini_entry("session.save_handler", sizeof("session.save_handler"), "user", sizeof("user")-1, PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
 		}
@@ -1662,7 +1664,7 @@ static PHP_FUNCTION(session_set_save_handler)
 	}
 
 	/* remove shutdown function */
-	remove_user_shutdown_function("session_shutdown" TSRMLS_CC);
+	remove_user_shutdown_function("session_shutdown", sizeof("session_shutdown") TSRMLS_CC);
 
 	for (i = 0; i < 6; i++) {
 		if (!zend_is_callable(*args[i], 0, &name TSRMLS_CC)) {
@@ -1674,8 +1676,6 @@ static PHP_FUNCTION(session_set_save_handler)
 		efree(name);
 	}
 	
-	PS(mod_user_implemented) = 1;
-
 	if (PS(mod) && PS(mod) != &ps_mod_user) {
 		zend_alter_ini_entry("session.save_handler", sizeof("session.save_handler"), "user", sizeof("user")-1, PHP_INI_USER, PHP_INI_STAGE_RUNTIME);
 	}
@@ -2067,7 +2067,20 @@ static const zend_function_entry session_functions[] = {
 };
 /* }}} */
 
-/* {{{ session class functions[]
+/* {{{ SessionHandlerInterface functions[]
+*/
+static const zend_function_entry php_session_iface_functions[] = {
+	PHP_ABSTRACT_ME(SessionHandlerInterface, open, arginfo_session_class_open)
+	PHP_ABSTRACT_ME(SessionHandlerInterface, close, arginfo_session_class_close)
+	PHP_ABSTRACT_ME(SessionHandlerInterface, read, arginfo_session_class_read)
+	PHP_ABSTRACT_ME(SessionHandlerInterface, write, arginfo_session_class_write)
+	PHP_ABSTRACT_ME(SessionHandlerInterface, destroy, arginfo_session_class_destroy)
+	PHP_ABSTRACT_ME(SessionHandlerInterface, gc, arginfo_session_class_gc)
+	{ NULL, NULL, NULL }
+};
+/* }}} */
+
+/* {{{ SessionHandler functions[]
  */
 static const zend_function_entry php_session_class_functions[] = {
 	PHP_ME(SessionHandler, open, arginfo_session_class_open, ZEND_ACC_PUBLIC)
@@ -2182,9 +2195,15 @@ static PHP_MINIT_FUNCTION(session) /* {{{ */
 	php_session_rfc1867_orig_callback = php_rfc1867_callback;
 	php_rfc1867_callback = php_session_rfc1867_callback;
 
+	/* Register interface */
+	INIT_CLASS_ENTRY(ce, PS_IFACE_NAME, php_session_iface_functions);
+	php_session_iface_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	php_session_iface_entry->ce_flags |= ZEND_ACC_INTERFACE;
+
 	/* Register base class */
 	INIT_CLASS_ENTRY(ce, PS_CLASS_NAME, php_session_class_functions);
 	php_session_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
+	zend_class_implements(php_session_class_entry TSRMLS_CC, 1, php_session_iface_entry);
 
 	REGISTER_LONG_CONSTANT("PHP_SESSION_DISABLED", php_session_disabled, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("PHP_SESSION_NONE", php_session_none, CONST_CS | CONST_PERSISTENT);
@@ -2431,7 +2450,7 @@ static int php_session_rfc1867_callback(unsigned int event, void *event_data, vo
 
 				if (PS(rfc1867_freq) >= 0) {
 					progress->update_step = PS(rfc1867_freq);
-				} else if (PS(rfc1867_freq) < 0) { // % of total size
+				} else if (PS(rfc1867_freq) < 0) { /* % of total size */
 					progress->update_step = progress->content_length * -PS(rfc1867_freq) / 100;
 				}
 				progress->next_update = 0;

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: syslog.c 306938 2011-01-01 02:17:06Z felipe $ */
+/* $Id: syslog.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "php.h"
 
@@ -146,6 +146,9 @@ PHP_FUNCTION(openlog)
 		free(BG(syslog_device));
 	}
 	BG(syslog_device) = zend_strndup(ident, ident_len);
+	if(BG(syslog_device) == NULL) {
+		RETURN_FALSE;
+	}
 	openlog(BG(syslog_device), option, facility);
 	RETURN_TRUE;
 }

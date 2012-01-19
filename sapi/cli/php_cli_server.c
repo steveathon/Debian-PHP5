@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -454,6 +454,11 @@ static void sapi_cli_server_flush(void *server_context) /* {{{ */
 	}
 } /* }}} */
 
+static int sapi_cli_server_discard_headers(sapi_headers_struct *sapi_headers TSRMLS_DC) /* {{{ */{
+	return SAPI_HEADER_SENT_SUCCESSFULLY;
+}
+/* }}} */
+
 static int sapi_cli_server_send_headers(sapi_headers_struct *sapi_headers TSRMLS_DC) /* {{{ */
 {
 	php_cli_server_client *client = SG(server_context);
@@ -571,14 +576,36 @@ static void sapi_cli_server_register_variables(zval *track_vars_array TSRMLS_DC)
 		sapi_cli_server_register_variable(track_vars_array, "SERVER_SOFTWARE", tmp TSRMLS_CC);
 		efree(tmp);
 	}
+	{
+		char *tmp;
+		spprintf(&tmp, 0, "HTTP/%d.%d", client->request.protocol_version / 100, client->request.protocol_version % 100);
+		sapi_cli_server_register_variable(track_vars_array, "SERVER_PROTOCOL", tmp TSRMLS_CC);
+		efree(tmp);
+	}
+	sapi_cli_server_register_variable(track_vars_array, "SERVER_NAME", client->server->host TSRMLS_CC);
+	{
+		char *tmp;
+		spprintf(&tmp, 0, "%i",  client->server->port);
+		sapi_cli_server_register_variable(track_vars_array, "SERVER_PORT", tmp TSRMLS_CC);
+		efree(tmp);
+	}
+
 	sapi_cli_server_register_variable(track_vars_array, "REQUEST_URI", client->request.request_uri TSRMLS_CC);
 	sapi_cli_server_register_variable(track_vars_array, "REQUEST_METHOD", SG(request_info).request_method TSRMLS_CC);
-	sapi_cli_server_register_variable(track_vars_array, "PHP_SELF", client->request.vpath TSRMLS_CC);
+	sapi_cli_server_register_variable(track_vars_array, "SCRIPT_NAME", client->request.vpath TSRMLS_CC);
 	if (SG(request_info).path_translated) {
 		sapi_cli_server_register_variable(track_vars_array, "SCRIPT_FILENAME", SG(request_info).path_translated TSRMLS_CC);
 	}
 	if (client->request.path_info) {
 		sapi_cli_server_register_variable(track_vars_array, "PATH_INFO", client->request.path_info TSRMLS_CC);
+	}
+	if (client->request.path_info_len) {
+		char *tmp;
+		spprintf(&tmp, 0, "%s%s", client->request.vpath, client->request.path_info);
+		sapi_cli_server_register_variable(track_vars_array, "PHP_SELF", tmp TSRMLS_CC);
+		efree(tmp);
+	} else {
+		sapi_cli_server_register_variable(track_vars_array, "PHP_SELF", client->request.vpath TSRMLS_CC);
 	}
 	if (client->request.query_string) {
 		sapi_cli_server_register_variable(track_vars_array, "QUERY_STRING", client->request.query_string TSRMLS_CC);
@@ -1242,13 +1269,31 @@ static void php_cli_server_request_translate_vpath(php_cli_server_request *reque
 	static const char *index_files[] = { "index.php", "index.html", NULL };
 	char *buf = safe_pemalloc(1, request->vpath_len, 1 + document_root_len + 1 + sizeof("index.html"), 1);
 	char *p = buf, *prev_patch = 0, *q, *vpath;
+	size_t prev_patch_len;
+	int  is_static_file = 0;
+
 	memmove(p, document_root, document_root_len);
 	p += document_root_len;
 	vpath = p;
 	if (request->vpath_len > 0 && request->vpath[0] != '/') {
-		*p++ = '/';
+		*p++ = DEFAULT_SLASH;
+	}
+	q = request->vpath + request->vpath_len;
+	while (q > request->vpath) {
+		if (*q-- == '.') {
+			is_static_file = 1;
+			break;
+		}
 	}
 	memmove(p, request->vpath, request->vpath_len);
+#ifdef PHP_WIN32
+	q = p + request->vpath_len;
+	do {
+		if (*q == '/') {
+			*q = '\\';
+		}
+	} while (q-- > p);
+#endif
 	p += request->vpath_len;
 	*p = '\0';
 	q = p;
@@ -1256,49 +1301,69 @@ static void php_cli_server_request_translate_vpath(php_cli_server_request *reque
 		if (!stat(buf, &sb)) {
 			if (sb.st_mode & S_IFDIR) {
 				const char **file = index_files;
-				if (p > buf && p[-1] != '/') {
-					*p++ = '/';
+				if (q[-1] != DEFAULT_SLASH) {
+					*q++ = DEFAULT_SLASH;
 				}
 				while (*file) {
 					size_t l = strlen(*file);
-					memmove(p, *file, l + 1);
+					memmove(q, *file, l + 1);
 					if (!stat(buf, &sb) && (sb.st_mode & S_IFREG)) {
-						p += l;
+						q += l;
 						break;
 					}
 					file++;
 				}
-				if (!*file) {
+				if (!*file || is_static_file) {
+					if (prev_patch) {
+						pefree(prev_patch, 1);
+					}
 					pefree(buf, 1);
 					return;
 				}
 			}
 			break; /* regular file */
-		}
-		while (q > buf && *(--q) != '/');
+		} 
 		if (prev_patch) {
-			*prev_patch = '/';
+			pefree(prev_patch, 1);
+			*q = DEFAULT_SLASH;
 		}
+		while (q > buf && *(--q) != DEFAULT_SLASH);
+		prev_patch_len = p - q;
+		prev_patch = pestrndup(q, prev_patch_len, 1);
 		*q = '\0';
-		prev_patch = q;
 	}
 	if (prev_patch) {
-		*prev_patch = '/';
-		request->path_info = pestrndup(prev_patch, p - prev_patch, 1);
-		request->path_info_len = p - prev_patch;
+		request->path_info_len = prev_patch_len;
+#ifdef PHP_WIN32
+		while (prev_patch_len--) {
+			if (prev_patch[prev_patch_len] == '\\') {
+				prev_patch[prev_patch_len] = '/';
+			}
+		}
+#endif
+		request->path_info = prev_patch;
 		pefree(request->vpath, 1);
-		request->vpath = pestrndup(vpath, prev_patch - vpath, 1);
-		request->vpath_len = prev_patch - vpath;
-		*prev_patch = '\0';
+		request->vpath = pestrndup(vpath, q - vpath, 1);
+		request->vpath_len = q - vpath;
 		request->path_translated = buf;
-		request->path_translated_len = prev_patch - buf;
+		request->path_translated_len = q - buf;
 	} else {
 		pefree(request->vpath, 1);
-		request->vpath = pestrndup(vpath, p - vpath, 1);
-		request->vpath_len = p - vpath;
+		request->vpath = pestrndup(vpath, q - vpath, 1);
+		request->vpath_len = q - vpath;
 		request->path_translated = buf;
-		request->path_translated_len = p - buf;
+		request->path_translated_len = q - buf;
 	}
+#ifdef PHP_WIN32
+	{
+		uint i = 0;
+		for (;i<request->vpath_len;i++) {
+			if (request->vpath[i] == '\\') {
+				request->vpath[i] = '/';
+			}
+		}	
+	}
+#endif
 	request->sb = sb;
 } /* }}} */
 
@@ -1548,7 +1613,7 @@ static size_t php_cli_server_client_send_through(php_cli_server_client *client, 
 		ssize_t nbytes_sent = send(client->sock, str + str_len - nbytes_left, nbytes_left, 0);
 		if (nbytes_sent < 0) {
 			int err = php_socket_errno();
-			if (err == EAGAIN) {
+			if (err == SOCK_EAGAIN) {
 				int nfds = php_pollfd_for(client->sock, POLLOUT, &tv);
 				if (nfds > 0) {
 					continue;
@@ -1685,19 +1750,30 @@ static int php_cli_server_send_error_page(php_cli_server *server, php_cli_server
 	}
 	{
 		int err = 0;
-		sapi_activate_headers_only(TSRMLS_C);
-		php_cli_server_client_begin_capture(client);
+		zval *style = NULL; 
 		zend_try {
+			php_output_activate(TSRMLS_C);
+			php_output_start_user(NULL, 0, PHP_OUTPUT_HANDLER_STDFLAGS TSRMLS_CC);
 			php_info_print_style(TSRMLS_C);
-			if (client->capture_buffer.first) {
-				php_cli_server_buffer_append(&client->content_sender.buffer, client->capture_buffer.first);
+			MAKE_STD_ZVAL(style);
+			php_output_get_contents(style TSRMLS_CC);
+			php_output_discard(TSRMLS_C);
+			php_output_deactivate(TSRMLS_C);
+			if (style && Z_STRVAL_P(style)) {
+				char *block = pestrndup(Z_STRVAL_P(style), Z_STRLEN_P(style), 1);
+				php_cli_server_chunk *chunk = php_cli_server_chunk_heap_new(block, block, Z_STRLEN_P(style));
+				if (!chunk) {
+					zval_ptr_dtor(&style);
+					goto fail;
+				}
+				php_cli_server_buffer_append(&client->content_sender.buffer, chunk);
+				zval_ptr_dtor(&style);
+			} else {
+				err = 1;
 			}
-			client->capture_buffer.first = client->capture_buffer.last = NULL;
 		} zend_catch {
 			err = 1;
 		} zend_end_try();
-		php_cli_server_client_end_capture(client);
-		sapi_deactivate(TSRMLS_C);
 		if (err) {
 			goto fail;
 		}
@@ -1753,6 +1829,9 @@ static int php_cli_server_send_error_page(php_cli_server *server, php_cli_server
 
 	php_cli_server_log_response(client, status, errstr ? errstr : "?" TSRMLS_CC);
 	php_cli_server_poller_add(&server->poller, POLLOUT, client->sock);
+	if (errstr) {
+		pefree(errstr, 1);
+	}
 	efree(escaped_request_uri);
 	return SUCCESS;
 
@@ -1763,22 +1842,8 @@ fail:
 
 static int php_cli_server_dispatch_script(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) /* {{{ */
 {
-	php_cli_server_client_populate_request_info(client, &SG(request_info));
-	{
-		char **auth;
-		if (SUCCESS == zend_hash_find(&client->request.headers, "Authorization", sizeof("Authorization"), (void**)&auth)) {
-			php_handle_auth_data(*auth TSRMLS_CC);
-		}
-	}
-	SG(sapi_headers).http_response_code = 200;
-	if (FAILURE == php_request_startup(TSRMLS_C)) {
-		/* should never be happen */
-		destroy_request_info(&SG(request_info));
-		return FAILURE;
-	}
 	if (strlen(client->request.path_translated) != client->request.path_translated_len) {
 		/* can't handle paths that contain nul bytes */
-		destroy_request_info(&SG(request_info));
 		return php_cli_server_send_error_page(server, client, 400 TSRMLS_CC);
 	}
 	{
@@ -1794,9 +1859,6 @@ static int php_cli_server_dispatch_script(php_cli_server *server, php_cli_server
 	}
 
 	php_cli_server_log_response(client, SG(sapi_headers).http_response_code, NULL TSRMLS_CC);
-	php_request_shutdown(0);
-	php_cli_server_close_connection(server, client TSRMLS_CC);
-	destroy_request_info(&SG(request_info));
 	return SUCCESS;
 } /* }}} */
 
@@ -1858,28 +1920,38 @@ static int php_cli_server_begin_send_static(php_cli_server *server, php_cli_serv
 }
 /* }}} */
 
-static int php_cli_server_dispatch_router(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) /* {{{ */
-{
-	int decline = 0;
-
-	if (!server->router) {
-		return 1;
-	}
-
+static int php_cli_server_request_startup(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) { /* {{{ */ 
+	char **auth;
 	php_cli_server_client_populate_request_info(client, &SG(request_info));
-	{
-		char **auth;
-		if (SUCCESS == zend_hash_find(&client->request.headers, "Authorization", sizeof("Authorization"), (void**)&auth)) {
-			php_handle_auth_data(*auth TSRMLS_CC);
-		}
+	if (SUCCESS == zend_hash_find(&client->request.headers, "Authorization", sizeof("Authorization"), (void**)&auth)) {
+		php_handle_auth_data(*auth TSRMLS_CC);
 	}
 	SG(sapi_headers).http_response_code = 200;
 	if (FAILURE == php_request_startup(TSRMLS_C)) {
 		/* should never be happen */
 		destroy_request_info(&SG(request_info));
-		return -1;
+		return FAILURE;
 	}
-	{
+	PG(during_request_startup) = 0;
+
+	return SUCCESS;
+}
+/* }}} */
+
+static int php_cli_server_request_shutdown(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) { /* {{{ */
+	php_request_shutdown(0);
+	php_cli_server_close_connection(server, client TSRMLS_CC);
+	destroy_request_info(&SG(request_info));
+	SG(server_context) = NULL;
+	SG(rfc1867_uploaded_files) = NULL;
+	return SUCCESS;
+}             
+/* }}} */  
+
+static int php_cli_server_dispatch_router(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) /* {{{ */
+{
+	int decline = 0;
+	if (!php_handle_special_queries(TSRMLS_C)) {
 		zend_file_handle zfd;
 		char *old_cwd;
 
@@ -1913,44 +1985,60 @@ static int php_cli_server_dispatch_router(php_cli_server *server, php_cli_server
 		free_alloca(old_cwd, use_heap);
 	}
 
-	if (decline) {
-		php_request_shutdown_for_hook(0);
-	} else {
-		php_request_shutdown(0);
-		php_cli_server_close_connection(server, client TSRMLS_CC);
-	}
-	destroy_request_info(&SG(request_info));
-
-	return decline ? 1: 0;
+	return decline;
 }
 /* }}} */
 
 static int php_cli_server_dispatch(php_cli_server *server, php_cli_server_client *client TSRMLS_DC) /* {{{ */
 {
-	int status;
+	int is_static_file  = 0;
 
 	SG(server_context) = client;
-	status = php_cli_server_dispatch_router(server, client TSRMLS_CC);
+	if (client->request.ext_len != 3 || memcmp(client->request.ext, "php", 3) || !client->request.path_translated) {
+		is_static_file = 1;
+	}
 
-	if (status < 0) {
-		goto fail;
-	} else if (status > 0) {
-		if (client->request.ext_len == 3 && memcmp(client->request.ext, "php", 3) == 0 && client->request.path_translated) {
-			if (SUCCESS != php_cli_server_dispatch_script(server, client TSRMLS_CC) &&
-				SUCCESS != php_cli_server_send_error_page(server, client, 500 TSRMLS_CC)) {
-				goto fail;
-			}
-		} else {
-			if (SUCCESS != php_cli_server_begin_send_static(server, client TSRMLS_CC)) {
-				goto fail;
-			}
+	if (server->router || !is_static_file) {
+		if (FAILURE == php_cli_server_request_startup(server, client TSRMLS_CC)) {
+			SG(server_context) = NULL;
+			php_cli_server_close_connection(server, client TSRMLS_CC);
+			destroy_request_info(&SG(request_info));
+			return SUCCESS;
+		}
+	} 
+
+	if (server->router) {
+		if (!php_cli_server_dispatch_router(server, client TSRMLS_CC)) {
+			php_cli_server_request_shutdown(server, client TSRMLS_CC);
+			return SUCCESS;
 		}
 	}
-	SG(server_context) = 0;
-	return SUCCESS;
-fail:
-	SG(server_context) = 0;
-	php_cli_server_close_connection(server, client TSRMLS_CC);
+
+	if (!is_static_file) {
+		if (SUCCESS == php_cli_server_dispatch_script(server, client TSRMLS_CC)
+				|| SUCCESS != php_cli_server_send_error_page(server, client, 500 TSRMLS_CC)) {
+			php_cli_server_request_shutdown(server, client TSRMLS_CC);
+			return SUCCESS;
+		} 
+	} else {
+		if (server->router) {
+			static int (*send_header_func)(sapi_headers_struct * TSRMLS_DC);
+			send_header_func = sapi_module.send_headers;
+			/* we don't want the header to be sent now */
+			sapi_module.send_headers = sapi_cli_server_discard_headers;
+			php_request_shutdown(0);
+			sapi_module.send_headers = send_header_func;
+			SG(rfc1867_uploaded_files) = NULL;
+		} 
+		if (SUCCESS != php_cli_server_begin_send_static(server, client TSRMLS_CC)) {
+			php_cli_server_close_connection(server, client TSRMLS_CC);
+		}
+		SG(server_context) = NULL;
+		return SUCCESS;
+	}
+
+	SG(server_context) = NULL;
+	destroy_request_info(&SG(request_info));
 	return SUCCESS;
 }
 /* }}} */

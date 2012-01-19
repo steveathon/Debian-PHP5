@@ -1738,7 +1738,7 @@ SAPI modules:
                           DIR is path to the installed Continuity Server root
   --enable-embed=TYPE   EXPERIMENTAL: Enable building of embedded SAPI library
                           TYPE is either 'shared' or 'static'. TYPE=shared
-  --enable-fpm              EXPERIMENTAL: Enable building of the fpm SAPI executable
+  --enable-fpm              Enable building of the fpm SAPI executable
   --with-fpm-user=USER  Set the user for php-fpm to run as. (default: nobody)
   --with-fpm-group=GRP  Set the group for php-fpm to run as. For a system user, this
                   should usually be set to match the fpm username (default: nobody)
@@ -1761,9 +1761,9 @@ General settings:
   --enable-gcov           Enable GCOV code coverage (requires LTP) - FOR DEVELOPERS ONLY!!
   --enable-debug          Compile with debugging symbols
   --with-layout=TYPE      Set how installed files will be laid out.  Type can
-                          be either PHP or GNU PHP
+                          be either PHP or GNU [PHP]
   --with-config-file-path=PATH
-                          Set the path in which to look for php.ini PREFIX/lib
+                          Set the path in which to look for php.ini [PREFIX/lib]
   --with-config-file-scan-dir=PATH
                           Set the path where to scan for configuration files
   --enable-sigchild       Enable PHP's own SIGCHLD handler
@@ -1996,7 +1996,7 @@ Extensions:
 
 PEAR:
 
-  --with-pear=DIR         Install PEAR in DIR PREFIX/lib/php
+  --with-pear=DIR         Install PEAR in DIR [PREFIX/lib/php]
   --without-pear          Do not install PEAR
 
 Zend:
@@ -3635,7 +3635,7 @@ ac_config_headers="$ac_config_headers main/php_config.h"
 PHP_MAJOR_VERSION=5
 PHP_MINOR_VERSION=4
 PHP_RELEASE_VERSION=0
-PHP_EXTRA_VERSION="beta2"
+PHP_EXTRA_VERSION="RC5"
 PHP_VERSION="$PHP_MAJOR_VERSION.$PHP_MINOR_VERSION.$PHP_RELEASE_VERSION$PHP_EXTRA_VERSION"
 PHP_VERSION_ID=`expr $PHP_MAJOR_VERSION \* 10000 + $PHP_MINOR_VERSION \* 100 + $PHP_RELEASE_VERSION`
 
@@ -19129,6 +19129,38 @@ $as_echo "$ac_cv_func_getaddrinfo" >&6; }
 if test "$ac_cv_func_getaddrinfo" = yes; then
 
 $as_echo "#define HAVE_GETADDRINFO 1" >>confdefs.h
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for __sync_fetch_and_add" >&5
+$as_echo_n "checking for __sync_fetch_and_add... " >&6; }
+if test "${ac_cv_func_sync_fetch_and_add+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+int x;__sync_fetch_and_add(&x,1);
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_func_sync_fetch_and_add=yes
+else
+  ac_cv_func_sync_fetch_and_add=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_func_sync_fetch_and_add" >&5
+$as_echo "$ac_cv_func_sync_fetch_and_add" >&6; }
+if test "$ac_cv_func_sync_fetch_and_add" = yes; then
+
+$as_echo "#define HAVE_SYNC_FETCH_AND_ADD 1" >>confdefs.h
 
 fi
 
@@ -53452,8 +53484,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-    case $host_alias in
-      *darwin*)
 
 
   case stdc++ in
@@ -53464,8 +53494,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   esac
 
 
-      ;;
-    esac
     php_cxx_done=yes
   fi
 
@@ -101995,7 +102023,7 @@ if test "$PHP_MYSQLND" != "no" || test "$PHP_MYSQLND_ENABLED" = "yes"; then
   mysqlnd_ps_sources="mysqlnd_ps.c mysqlnd_ps_codec.c"
   mysqlnd_base_sources="mysqlnd.c mysqlnd_alloc.c mysqlnd_bt.c mysqlnd_charset.c mysqlnd_wireprotocol.c \
                    mysqlnd_loaddata.c mysqlnd_reverse_api.c mysqlnd_net.c \
-                   mysqlnd_statistics.c mysqlnd_auth.c \
+                   mysqlnd_statistics.c mysqlnd_driver.c mysqlnd_ext_plugin.c mysqlnd_auth.c \
 				   mysqlnd_result.c mysqlnd_result_meta.c mysqlnd_debug.c\
 				   mysqlnd_block_alloc.c mysqlnd_plugin.c php_mysqlnd.c"
 
@@ -103659,7 +103687,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 103662 "configure"
+#line 103690 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -105560,7 +105588,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 105563 "configure"' > conftest.$ac_ext
+  echo '#line 105591 "configure"' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -106952,7 +106980,7 @@ else
       LDFLAGS="$LDFLAGS -Wl,-exported_symbols_list,conftest.sym"
 
 cat > conftest.$ac_ext <<EOF
-#line 106955 "configure"
+#line 106983 "configure"
 #include "confdefs.h"
 int main() {
 ; return 0; }
@@ -107110,11 +107138,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"configure:107113: $lt_compile\"" >&5)
+   (eval echo "\"configure:107141: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "configure:107117: \$? = $ac_status" >&5
+   echo "configure:107145: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -107408,11 +107436,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"configure:107411: $lt_compile\"" >&5)
+   (eval echo "\"configure:107439: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "configure:107415: \$? = $ac_status" >&5
+   echo "configure:107443: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -107512,11 +107540,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"configure:107515: $lt_compile\"" >&5)
+   (eval echo "\"configure:107543: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "configure:107519: \$? = $ac_status" >&5
+   echo "configure:107547: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -107976,7 +108004,7 @@ _LT_EOF
        # Determine the default libpath from the value encoded in an empty executable.
 
 cat > conftest.$ac_ext <<EOF
-#line 107979 "configure"
+#line 108007 "configure"
 #include "confdefs.h"
 int main() {
 ; return 0; }
@@ -108018,7 +108046,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	 # Determine the default libpath from the value encoded in an empty executable.
 
 cat > conftest.$ac_ext <<EOF
-#line 108021 "configure"
+#line 108049 "configure"
 #include "confdefs.h"
 int main() {
 ; return 0; }
@@ -109543,7 +109571,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 109546 "configure"
+#line 109574 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -109643,7 +109671,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 109646 "configure"
+#line 109674 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -110708,7 +110736,7 @@ case $host_os in
       # Determine the default libpath from the value encoded in an empty executable.
 
 cat > conftest.$ac_ext <<EOF
-#line 110711 "configure"
+#line 110739 "configure"
 #include "confdefs.h"
 int main() {
 ; return 0; }
@@ -110751,7 +110779,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
 	# Determine the default libpath from the value encoded in an empty executable.
 
 cat > conftest.$ac_ext <<EOF
-#line 110754 "configure"
+#line 110782 "configure"
 #include "confdefs.h"
 int main() {
 ; return 0; }
@@ -112003,11 +112031,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"configure:112006: $lt_compile\"" >&5)
+   (eval echo "\"configure:112034: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "configure:112010: \$? = $ac_status" >&5
+   echo "configure:112038: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -112107,11 +112135,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"configure:112110: $lt_compile\"" >&5)
+   (eval echo "\"configure:112138: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "configure:112114: \$? = $ac_status" >&5
+   echo "configure:112142: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized

@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,24 +12,18 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@mysql.com>                             |
-  |          Andrey Hristov <andrey@mysql.com>                           |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
 
 /* $Id: mysqlnd.c 306407 2010-12-16 12:56:19Z andrey $ */
 #include "php.h"
 #include "mysqlnd.h"
-#include "mysqlnd_wireprotocol.h"
 #include "mysqlnd_priv.h"
-#include "mysqlnd_result.h"
 #include "mysqlnd_statistics.h"
-#include "mysqlnd_charset.h"
 #include "mysqlnd_debug.h"
-/* for php_get_current_user() */
-#include "ext/standard/basic_functions.h"
-
 
 /*--------------------------------------------------------------------*/
 

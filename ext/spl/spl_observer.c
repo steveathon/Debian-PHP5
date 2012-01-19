@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is SplSubject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: spl_observer.c 314473 2011-08-08 08:49:55Z laruence $ */
+/* $Id: spl_observer.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -836,13 +836,11 @@ SPL_METHOD(SplObjectStorage, unserialize)
 
 	ALLOC_INIT_ZVAL(pcount);
 	if (!php_var_unserialize(&pcount, &p, s + buf_len, &var_hash TSRMLS_CC) || Z_TYPE_P(pcount) != IS_LONG) {
-		zval_ptr_dtor(&pcount);
 		goto outexcept;
 	}
 
 	--p; /* for ';' */
 	count = Z_LVAL_P(pcount);
-	zval_ptr_dtor(&pcount);
 		
 	while(count-- > 0) {
 		spl_SplObjectStorageElement *pelement;
@@ -920,11 +918,16 @@ SPL_METHOD(SplObjectStorage, unserialize)
 	zval_ptr_dtor(&pmembers);
 
 	/* done reading $serialized */
-
+	if (pcount) {
+		zval_ptr_dtor(&pcount);
+	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 	return;
 
 outexcept:
+	if (pcount) {
+		zval_ptr_dtor(&pcount);
+	}
 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
 	zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0 TSRMLS_CC, "Error at offset %ld of %d bytes", (long)((char*)p - buf), buf_len);
 	return;

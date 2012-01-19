@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_object_handlers.h 316627 2011-09-13 13:29:35Z dmitry $ */
+/* $Id: zend_object_handlers.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef ZEND_OBJECT_HANDLERS_H
 #define ZEND_OBJECT_HANDLERS_H
@@ -111,6 +111,8 @@ typedef int (*zend_object_count_elements_t)(zval *object, long *count TSRMLS_DC)
 
 typedef int (*zend_object_get_closure_t)(zval *obj, zend_class_entry **ce_ptr, union _zend_function **fptr_ptr, zval **zobj_ptr TSRMLS_DC);
 
+typedef HashTable *(*zend_object_get_gc_t)(zval *object, zval ***table, int *n TSRMLS_DC);
+
 struct _zend_object_handlers {
 	/* general object functions */
 	zend_object_add_ref_t					add_ref;
@@ -139,6 +141,7 @@ struct _zend_object_handlers {
 	zend_object_count_elements_t			count_elements;
 	zend_object_get_debug_info_t			get_debug_info;
 	zend_object_get_closure_t				get_closure;
+	zend_object_get_gc_t					get_gc;
 };
 
 extern ZEND_API zend_object_handlers std_object_handlers;

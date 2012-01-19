@@ -25,7 +25,7 @@
    All other licensing and usage conditions are those of the PHP Group.
 */
 
- /* $Id: zend_signal.c 312377 2011-06-22 14:23:21Z iliaa $ */
+ /* $Id: zend_signal.c 320281 2011-12-02 12:14:16Z dmitry $ */
 
 #define _GNU_SOURCE
 #include <string.h>
@@ -131,7 +131,7 @@ void zend_signal_handler_defer(int signo, siginfo_t *siginfo, void *context)
 
 /* {{{ zend_signal_handler_unblock
  * Handle deferred signal from HANDLE_UNBLOCK_ALARMS */
-void zend_signal_handler_unblock(TSRMLS_D)
+ZEND_API void zend_signal_handler_unblock(TSRMLS_D)
 {
 	zend_signal_queue_t *queue;
 	zend_signal_t zend_signal;
@@ -215,7 +215,7 @@ ZEND_API int zend_sigaction(int signo, const struct sigaction *act, struct sigac
 		sa.sa_mask      = global_sigmask;
 
 		if (sigaction(signo, &sa, NULL) < 0) {
-			zend_error(E_ERROR, "Error installing signal handler for %d", signo);
+			zend_error(E_WARNING, "Error installing signal handler for %d", signo);
 		}
 
 		/* unsure this signal is not blocked */
@@ -267,7 +267,7 @@ static int zend_signal_register(int signo, void (*handler)(int, siginfo_t*, void
 		sa.sa_mask      = global_sigmask;
 
 		if (sigaction(signo, &sa, NULL) < 0) {
-			zend_error(E_ERROR, "Error installing signal handler for %d", signo);
+			zend_error(E_WARNING, "Error installing signal handler for %d", signo);
 		}
 
 		return SUCCESS;

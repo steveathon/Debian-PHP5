@@ -5,9 +5,6 @@ allow_url_fopen=1
 --SKIPIF--
 <?php
 include "skipif.inc"; 
-if (substr(PHP_OS, 0, 3) == 'WIN') {
-    die ("skip not for Windows");
-}
 ?>
 --FILE--
 <?php
@@ -42,7 +39,7 @@ HEADER
 HTTP/1.1 200 OK
 Host: %s
 Connection: closed
-X-Powered-By: PHP/%s-dev
+X-Powered-By: PHP/%s
 Content-type: text/html
 
 string(19) "HTTP_HOST:localhost"

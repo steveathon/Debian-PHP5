@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_globals.h 316639 2011-09-13 14:35:28Z kalle $ */
+/* $Id: php_globals.h 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifndef PHP_GLOBALS_H
 #define PHP_GLOBALS_H
@@ -84,6 +84,7 @@ struct _php_core_globals {
 	char *include_path;
 	char *open_basedir;
 	char *extension_dir;
+	char *php_binary;
 
 	char *upload_tmp_dir;
 	long upload_max_filesize;
@@ -145,6 +146,7 @@ struct _php_core_globals {
 	zend_bool com_initialized;
 #endif
 	long max_input_nesting_level;
+	long max_input_vars;
 	zend_bool in_user_include;
 
 	char *user_ini_filename;

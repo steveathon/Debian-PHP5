@@ -3,9 +3,6 @@ Bug #55758 (Digest Authenticate missed in 5.4)
 --SKIPIF--
 <?php
 include "skipif.inc"; 
-if (substr(PHP_OS, 0, 3) == 'WIN') {
-    die ("skip not for Windows");
-}
 ?>
 --FILE--
 <?php
@@ -38,6 +35,6 @@ HEADER
 HTTP/1.1 401 Unauthorized
 Host: %s
 Connection: closed
-X-Powered-By: PHP/%s-dev
+X-Powered-By: PHP/%s
 WWW-Authenticate: Digest realm="foo",qop="auth",nonce="XXXXX",opaque="acbd18db4cc2f85cedef654fccc4a4d8"
 Content-type: text/html

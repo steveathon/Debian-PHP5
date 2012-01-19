@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: basic_functions.c 317304 2011-09-26 08:36:33Z pajoye $ */
+/* $Id: basic_functions.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "php.h"
 #include "php_streams.h"
@@ -2959,8 +2959,8 @@ const zend_function_entry basic_functions[] = { /* {{{ */
 
 	PHP_DEP_FALIAS(magic_quotes_runtime,	set_magic_quotes_runtime,		arginfo_set_magic_quotes_runtime)
 	PHP_DEP_FE(set_magic_quotes_runtime,									arginfo_set_magic_quotes_runtime)
-	PHP_DEP_FE(get_magic_quotes_gpc,										arginfo_get_magic_quotes_gpc)
-	PHP_DEP_FE(get_magic_quotes_runtime,									arginfo_get_magic_quotes_runtime)
+	PHP_FE(get_magic_quotes_gpc,										arginfo_get_magic_quotes_gpc)
+	PHP_FE(get_magic_quotes_runtime,									arginfo_get_magic_quotes_runtime)
 
 	PHP_FE(error_log,														arginfo_error_log)
 	PHP_FE(error_get_last,													arginfo_error_get_last)
@@ -3450,6 +3450,7 @@ static void basic_globals_ctor(php_basic_globals *basic_globals_p TSRMLS_DC) /* 
 	BG(left) = -1;
 	BG(user_tick_functions) = NULL;
 	BG(user_filter_map) = NULL;
+	BG(serialize_lock) = 0;
 	
 	memset(&BG(serialize), 0, sizeof(BG(serialize)));
 	memset(&BG(unserialize), 0, sizeof(BG(unserialize)));
@@ -4761,7 +4762,9 @@ PHP_FUNCTION(call_user_method)
 		Z_TYPE_P(object) != IS_STRING
 	) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Second argument is not an object or class name");
-		efree(params);
+		if (params) {
+			efree(params);
+		}
 		RETURN_FALSE;
 	}
 
@@ -5079,21 +5082,21 @@ PHP_FUNCTION(register_shutdown_function)
 }
 /* }}} */
 
-PHPAPI zend_bool register_user_shutdown_function(char *function_name, php_shutdown_function_entry *shutdown_function_entry TSRMLS_DC) /* {{{ */
+PHPAPI zend_bool register_user_shutdown_function(char *function_name, size_t function_len, php_shutdown_function_entry *shutdown_function_entry TSRMLS_DC) /* {{{ */
 {
 	if (!BG(user_shutdown_function_names)) {
 		ALLOC_HASHTABLE(BG(user_shutdown_function_names));
 		zend_hash_init(BG(user_shutdown_function_names), 0, NULL, (void (*)(void *)) user_shutdown_function_dtor, 0);
 	}
 
-	return zend_hash_update(BG(user_shutdown_function_names), function_name, sizeof(function_name), shutdown_function_entry, sizeof(php_shutdown_function_entry), NULL) != FAILURE;
+	return zend_hash_update(BG(user_shutdown_function_names), function_name, function_len, shutdown_function_entry, sizeof(php_shutdown_function_entry), NULL) != FAILURE;
 }
 /* }}} */
 
-PHPAPI zend_bool remove_user_shutdown_function(char *function_name TSRMLS_DC) /* {{{ */
+PHPAPI zend_bool remove_user_shutdown_function(char *function_name, size_t function_len TSRMLS_DC) /* {{{ */
 {
 	if (BG(user_shutdown_function_names)) {
-		return zend_hash_del_key_or_index(BG(user_shutdown_function_names), function_name, sizeof(function_name), 0, HASH_DEL_KEY) != FAILURE;
+		return zend_hash_del_key_or_index(BG(user_shutdown_function_names), function_name, function_len, 0, HASH_DEL_KEY) != FAILURE;
 	}
 
 	return 0;

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_object_handlers.c 316816 2011-09-15 14:50:38Z colder $ */
+/* $Id: zend_object_handlers.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "zend.h"
 #include "zend_globals.h"
@@ -81,7 +81,7 @@ ZEND_API void rebuild_object_properties(zend_object *zobj) /* {{{ */
 					    (prop_info->flags & ZEND_ACC_STATIC) == 0 && 
 					    (prop_info->flags & ZEND_ACC_PRIVATE) != 0 && 
 					    prop_info->offset >= 0 &&
-					    zobj->properties_table[prop_info->offset]) {
+						zobj->properties_table[prop_info->offset]) {
 						zend_hash_quick_add(zobj->properties, prop_info->name, prop_info->name_length+1, prop_info->h, (void**)&zobj->properties_table[prop_info->offset], sizeof(zval*), (void**)&zobj->properties_table[prop_info->offset]);
 					}				
 				}
@@ -99,6 +99,28 @@ ZEND_API HashTable *zend_std_get_properties(zval *object TSRMLS_DC) /* {{{ */
 		rebuild_object_properties(zobj);
 	}
 	return zobj->properties;
+}
+/* }}} */
+
+ZEND_API HashTable *zend_std_get_gc(zval *object, zval ***table, int *n TSRMLS_DC) /* {{{ */
+{
+	if (Z_OBJ_HANDLER_P(object, get_properties) != zend_std_get_properties) {
+		*table = NULL;
+		*n = 0;
+		return Z_OBJ_HANDLER_P(object, get_properties)(object TSRMLS_CC);
+	} else {
+		zend_object *zobj = Z_OBJ_P(object);
+
+		if (zobj->properties) {
+			*table = NULL;
+			*n = 0;
+			return zobj->properties;
+		} else {
+			*table = zobj->properties_table;
+			*n = zobj->ce->default_properties_count;
+			return NULL;
+		}
+	}
 }
 /* }}} */
 
@@ -1584,6 +1606,7 @@ ZEND_API zend_object_handlers std_object_handlers = {
 	NULL,									/* count_elements */
 	NULL,									/* get_debug_info */
 	zend_std_get_closure,					/* get_closure */
+	zend_std_get_gc,						/* get_gc */
 };
 
 /*

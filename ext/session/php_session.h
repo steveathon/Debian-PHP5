@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id: php_session.h 316688 2011-09-13 22:28:15Z arpad $ */
+/* $Id: php_session.h 321738 2012-01-04 01:16:45Z arpad $ */
 
 #ifndef PHP_SESSION_H
 #define PHP_SESSION_H
@@ -273,6 +273,9 @@ void php_session_shutdown(void *data);
 
 #define PS_CLASS_NAME "SessionHandler"
 extern zend_class_entry *php_session_class_entry;
+
+#define PS_IFACE_NAME "SessionHandlerInterface"
+extern zend_class_entry *php_session_iface_entry;
 
 extern PHP_METHOD(SessionHandler, open);
 extern PHP_METHOD(SessionHandler, close);

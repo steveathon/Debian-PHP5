@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,12 +12,12 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@php.net>                               |
-  |          Andrey Hristov <andrey@php.net>                             |
-  |          Ulf Wendel <uw@php.net>                                     |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
+  |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 
-  $Id: php_mysqlnd.h 306938 2011-01-01 02:17:06Z felipe $ 
+  $Id: php_mysqlnd.h 321634 2012-01-01 13:15:04Z felipe $ 
 */
 
 #ifndef PHP_MYSQLND_H

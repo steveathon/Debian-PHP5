@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: php_mysql.c 318221 2011-10-19 15:04:12Z andrey $ */
+/* $Id: php_mysql.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 /* TODO:
  *
@@ -530,6 +530,7 @@ static PHP_GINIT_FUNCTION(mysql)
 /* }}} */
 
 #ifdef MYSQL_USE_MYSQLND
+#include "ext/mysqlnd/mysqlnd_reverse_api.h"
 static MYSQLND * mysql_convert_zv_to_mysqlnd(zval * zv TSRMLS_DC)
 {
 	php_mysql_conn *mysql;

@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -12,11 +12,13 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Authors: Georg Richter <georg@mysql.com>                             |
-  |          Andrey Hristov <andrey@mysql.com>                           |
+  | Authors: Andrey Hristov <andrey@mysql.com>                           |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
+
+/* $Id: mysqlnd_ps.c 316906 2011-09-17 10:24:18Z pajoye $ */
 #include "php.h"
 #include "php_globals.h"
 #include "mysqlnd.h"
@@ -24,7 +26,7 @@
 #include "mysqlnd_wireprotocol.h"
 #include "mysqlnd_statistics.h"
 #include "mysqlnd_debug.h"
-#include "ext/standard/sha1.h"
+#include "mysqlnd_ext_plugin.h"
 #include "php_network.h"
 #include "zend_ini.h"
 #ifdef MYSQLND_COMPRESSION_ENABLED
@@ -1002,7 +1004,6 @@ MYSQLND_METHOD(mysqlnd_net, dtor)(MYSQLND_NET * const net, MYSQLND_STATS * const
 /* }}} */
 
 
-static 
 MYSQLND_CLASS_METHODS_START(mysqlnd_net)
 	MYSQLND_METHOD(mysqlnd_net, init),
 	MYSQLND_METHOD(mysqlnd_net, dtor),
@@ -1036,20 +1037,9 @@ MYSQLND_CLASS_METHODS_END;
 PHPAPI MYSQLND_NET *
 mysqlnd_net_init(zend_bool persistent, MYSQLND_STATS * stats, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
-	size_t alloc_size = sizeof(MYSQLND_NET) + mysqlnd_plugin_count() * sizeof(void *);
-	MYSQLND_NET * net = mnd_pecalloc(1, alloc_size, persistent);
-
+	MYSQLND_NET * net;
 	DBG_ENTER("mysqlnd_net_init");
-	DBG_INF_FMT("persistent=%u", persistent);
-	if (net) {
-		net->persistent = persistent;
-		net->m = mysqlnd_mysqlnd_net_methods;
-
-		if (PASS != net->m.init(net, stats, error_info TSRMLS_CC)) {
-			net->m.dtor(net, stats, error_info TSRMLS_CC);
-			net = NULL;
-		}
-	}
+	net = MYSQLND_CLASS_METHOD_TABLE_NAME(mysqlnd_object_factory).get_io_channel(persistent, stats, error_info TSRMLS_CC);
 	DBG_RETURN(net);
 }
 /* }}} */
@@ -1067,27 +1057,6 @@ mysqlnd_net_free(MYSQLND_NET * const net, MYSQLND_STATS * stats, MYSQLND_ERROR_I
 }
 /* }}} */
 
-
-/* {{{ _mysqlnd_plugin_get_plugin_net_data */
-PHPAPI void ** _mysqlnd_plugin_get_plugin_net_data(const MYSQLND_NET * net, unsigned int plugin_id TSRMLS_DC)
-{
-	DBG_ENTER("_mysqlnd_plugin_get_plugin_net_data");
-	DBG_INF_FMT("plugin_id=%u", plugin_id);
-	if (!net || plugin_id >= mysqlnd_plugin_count()) {
-		return NULL;
-	}
-	DBG_RETURN((void *)((char *)net + sizeof(MYSQLND_NET) + plugin_id * sizeof(void *)));
-}
-/* }}} */
-
-
-/* {{{ mysqlnd_net_get_methods */
-PHPAPI struct st_mysqlnd_net_methods *
-mysqlnd_net_get_methods()
-{
-	return &mysqlnd_mysqlnd_net_methods;
-}
-/* }}} */
 
 
 /*

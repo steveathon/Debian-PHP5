@@ -268,7 +268,7 @@ static void print_extensions(TSRMLS_D)
 
 static inline size_t sapi_cgibin_single_write(const char *str, uint str_length TSRMLS_DC)
 {
-	size_t ret;
+	ssize_t ret;
 
 	/* sapi has started which means everyhting must be send through fcgi */
 	if (fpm_is_running) {
@@ -277,7 +277,7 @@ static inline size_t sapi_cgibin_single_write(const char *str, uint str_length T
 		if (ret <= 0) {
 			return 0;
 		}
-		return ret;
+		return (size_t)ret;
 	}
 
 	/* sapi has not started, output to stdout instead of fcgi */
@@ -286,7 +286,7 @@ static inline size_t sapi_cgibin_single_write(const char *str, uint str_length T
 	if (ret <= 0) {
 		return 0;
 	}
-	return ret;
+	return (size_t)ret;
 #else
 	return fwrite(str, 1, MIN(str_length, 16384), stdout);
 #endif
@@ -1325,7 +1325,7 @@ static void init_request_info(TSRMLS_D)
 		/* FIXME - Work out proto_num here */
 		SG(request_info).query_string = sapi_cgibin_getenv("QUERY_STRING", sizeof("QUERY_STRING") - 1 TSRMLS_CC);
 		SG(request_info).content_type = (content_type ? content_type : "" );
-		SG(request_info).content_length = (content_length ? atoi(content_length) : 0);
+		SG(request_info).content_length = (content_length ? atol(content_length) : 0);
 
 		/* The CGI RFC allows servers to pass on unvalidated Authorization data */
 		auth = sapi_cgibin_getenv("HTTP_AUTHORIZATION", sizeof("HTTP_AUTHORIZATION") - 1 TSRMLS_CC);
@@ -1785,6 +1785,7 @@ consult the installation file that came with this distribution, or visit \n\
 			SG(server_context) = (void *) &request;
 			init_request_info(TSRMLS_C);
 			CG(interactive) = 0;
+			char *primary_script = NULL;
 
 			fpm_request_info();
 
@@ -1810,7 +1811,9 @@ consult the installation file that came with this distribution, or visit \n\
 			/* If path_translated is NULL, terminate here with a 404 */
 			if (!SG(request_info).path_translated) {
 				zend_try {
+					zlog(ZLOG_DEBUG, "Primary script unknown");
 					SG(sapi_headers).http_response_code = 404;
+					PUTS("File not found.\n");
 				} zend_catch {
 				} zend_end_try();
 				goto fastcgi_request_done;
@@ -1822,9 +1825,16 @@ consult the installation file that came with this distribution, or visit \n\
 				goto fastcgi_request_done;
 			}
 
+			/* 
+			 * have to duplicate SG(request_info).path_translated to be able to log errrors
+			 * php_fopen_primary_script seems to delete SG(request_info).path_translated on failure
+			 */
+			primary_script = estrdup(SG(request_info).path_translated);
+
 			/* path_translated exists, we can continue ! */
 			if (php_fopen_primary_script(&file_handle TSRMLS_CC) == FAILURE) {
 				zend_try {
+					zlog(ZLOG_ERROR, "Unable to open primary script: %s (%s)", primary_script, strerror(errno));
 					if (errno == EACCES) {
 						SG(sapi_headers).http_response_code = 403;
 						PUTS("Access denied.\n");
@@ -1846,6 +1856,10 @@ consult the installation file that came with this distribution, or visit \n\
 			php_execute_script(&file_handle TSRMLS_CC);
 
 fastcgi_request_done:
+			if (primary_script) {
+				efree(primary_script);
+			}
+
 			if (request_body_fd != -1) {
 				close(request_body_fd);
 			}

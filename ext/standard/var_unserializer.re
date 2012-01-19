@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: var_unserializer.re 318210 2011-10-19 10:09:24Z mike $ */
+/* $Id: var_unserializer.re 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include "php.h"
 #include "ext/standard/php_var.h"
@@ -409,7 +409,12 @@ PHPAPI int php_var_unserialize(UNSERIALIZE_PARAMETER)
 	const unsigned char *cursor, *limit, *marker, *start;
 	zval **rval_ref;
 
-	limit = cursor = *p;
+	limit = max;
+	cursor = *p;
+	
+	if (YYCURSOR >= YYLIMIT) {
+		return 0;
+	}
 	
 	if (var_hash && cursor[0] != 'R') {
 		var_push(var_hash, rval);

@@ -1,5 +1,10 @@
 --TEST--
 Test array_change_key_case() function : usage variations - Different strings as keys
+--SKIPIF--
+<?php
+if (substr(PHP_OS, 0, 3) == 'WIN') {
+  die("skip Output tested contains chars that are not shown the same on windows concole (ESC and co)");
+}
 --FILE--
 <?php
 /* Prototype  : array array_change_key_case(array $input [, int $case])
@@ -42,7 +47,7 @@ array(10) {
   int(3)
   ["\cx"]=>
   int(4)
-  ["\e"]=>
+  [""]=>
   int(5)
   [""]=>
   int(6)
@@ -66,7 +71,7 @@ array(10) {
   int(3)
   ["\CX"]=>
   int(4)
-  ["\E"]=>
+  [""]=>
   int(5)
   [""]=>
   int(6)

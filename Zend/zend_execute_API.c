@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2011 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2012 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -17,7 +17,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: zend_execute_API.c 318191 2011-10-18 19:42:42Z lbarnaud $ */
+/* $Id: zend_execute_API.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #include <stdio.h>
 #include <signal.h>
@@ -1195,7 +1195,9 @@ ZEND_API int zend_eval_stringl(char *str, int str_len, zval *retval_ptr, char *s
 		}
 		CG(interactive) = 0;
 
-		zend_execute(new_op_array TSRMLS_CC);
+		zend_try {
+		    zend_execute(new_op_array TSRMLS_CC);
+		} zend_end_try();
 
 		CG(interactive) = orig_interactive;
 		if (local_retval_ptr) {

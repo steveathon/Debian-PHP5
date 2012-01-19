@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: main.c 318145 2011-10-16 03:00:51Z laruence $ */
+/* $Id: main.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 /* {{{ includes
  */
@@ -255,6 +255,57 @@ static void php_disable_classes(TSRMLS_D)
 }
 /* }}} */
 
+/* {{{ php_binary_init
+ */
+static void php_binary_init(TSRMLS_D) 
+{
+	char *binary_location;
+#ifdef PHP_WIN32
+	binary_location = (char *)malloc(MAXPATHLEN);
+	if (GetModuleFileName(0, binary_location, MAXPATHLEN) == 0) {
+		free(binary_location);
+		PG(php_binary) = NULL;
+	}
+#else
+	if (sapi_module.executable_location) {
+		binary_location = (char *)malloc(MAXPATHLEN);
+		if (!strchr(sapi_module.executable_location, '/')) {
+			char *envpath, *path;
+			int found = 0;
+
+			if ((envpath = getenv("PATH")) != NULL) {
+				char *search_dir, search_path[MAXPATHLEN];
+				char *last = NULL;
+
+				path = estrdup(envpath);
+				search_dir = php_strtok_r(path, ":", &last);
+
+				while (search_dir) {
+					snprintf(search_path, MAXPATHLEN, "%s/%s", search_dir, sapi_module.executable_location);
+					if (VCWD_REALPATH(search_path, binary_location) && !VCWD_ACCESS(binary_location, X_OK)) {
+						found = 1;
+						break;
+					}
+					search_dir = php_strtok_r(NULL, ":", &last);
+				}
+				efree(path);
+			}
+			if (!found) {
+				free(binary_location);
+				binary_location = NULL;
+			}
+		} else if (!VCWD_REALPATH(sapi_module.executable_location, binary_location) || VCWD_ACCESS(binary_location, X_OK)) {
+			free(binary_location);
+			binary_location = NULL;
+		}
+	} else {
+		binary_location = NULL;
+	}
+#endif
+	PG(php_binary) = binary_location;
+}
+/* }}} */
+
 /* {{{ PHP_INI_MH
  */
 static PHP_INI_MH(OnUpdateTimeout)
@@ -480,6 +531,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("post_max_size",			"8M",		PHP_INI_SYSTEM|PHP_INI_PERDIR,		OnUpdateLong,			post_max_size,			sapi_globals_struct,sapi_globals)
 	STD_PHP_INI_ENTRY("upload_tmp_dir",			NULL,		PHP_INI_SYSTEM,		OnUpdateStringUnempty,	upload_tmp_dir,			php_core_globals,	core_globals)
 	STD_PHP_INI_ENTRY("max_input_nesting_level", "64",		PHP_INI_SYSTEM|PHP_INI_PERDIR,		OnUpdateLongGEZero,	max_input_nesting_level,			php_core_globals,	core_globals)
+	STD_PHP_INI_ENTRY("max_input_vars",			"1000",		PHP_INI_SYSTEM|PHP_INI_PERDIR,		OnUpdateLongGEZero,	max_input_vars,						php_core_globals,	core_globals)
 
 	STD_PHP_INI_ENTRY("user_dir",				NULL,		PHP_INI_SYSTEM,		OnUpdateString,			user_dir,				php_core_globals,	core_globals)
 	STD_PHP_INI_ENTRY("variables_order",		"EGPCS",	PHP_INI_SYSTEM|PHP_INI_PERDIR,		OnUpdateStringUnempty,	variables_order,		php_core_globals,	core_globals)
@@ -514,7 +566,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("user_ini.cache_ttl",		"300",			PHP_INI_SYSTEM,		OnUpdateLong,		user_ini_cache_ttl,	php_core_globals,		core_globals)
 	STD_PHP_INI_BOOLEAN("exit_on_timeout",		"0",		PHP_INI_ALL,		OnUpdateBool,			exit_on_timeout,			php_core_globals,	core_globals)
 #ifdef PHP_WIN32
-	STD_PHP_INI_BOOLEAN("windows_show_crt_warning",		"0",		PHP_INI_ALL,		OnUpdateBool,			windows_show_crt_warning,			php_core_globals,	core_globals)
+	STD_PHP_INI_BOOLEAN("windows.show_crt_warning",		"0",		PHP_INI_ALL,		OnUpdateBool,			windows_show_crt_warning,			php_core_globals,	core_globals)
 #endif
 PHP_INI_END()
 /* }}} */
@@ -575,7 +627,7 @@ PHPAPI void php_log_err(char *log_message TSRMLS_DC)
 			char *error_time_str;
 
 			time(&error_time);
-			error_time_str = php_format_date("d-M-Y H:i:s", 11, error_time, 1 TSRMLS_CC);
+			error_time_str = php_format_date("d-M-Y H:i:s e", 13, error_time, 0 TSRMLS_CC);
 			len = spprintf(&tmp, 0, "[%s] %s%s", error_time_str, log_message, PHP_EOL);
 #ifdef PHP_WIN32
 			php_flock(fd, 2);
@@ -1819,6 +1871,9 @@ static void core_globals_dtor(php_core_globals *core_globals TSRMLS_DC)
 	if (core_globals->disable_classes) {
 		free(core_globals->disable_classes);
 	}
+	if (core_globals->php_binary) {
+		free(core_globals->php_binary);
+	}
 
 	php_shutdown_ticks(TSRMLS_C);
 }
@@ -2068,6 +2123,13 @@ int php_module_startup(sapi_module_struct *sf, zend_module_entry *additional_mod
 	REGISTER_MAIN_LONG_CONSTANT("PHP_WINDOWS_NT_SERVER", VER_NT_SERVER, CONST_PERSISTENT | CONST_CS);
 	REGISTER_MAIN_LONG_CONSTANT("PHP_WINDOWS_NT_WORKSTATION", VER_NT_WORKSTATION, CONST_PERSISTENT | CONST_CS);
 #endif
+
+	php_binary_init(TSRMLS_C);
+	if (PG(php_binary)) {
+		REGISTER_MAIN_STRINGL_CONSTANT("PHP_BINARY", PG(php_binary), strlen(PG(php_binary)), CONST_PERSISTENT | CONST_CS);
+	} else {
+		REGISTER_MAIN_STRINGL_CONSTANT("PHP_BINARY", "", 0, CONST_PERSISTENT | CONST_CS);
+	}
 
 	php_output_register_constants(TSRMLS_C);
 	php_rfc1867_register_constants(TSRMLS_C);

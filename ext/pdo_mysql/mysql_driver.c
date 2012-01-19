@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -18,7 +18,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: mysql_driver.c 316982 2011-09-19 12:31:06Z johannes $ */
+/* $Id: mysql_driver.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -525,12 +525,11 @@ static struct pdo_dbh_methods mysql_methods = {
 	pdo_mysql_check_liveness
 };
 /* }}} */
-#ifdef PDO_USE_MYSQLND
-# ifdef PHP_WIN32
-#  define MYSQL_UNIX_ADDR	"MySQL"
-# else
-#  define MYSQL_UNIX_ADDR	PDO_MYSQL_G(default_socket)
-# endif
+
+#ifdef PHP_WIN32
+# define MYSQL_UNIX_ADDR	NULL
+#else
+# define MYSQL_UNIX_ADDR	PDO_MYSQL_G(default_socket)
 #endif
 
 /* {{{ pdo_mysql_handle_factory */

@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2006-2011 The PHP Group                                |
+  | Copyright (c) 2006-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -13,20 +13,17 @@
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
   | Authors: Andrey Hristov <andrey@mysql.com>                           |
-  |          Georg Richter <georg@mysql.com>                             |
   |          Ulf Wendel <uwendel@mysql.com>                              |
+  |          Georg Richter <georg@mysql.com>                             |
   +----------------------------------------------------------------------+
 */
 
 /* $Id: mysqlnd.c 317989 2011-10-10 20:49:28Z andrey $ */
 #include "php.h"
 #include "mysqlnd.h"
-#include "mysqlnd_wireprotocol.h"
 #include "mysqlnd_priv.h"
-#include "mysqlnd_result.h"
-#include "mysqlnd_statistics.h"
-#include "mysqlnd_charset.h"
 #include "mysqlnd_debug.h"
+#include "mysqlnd_reverse_api.h"
 
 
 static HashTable mysqlnd_api_ext_ht;
@@ -52,7 +49,7 @@ mysqlnd_reverse_api_end(TSRMLS_D)
 
 /* {{{ myslqnd_get_api_extensions */
 PHPAPI HashTable *
-mysqlnd_reverse_api_get_api_list(TSRLMLS_D)
+mysqlnd_reverse_api_get_api_list(TSRMLS_D)
 {
 	return &mysqlnd_api_ext_ht;
 }

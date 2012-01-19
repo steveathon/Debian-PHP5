@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2011 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -13,9 +13,10 @@
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
   | Author: Georg Richter <georg@php.net>                                |
+  |         Andrey Hristov <andrey@php.net>                              |
   +----------------------------------------------------------------------+
 
-  $Id: mysqli_prop.c 317906 2011-10-08 14:48:14Z andrey $
+  $Id: mysqli_prop.c 321634 2012-01-01 13:15:04Z felipe $
 */
 
 #ifdef HAVE_CONFIG_H
@@ -204,12 +205,12 @@ static int link_error_list_read(mysqli_object *obj, zval **retval TSRMLS_DC)
 	array_init(*retval);
 	if (mysql) {
 #if defined(MYSQLI_USE_MYSQLND)
-		if (mysql->mysql->error_info.error_list) {
+		if (mysql->mysql->data->error_info->error_list) {
 			MYSQLND_ERROR_LIST_ELEMENT * message;
 			zend_llist_position pos;
-			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->error_info.error_list, &pos);
+			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(mysql->mysql->data->error_info->error_list, &pos);
 				 message;
-				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->error_info.error_list, &pos)) 
+				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(mysql->mysql->data->error_info->error_list, &pos)) 
 			{
 				zval * single_error;
 				MAKE_STD_ZVAL(single_error);
@@ -397,12 +398,12 @@ static int stmt_error_list_read(mysqli_object *obj, zval **retval TSRMLS_DC)
 	array_init(*retval);
 	if (stmt && stmt->stmt) {
 #if defined(MYSQLI_USE_MYSQLND)
-		if (stmt->stmt->data && stmt->stmt->data->error_info.error_list) {
+		if (stmt->stmt->data && stmt->stmt->data->error_info->error_list) {
 			MYSQLND_ERROR_LIST_ELEMENT * message;
 			zend_llist_position pos;
-			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info.error_list, &pos);
+			for (message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(stmt->stmt->data->error_info->error_list, &pos);
 				 message;
-				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info.error_list, &pos)) 
+				 message = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(stmt->stmt->data->error_info->error_list, &pos)) 
 			{
 				zval * single_error;
 				MAKE_STD_ZVAL(single_error);

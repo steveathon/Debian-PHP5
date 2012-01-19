@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2011 The PHP Group                                |
+   | Copyright (c) 1997-2012 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,7 +16,7 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id: interface.c 317208 2011-09-23 15:19:48Z rasmus $ */
+/* $Id: interface.c 321634 2012-01-01 13:15:04Z felipe $ */
 
 #define ZEND_INCLUDE_FULL_WINDOWS_HEADERS
 
@@ -196,7 +196,7 @@ static int php_curl_option_url(php_curl *ch, const char *url, const int len TSRM
 #else
 	copystr = estrndup(url, len);
 	error = curl_easy_setopt(ch->cp, CURLOPT_URL, copystr);
-	zend_llist_add_element(&ch->to_free.str, &copystr);
+	zend_llist_add_element(&ch->to_free->str, &copystr);
 #endif
 
 	return (error == CURLE_OK ? 1 : 0);
@@ -1410,6 +1410,7 @@ PHP_FUNCTION(curl_version)
 static void alloc_curl_handle(php_curl **ch)
 {
 	*ch                           = emalloc(sizeof(php_curl));
+	(*ch)->to_free                = ecalloc(1, sizeof(struct _php_curl_free));
 	(*ch)->handlers               = ecalloc(1, sizeof(php_curl_handlers));
 	(*ch)->handlers->write        = ecalloc(1, sizeof(php_curl_write));
 	(*ch)->handlers->write_header = ecalloc(1, sizeof(php_curl_write));
@@ -1420,10 +1421,13 @@ static void alloc_curl_handle(php_curl **ch)
 	(*ch)->header.str_len = 0;
 
 	memset(&(*ch)->err, 0, sizeof((*ch)->err));
+	(*ch)->handlers->write->stream = NULL;
+	(*ch)->handlers->write_header->stream = NULL;
+	(*ch)->handlers->read->stream = NULL;
 
-	zend_llist_init(&(*ch)->to_free.str,   sizeof(char *),            (llist_dtor_func_t) curl_free_string, 0);
-	zend_llist_init(&(*ch)->to_free.slist, sizeof(struct curl_slist), (llist_dtor_func_t) curl_free_slist,  0);
-	zend_llist_init(&(*ch)->to_free.post,  sizeof(struct HttpPost),   (llist_dtor_func_t) curl_free_post,   0);
+	zend_llist_init(&(*ch)->to_free->str,   sizeof(char *),            (llist_dtor_func_t) curl_free_string, 0);
+	zend_llist_init(&(*ch)->to_free->slist, sizeof(struct curl_slist), (llist_dtor_func_t) curl_free_slist,  0);
+	zend_llist_init(&(*ch)->to_free->post,  sizeof(struct HttpPost),   (llist_dtor_func_t) curl_free_post,   0);
 }
 /* }}} */
 
@@ -1641,18 +1645,21 @@ PHP_FUNCTION(curl_copy_handle)
 		zval_add_ref(&ch->handlers->write_header->func_name);
 		dupch->handlers->write_header->func_name = ch->handlers->write_header->func_name;
 	}
+	
+	if (ch->handlers->progress->func_name) {
+		zval_add_ref(&ch->handlers->progress->func_name);
+		dupch->handlers->progress->func_name = ch->handlers->progress->func_name;
+	}
+	dupch->handlers->progress->method = ch->handlers->progress->method;
 
 	curl_easy_setopt(dupch->cp, CURLOPT_ERRORBUFFER,       dupch->err.str);
 	curl_easy_setopt(dupch->cp, CURLOPT_FILE,              (void *) dupch);
 	curl_easy_setopt(dupch->cp, CURLOPT_INFILE,            (void *) dupch);
 	curl_easy_setopt(dupch->cp, CURLOPT_WRITEHEADER,       (void *) dupch);
+	curl_easy_setopt(dupch->cp, CURLOPT_PROGRESSDATA,      (void *) dupch); 
 
-	zend_llist_copy(&dupch->to_free.str, &ch->to_free.str);
-	/* Don't try to free copied strings, they're free'd when the original handle is destroyed */
-	dupch->to_free.str.dtor = NULL;
-
-	zend_llist_copy(&dupch->to_free.slist, &ch->to_free.slist);
-	zend_llist_copy(&dupch->to_free.post, &ch->to_free.post);
+	efree(dupch->to_free);
+	dupch->to_free = ch->to_free;
 
 	/* Keep track of cloned copies to avoid invoking curl destructors for every clone */
 	Z_ADDREF_P(ch->clone);
@@ -1846,7 +1853,7 @@ string_copy:
 #endif
 					copystr = estrndup(Z_STRVAL_PP(zvalue), Z_STRLEN_PP(zvalue));
 					error = curl_easy_setopt(ch->cp, option, copystr);
-					zend_llist_add_element(&ch->to_free.str, &copystr);
+					zend_llist_add_element(&ch->to_free->str, &copystr);
 				} else {
 #if LIBCURL_VERSION_NUM >= 0x071100
 					/* Strings passed to libcurl as ’char *’ arguments, are copied by the library... NOTE: before 7.17.0 strings were not copied. */
@@ -1886,6 +1893,9 @@ string_copy:
 			switch (option) {
 				case CURLOPT_FILE:
 					if (((php_stream *) what)->mode[0] != 'r' || ((php_stream *) what)->mode[1] == '+') {
+						if (ch->handlers->write->stream) {
+							Z_DELREF_P(ch->handlers->write->stream);
+						}
 						Z_ADDREF_PP(zvalue);
 						ch->handlers->write->fp = fp;
 						ch->handlers->write->method = PHP_CURL_FILE;
@@ -1898,6 +1908,9 @@ string_copy:
 					break;
 				case CURLOPT_WRITEHEADER:
 					if (((php_stream *) what)->mode[0] != 'r' || ((php_stream *) what)->mode[1] == '+') {
+						if (ch->handlers->write_header->stream) {
+							Z_DELREF_P(ch->handlers->write_header->stream);
+						}
 						Z_ADDREF_PP(zvalue);
 						ch->handlers->write_header->fp = fp;
 						ch->handlers->write_header->method = PHP_CURL_FILE;
@@ -1909,6 +1922,9 @@ string_copy:
 					}
 					break;
 				case CURLOPT_INFILE:
+					if (ch->handlers->read->stream) {
+						Z_DELREF_P(ch->handlers->read->stream);
+					}
 					Z_ADDREF_PP(zvalue);
 					ch->handlers->read->fp = fp;
 					ch->handlers->read->fd = Z_LVAL_PP(zvalue);
@@ -2023,6 +2039,7 @@ string_copy:
 					char *string_key = NULL;
 					uint  string_key_len;
 					ulong num_key;
+					int numeric_key;
 
 					SEPARATE_ZVAL(current);
 					convert_to_string_ex(current);
@@ -2033,6 +2050,9 @@ string_copy:
 					if(!string_key) {
 						spprintf(&string_key, 0, "%ld", num_key);
 						string_key_len = strlen(string_key)+1;
+						numeric_key = 1;
+					} else {
+						numeric_key = 0;
 					}
 
 					postval = Z_STRVAL_PP(current);
@@ -2076,6 +2096,10 @@ string_copy:
 											 CURLFORM_CONTENTSLENGTH, (long)Z_STRLEN_PP(current),
 											 CURLFORM_END);
 					}
+
+					if (numeric_key) {
+						efree(string_key);
+					}
 				}
 
 				SAVE_CURL_ERROR(ch, error);
@@ -2084,7 +2108,7 @@ string_copy:
 					return 1;
 				}
 
-				zend_llist_add_element(&ch->to_free.post, &first);
+				zend_llist_add_element(&ch->to_free->post, &first);
 				error = curl_easy_setopt(ch->cp, CURLOPT_HTTPPOST, first);
 
 			} else {
@@ -2098,7 +2122,7 @@ string_copy:
 
 				convert_to_string_ex(zvalue);
 				post = estrndup(Z_STRVAL_PP(zvalue), Z_STRLEN_PP(zvalue));
-				zend_llist_add_element(&ch->to_free.str, &post);
+				zend_llist_add_element(&ch->to_free->str, &post);
 
 				error = curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDS, post);
 				error = curl_easy_setopt(ch->cp, CURLOPT_POSTFIELDSIZE, Z_STRLEN_PP(zvalue));
@@ -2134,7 +2158,7 @@ string_copy:
 					return 1;
 				}
 			}
-			zend_llist_add_element(&ch->to_free.slist, &slist);
+			zend_llist_add_element(&ch->to_free->slist, &slist);
 
 			error = curl_easy_setopt(ch->cp, option, slist);
 
@@ -2164,7 +2188,7 @@ string_copy:
 			copystr = estrndup(Z_STRVAL_PP(zvalue), Z_STRLEN_PP(zvalue));
 
 			error = curl_easy_setopt(ch->cp, option, copystr);
-			zend_llist_add_element(&ch->to_free.str, &copystr);
+			zend_llist_add_element(&ch->to_free->str, &copystr);
 #endif
 			break;
 		}
@@ -2609,19 +2633,16 @@ static void _php_curl_close_ex(php_curl *ch TSRMLS_DC)
 
 	_php_curl_verify_handlers(ch, 0 TSRMLS_CC);
 	curl_easy_cleanup(ch->cp);
-	zend_llist_clean(&ch->to_free.str);
 
 	/* cURL destructors should be invoked only by last curl handle */
 	if (Z_REFCOUNT_P(ch->clone) <= 1) {
-		zend_llist_clean(&ch->to_free.slist);
-		zend_llist_clean(&ch->to_free.post);
+		zend_llist_clean(&ch->to_free->str);
+		zend_llist_clean(&ch->to_free->slist);
+		zend_llist_clean(&ch->to_free->post);
+		efree(ch->to_free);
 		FREE_ZVAL(ch->clone);
 	} else {
 		Z_DELREF_P(ch->clone);
-		ch->to_free.slist.dtor = NULL;
-		ch->to_free.post.dtor = NULL;
-		zend_llist_clean(&ch->to_free.slist);
-		zend_llist_clean(&ch->to_free.post);
 	}
 
 	if (ch->handlers->write->buf.len > 0) {

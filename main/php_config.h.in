@@ -1783,6 +1783,9 @@
 /* Define to 1 if you have the `symlink' function. */
 #undef HAVE_SYMLINK
 
+/* Define if you have the __sync_fetch_and_add function */
+#undef HAVE_SYNC_FETCH_AND_ADD
+
 /* do we have sysconf? */
 #undef HAVE_SYSCONF
 
