@@ -1,4 +1,4 @@
-php5 (5.2.6.dfsg.1-1+lenny5) stable-security; urgency=high
+php5 (5.2.6.dfsg.1-1+lenny5) oldstable-security; urgency=high
 
   * The following new directives were added as part of security fixes:
     - max_input_vars - specifies how many GET/POST/COOKIE input variables
