@@ -1,10 +1,12 @@
 php5 (5.2.6.dfsg.1-1+lenny5) stable-security; urgency=high
 
-  * The following new directives were added as part of security fix:
+  * The following new directives were added as part of security fixes:
     - max_input_vars - specifies how many GET/POST/COOKIE input variables
       may be accepted.  Default value is set to 1000.
+    - xsl.security_prefs - define forbidden operations within XSLT
+      stylesheets.  Write operations are now disabled by default.
 
- -- Ondřej Surý <ondrej@debian.org>  Mon, 23 Jan 2012 12:17:23 +0100
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 23 Jan 2012 12:22:26 +0100
 
 php5 (5.2.6.dfsg.1-1+lenny4) stable-security; urgency=high
 
