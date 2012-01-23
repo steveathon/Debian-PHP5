@@ -1,4 +1,4 @@
-php5 (5.3.3-7+squeeze5) unstable; urgency=low
+php5 (5.3.3-7+squeeze5) squeeze-security; urgency=high
 
   * The following new directives were added as part of security fixes:
     - max_input_vars - specifies how many GET/POST/COOKIE input variables
@@ -8,7 +8,7 @@ php5 (5.3.3-7+squeeze5) unstable; urgency=low
 
  -- Ondřej Surý <ondrej@debian.org>  Mon, 23 Jan 2012 12:22:26 +0100
 
-php5 (5.3.3-7+squeeze4) unstable; urgency=low
+php5 (5.3.3-7+squeeze4) squeeze-security; urgency=low
 
   * Updated blowfish crypt() algorithm fixes the 8-bit character handling
     vulnerability (CVE-2011-2483) and adds more self-tests.  Unfortunately
