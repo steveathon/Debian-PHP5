@@ -1,7 +1,5 @@
-Index: php/ext/filter/logical_filters.c
-===================================================================
---- php.orig/ext/filter/logical_filters.c
-+++ php/ext/filter/logical_filters.c
+--- a/ext/filter/logical_filters.c
++++ b/ext/filter/logical_filters.c
 @@ -469,7 +469,7 @@ void php_filter_validate_url(PHP_INPUT_F
  void php_filter_validate_email(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
  {

@@ -1,7 +1,7 @@
 fix for http://bugs.php.net/bug.php?id=46308
 downloaded from http://cvs.php.net/viewvc.cgi/ZendEngine2/zend_object_handlers.c?r1=1.135.2.6.2.28&r2=1.135.2.6.2.29&view=patch
---- php5-5.2.6.dfsg.1.orig/Zend/zend_object_handlers.c
-+++ php5-5.2.6.dfsg.1/Zend/zend_object_handlers.c
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
 @@ -328,6 +328,7 @@ zval *zend_std_read_property(zval *objec
  		    zend_get_property_guard(zobj, property_info, member, &guard) == SUCCESS &&
  		    !guard->in_get) {

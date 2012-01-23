@@ -1,7 +1,5 @@
-Index: php5-5.2.6/php.ini-dist
-===================================================================
---- php5-5.2.6.orig/php.ini-dist
-+++ php5-5.2.6/php.ini-dist
+--- a/php.ini-dist
++++ b/php.ini-dist
 @@ -166,6 +166,11 @@ allow_call_time_pass_reference = On
  ;
  ; Safe Mode

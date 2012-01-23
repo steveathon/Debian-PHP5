@@ -4,10 +4,9 @@ ext/pdo_dblib patch by matthias at dsx ado at
 Rediffed for Gentoo (wrong direction)
 http://bugs.php.net/bug.php?id=44991
 
-diff -r 57e37b68a255 -r f1222f67e562 ext/mssql/config.m4
---- a/ext/mssql/config.m4	Tue Jul 01 19:37:24 2008 +0200
-+++ b/ext/mssql/config.m4	Thu Jul 17 11:35:57 2008 +0200
-@@ -10,11 +10,11 @@
+--- a/ext/mssql/config.m4
++++ b/ext/mssql/config.m4
+@@ -10,11 +10,11 @@ if test "$PHP_MSSQL" != "no"; then
  
    if test "$PHP_MSSQL" = "yes"; then
      for i in /usr/local /usr; do
@@ -21,7 +20,7 @@ diff -r 57e37b68a255 -r f1222f67e562 ext/mssql/config.m4
          FREETDS_INSTALLATION_DIR=$i
          FREETDS_INCLUDE_DIR=$i/include/freetds
          break
-@@ -27,10 +27,10 @@
+@@ -27,10 +27,10 @@ if test "$PHP_MSSQL" != "no"; then
  
    elif test "$PHP_MSSQL" != "no"; then
  
@@ -34,7 +33,7 @@ diff -r 57e37b68a255 -r f1222f67e562 ext/mssql/config.m4
        FREETDS_INSTALLATION_DIR=$PHP_MSSQL
        FREETDS_INCLUDE_DIR=$PHP_MSSQL/include/freetds
      else
-@@ -38,8 +38,8 @@
+@@ -38,8 +38,8 @@ if test "$PHP_MSSQL" != "no"; then
      fi
    fi  
  
@@ -45,10 +44,9 @@ diff -r 57e37b68a255 -r f1222f67e562 ext/mssql/config.m4
    fi
  
    PHP_ADD_INCLUDE($FREETDS_INCLUDE_DIR)
-diff -r 57e37b68a255 -r f1222f67e562 ext/pdo_dblib/config.m4
---- a/ext/pdo_dblib/config.m4	Tue Jul 01 19:37:24 2008 +0200
-+++ b/ext/pdo_dblib/config.m4	Thu Jul 17 11:35:57 2008 +0200
-@@ -13,11 +13,11 @@
+--- a/ext/pdo_dblib/config.m4
++++ b/ext/pdo_dblib/config.m4
+@@ -13,11 +13,11 @@ if test "$PHP_PDO_DBLIB" != "no"; then
    if test "$PHP_PDO_DBLIB" = "yes"; then
  
      for i in /usr/local /usr; do
@@ -62,7 +60,7 @@ diff -r 57e37b68a255 -r f1222f67e562 ext/pdo_dblib/config.m4
          PDO_FREETDS_INSTALLATION_DIR=$i
          PDO_FREETDS_INCLUDE_DIR=$i/include/freetds
          break;
-@@ -30,10 +30,10 @@
+@@ -30,10 +30,10 @@ if test "$PHP_PDO_DBLIB" != "no"; then
  
    elif test "$PHP_PDO_DBLIB" != "no"; then
  
@@ -75,7 +73,7 @@ diff -r 57e37b68a255 -r f1222f67e562 ext/pdo_dblib/config.m4
        PDO_FREETDS_INSTALLATION_DIR=$PHP_PDO_DBLIB
        PDO_FREETDS_INCLUDE_DIR=$PHP_PDO_DBLIB/include/freetds
      else
-@@ -45,8 +45,8 @@
+@@ -45,8 +45,8 @@ if test "$PHP_PDO_DBLIB" != "no"; then
      PHP_LIBDIR=lib
    fi
  

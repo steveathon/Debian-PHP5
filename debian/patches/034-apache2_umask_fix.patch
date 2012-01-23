@@ -1,10 +1,8 @@
 
 Save and restore umask across requests correctly.
 
-Index: php5-5.2.6/sapi/apache2handler/sapi_apache2.c
-===================================================================
---- php5-5.2.6.orig/sapi/apache2handler/sapi_apache2.c
-+++ php5-5.2.6/sapi/apache2handler/sapi_apache2.c
+--- a/sapi/apache2handler/sapi_apache2.c
++++ b/sapi/apache2handler/sapi_apache2.c
 @@ -432,6 +432,19 @@ static apr_status_t php_server_context_c
  	return APR_SUCCESS;
  }

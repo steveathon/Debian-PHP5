@@ -1,7 +1,5 @@
-Index: php5-5.2.6/ext/exif/exif.c
-===================================================================
---- php5-5.2.6.orig/ext/exif/exif.c
-+++ php5-5.2.6/ext/exif/exif.c
+--- a/ext/exif/exif.c
++++ b/ext/exif/exif.c
 @@ -99,7 +99,7 @@ typedef unsigned char uchar;
  
  #define EFREE_IF(ptr)	if (ptr) efree(ptr)

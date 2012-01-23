@@ -1,7 +1,5 @@
-Index: php5-5.2.6/php.ini-paranoid
-===================================================================
 --- /dev/null
-+++ php5-5.2.6/php.ini-paranoid
++++ b/php.ini-paranoid
 @@ -0,0 +1,1504 @@
 +[PHP]
 +

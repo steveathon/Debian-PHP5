@@ -1,9 +1,8 @@
 fixed bug #45251 (double free or corruption with setAttributeNode())
 http://cvs.php.net/viewvc.cgi/php-src/ext/dom/element.c?r1=1.36.2.4.2.10&r2=1.36.2.4.2.11&diff_format=u
 
-diff -r 8101f188933b ext/dom/element.c
---- a/ext/dom/element.c	Wed Jun 18 19:02:33 2008 +0200
-+++ b/ext/dom/element.c	Wed Jun 18 19:12:21 2008 +0200
+--- a/ext/dom/element.c
++++ b/ext/dom/element.c
 @@ -17,7 +17,7 @@
     +----------------------------------------------------------------------+
  */
@@ -13,7 +12,7 @@ diff -r 8101f188933b ext/dom/element.c
  
  #ifdef HAVE_CONFIG_H
  #include "config.h"
-@@ -585,6 +585,10 @@
+@@ -585,6 +585,10 @@ PHP_FUNCTION(dom_element_set_attribute_n
  		xmlUnlinkNode((xmlNodePtr) existattrp);
  	}
  
@@ -24,7 +23,7 @@ diff -r 8101f188933b ext/dom/element.c
  	if (attrp->doc == NULL && nodep->doc != NULL) {
  		attrobj->document = intern->document;
  		php_libxml_increment_doc_ref((php_libxml_node_object *)attrobj, NULL TSRMLS_CC);
-@@ -998,6 +1002,10 @@
+@@ -998,6 +1002,10 @@ PHP_FUNCTION(dom_element_set_attribute_n
  		xmlUnlinkNode((xmlNodePtr) existattrp);
  	}
  

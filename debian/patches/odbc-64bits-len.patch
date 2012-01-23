@@ -1,7 +1,5 @@
-Index: php/ext/odbc/php_odbc_includes.h
-===================================================================
---- php.orig/ext/odbc/php_odbc_includes.h
-+++ php/ext/odbc/php_odbc_includes.h
+--- a/ext/odbc/php_odbc_includes.h
++++ b/ext/odbc/php_odbc_includes.h
 @@ -230,8 +230,8 @@ typedef struct odbc_connection {
  typedef struct odbc_result_value {
  	char name[32];

@@ -1,7 +1,5 @@
-Index: php5-5.2.6/ext/sockets/sockets.c
-===================================================================
---- php5-5.2.6.orig/ext/sockets/sockets.c
-+++ php5-5.2.6/ext/sockets/sockets.c
+--- a/ext/sockets/sockets.c
++++ b/ext/sockets/sockets.c
 @@ -566,6 +566,7 @@ static int php_sock_array_to_fd_set(zval
  
  		php_sock = (php_socket*) zend_fetch_resource(element TSRMLS_CC, -1, le_socket_name, NULL, 1, le_socket);
@@ -10,10 +8,8 @@ Index: php5-5.2.6/ext/sockets/sockets.c
  
  		PHP_SAFE_FD_SET(php_sock->bsd_socket, fds);
  		if (php_sock->bsd_socket > *max_fd) {
-Index: php5-5.2.6/ext/standard/streamsfuncs.c
-===================================================================
---- php5-5.2.6.orig/ext/standard/streamsfuncs.c
-+++ php5-5.2.6/ext/standard/streamsfuncs.c
+--- a/ext/standard/streamsfuncs.c
++++ b/ext/standard/streamsfuncs.c
 @@ -592,6 +592,9 @@ static int stream_array_to_fd_set(zval *
  		 * is not displayed.
  		 * */

@@ -3,9 +3,8 @@ http://cvs.php.net/viewvc.cgi/php-src/main/main.c?r1=1.640.2.23.2.62&r2=1.640.2.
 http://cvs.php.net/viewvc.cgi/php-src/main/php_ticks.c?r1=1.20.2.1.2.2&r2=1.20.2.1.2.3&diff_format=u
 http://cvs.php.net/viewvc.cgi/php-src/main/php_ticks.h?r1=1.14.2.1.2.2&r2=1.14.2.1.2.3&diff_format=u
 
-diff -r 1cc016a9e5d9 main/main.c
---- a/main/main.c	Thu Jun 19 18:29:09 2008 +0200
-+++ b/main/main.c	Tue Jul 01 19:17:54 2008 +0200
+--- a/main/main.c
++++ b/main/main.c
 @@ -18,7 +18,7 @@
     +----------------------------------------------------------------------+
  */
@@ -15,7 +14,7 @@ diff -r 1cc016a9e5d9 main/main.c
  
  /* {{{ includes
   */
-@@ -1435,6 +1435,8 @@
+@@ -1441,6 +1441,8 @@ void php_request_shutdown(void *dummy)
  	EG(opline_ptr) = NULL;
  	EG(active_op_array) = NULL;
  
@@ -24,9 +23,8 @@ diff -r 1cc016a9e5d9 main/main.c
  	/* 1. Call all possible shutdown functions registered with register_shutdown_function() */
  	if (PG(modules_activated)) zend_try {
  		php_call_shutdown_functions(TSRMLS_C);
-diff -r 1cc016a9e5d9 main/php_ticks.c
---- a/main/php_ticks.c	Thu Jun 19 18:29:09 2008 +0200
-+++ b/main/php_ticks.c	Tue Jul 01 19:17:54 2008 +0200
+--- a/main/php_ticks.c
++++ b/main/php_ticks.c
 @@ -16,7 +16,7 @@
     +----------------------------------------------------------------------+
  */
@@ -36,21 +34,20 @@ diff -r 1cc016a9e5d9 main/php_ticks.c
  
  #include "php.h"
  #include "php_ticks.h"
-@@ -25,6 +25,11 @@
- {
- 	zend_llist_init(&PG(tick_functions), sizeof(void(*)(int)), NULL, 1);
+@@ -27,6 +27,11 @@ int php_startup_ticks(TSRMLS_D)
  	return SUCCESS;
-+}
-+
+ }
+ 
 +void php_deactivate_ticks(TSRMLS_D)
 +{
 +	zend_llist_clean(&PG(tick_functions));
- }
- 
++}
++
  void php_shutdown_ticks(TSRMLS_D)
-diff -r 1cc016a9e5d9 main/php_ticks.h
---- a/main/php_ticks.h	Thu Jun 19 18:29:09 2008 +0200
-+++ b/main/php_ticks.h	Tue Jul 01 19:17:54 2008 +0200
+ {
+ 	zend_llist_destroy(&PG(tick_functions));
+--- a/main/php_ticks.h
++++ b/main/php_ticks.h
 @@ -16,12 +16,13 @@
     +----------------------------------------------------------------------+
  */

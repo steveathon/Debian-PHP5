@@ -8,8 +8,8 @@ r3: fix a crash if /usr/share/zoneinfo doesn't exist (Raphael Geissert)
 r2: add filesystem trawl to set up name alias index
 r1: initial revision
 
---- php-5.2.6/ext/date/lib/parse_tz.c.systzdata
-+++ php-5.2.6/ext/date/lib/parse_tz.c
+--- a/ext/date/lib/parse_tz.c
++++ b/ext/date/lib/parse_tz.c
 @@ -20,6 +20,16 @@
  
  #include "timelib.h"
@@ -38,7 +38,7 @@ r1: initial revision
  
  #if (defined(__APPLE__) || defined(__APPLE_CC__)) && (defined(__BIG_ENDIAN__) || defined(__LITTLE_ENDIAN__))
  # if defined(__LITTLE_ENDIAN__)
-@@ -206,6 +219,211 @@ void timelib_dump_tzinfo(timelib_tzinfo 
+@@ -206,6 +219,211 @@ void timelib_dump_tzinfo(timelib_tzinfo
  	}
  }
  
@@ -258,8 +258,8 @@ r1: initial revision
  
  static ttinfo* fetch_timezone_offset(timelib_tzinfo *tz, timelib_sll ts, timelib_sll *transition_time)
  {
---- php-5.2.6/ext/date/lib/timelib.h.systzdata
-+++ php-5.2.6/ext/date/lib/timelib.h
+--- a/ext/date/lib/timelib.h
++++ b/ext/date/lib/timelib.h
 @@ -31,6 +31,10 @@
  
  #define TIMELIB_SPECIAL_WEEKDAY  0x01
@@ -271,8 +271,8 @@ r1: initial revision
  #ifndef LONG_MAX
  #define LONG_MAX 2147483647L
  #endif
---- php-5.2.6/ext/date/lib/timelib.m4.systzdata
-+++ php-5.2.6/ext/date/lib/timelib.m4
+--- a/ext/date/lib/timelib.m4
++++ b/ext/date/lib/timelib.m4
 @@ -78,3 +78,17 @@ stdlib.h
  
  dnl Check for strtoll, atoll
@@ -291,8 +291,8 @@ r1: initial revision
 +   fi
 +fi
 +
---- php-5.2.6/ext/date/php_date.c.systzdata
-+++ php-5.2.6/ext/date/php_date.c
+--- a/ext/date/php_date.c
++++ b/ext/date/php_date.c
 @@ -584,6 +584,11 @@ static char* guess_timezone(const timeli
  	if (DATEG(default_timezone) && (strlen(DATEG(default_timezone)) > 0) && timelib_timezone_id_is_valid(DATEG(default_timezone), tzdb)) {
  		return DATEG(default_timezone);

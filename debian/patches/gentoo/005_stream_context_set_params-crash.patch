@@ -2,10 +2,9 @@ Fixed bug #44712 (stream_context_set_params segfaults on invalid
 arguments).
 http://cvs.php.net/viewvc.cgi/php-src/ext/standard/streamsfuncs.c?r1=1.58.2.6.2.20&r2=1.58.2.6.2.21&diff_format=u
 
-diff -r 971fde6685fa -r 34abf22f19f9 ext/standard/streamsfuncs.c
---- a/ext/standard/streamsfuncs.c	Wed Jun 18 18:37:26 2008 +0200
-+++ b/ext/standard/streamsfuncs.c	Wed Jun 18 18:41:22 2008 +0200
-@@ -879,7 +879,7 @@
+--- a/ext/standard/streamsfuncs.c
++++ b/ext/standard/streamsfuncs.c
+@@ -882,7 +882,7 @@ static int parse_context_options(php_str
  	return ret;
  }
  
@@ -14,7 +13,7 @@ diff -r 971fde6685fa -r 34abf22f19f9 ext/standard/streamsfuncs.c
  {
  	int ret = SUCCESS;
  	zval **tmp;
-@@ -898,7 +898,11 @@
+@@ -901,7 +901,11 @@ static int parse_context_params(php_stre
  		context->notifier->dtor = user_space_stream_notifier_dtor;
  	}
  	if (SUCCESS == zend_hash_find(Z_ARRVAL_P(params), "options", sizeof("options"), (void**)&tmp)) {
@@ -27,7 +26,7 @@ diff -r 971fde6685fa -r 34abf22f19f9 ext/standard/streamsfuncs.c
  	}
  	
  	return ret;
-@@ -1006,7 +1010,7 @@
+@@ -1009,7 +1013,7 @@ PHP_FUNCTION(stream_context_set_params)
  		RETURN_FALSE;
  	}
  

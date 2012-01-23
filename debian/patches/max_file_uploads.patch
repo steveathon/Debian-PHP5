@@ -1,7 +1,5 @@
-Index: php/main/main.c
-===================================================================
---- php.orig/main/main.c
-+++ php/main/main.c
+--- a/main/main.c
++++ b/main/main.c
 @@ -451,6 +451,7 @@ PHP_INI_BEGIN()
  	PHP_INI_ENTRY("mail.force_extra_parameters",NULL,		PHP_INI_SYSTEM|PHP_INI_PERDIR,		OnChangeMailForceExtra)
  	PHP_INI_ENTRY("disable_functions",			"",			PHP_INI_SYSTEM,		NULL)
@@ -10,10 +8,8 @@ Index: php/main/main.c
  
  	STD_PHP_INI_BOOLEAN("allow_url_fopen",		"1",		PHP_INI_SYSTEM,		OnUpdateBool,		allow_url_fopen,		php_core_globals,	core_globals)
  	STD_PHP_INI_BOOLEAN("allow_url_include",	"0",		PHP_INI_SYSTEM,		OnUpdateBool,		allow_url_include,		php_core_globals,	core_globals)
-Index: php/main/rfc1867.c
-===================================================================
---- php.orig/main/rfc1867.c
-+++ php/main/rfc1867.c
+--- a/main/rfc1867.c
++++ b/main/rfc1867.c
 @@ -32,6 +32,7 @@
  #include "php_globals.h"
  #include "php_variables.h"
@@ -48,10 +44,8 @@ Index: php/main/rfc1867.c
  				if (fd==-1) {
  					sapi_module.sapi_error(E_WARNING, "File upload error - unable to create a temporary file");
  					cancel_upload = UPLOAD_ERROR_E;
-Index: php/php.ini-dist
-===================================================================
---- php.orig/php.ini-dist
-+++ php/php.ini-dist
+--- a/php.ini-dist
++++ b/php.ini-dist
 @@ -565,6 +565,9 @@ file_uploads = On
  upload_max_filesize = 2M
  
@@ -62,10 +56,8 @@ Index: php/php.ini-dist
  ;;;;;;;;;;;;;;;;;;
  ; Fopen wrappers ;
  ;;;;;;;;;;;;;;;;;;
-Index: php/php.ini-recommended
-===================================================================
---- php.orig/php.ini-recommended
-+++ php/php.ini-recommended
+--- a/php.ini-recommended
++++ b/php.ini-recommended
 @@ -599,6 +599,9 @@ file_uploads = On
  upload_max_filesize = 2M
  

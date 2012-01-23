@@ -1,7 +1,5 @@
-Index: php/ext/session/session.c
-===================================================================
---- php.orig/ext/session/session.c
-+++ php/ext/session/session.c
+--- a/ext/session/session.c
++++ b/ext/session/session.c
 @@ -525,7 +525,7 @@ PS_SERIALIZER_ENCODE_FUNC(php)
  
  	PS_ENCODE_LOOP(

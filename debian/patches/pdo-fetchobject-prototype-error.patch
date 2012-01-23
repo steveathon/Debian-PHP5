@@ -1,5 +1,5 @@
---- php5-5.2.6.dfsg.1.orig/ext/pdo/pdo_stmt.c
-+++ php5-5.2.6.dfsg.1/ext/pdo/pdo_stmt.c
+--- a/ext/pdo/pdo_stmt.c
++++ b/ext/pdo/pdo_stmt.c
 @@ -46,7 +46,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_pdostatem
  	ZEND_ARG_INFO(0, orientation)
  	ZEND_ARG_INFO(0, offset)

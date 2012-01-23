@@ -1,7 +1,5 @@
-Index: php5-5.2.6/ext/ldap/ldap.c
-===================================================================
---- php5-5.2.6.orig/ext/ldap/ldap.c
-+++ php5-5.2.6/ext/ldap/ldap.c
+--- a/ext/ldap/ldap.c
++++ b/ext/ldap/ldap.c
 @@ -1334,7 +1334,7 @@ PHP_FUNCTION(ldap_explode_dn)
  	}
  

@@ -1,7 +1,5 @@
-Index: php5-5.2.6/ext/standard/datetime.c
-===================================================================
---- php5-5.2.6.orig/ext/standard/datetime.c
-+++ php5-5.2.6/ext/standard/datetime.c
+--- a/ext/standard/datetime.c
++++ b/ext/standard/datetime.c
 @@ -20,6 +20,9 @@
  
  /* $Id: datetime.c,v 1.134.2.2.2.5 2007/12/31 07:20:12 sebastian Exp $ */

@@ -1,7 +1,5 @@
-Index: php5-5.2.6/acinclude.m4
-===================================================================
---- php5-5.2.6.orig/acinclude.m4
-+++ php5-5.2.6/acinclude.m4
+--- a/acinclude.m4
++++ b/acinclude.m4
 @@ -1210,7 +1210,7 @@ $1
      }
  
