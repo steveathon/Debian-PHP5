@@ -1,6 +1,6 @@
---- a/ext/enchant/enchant.c	2010/10/16 17:30:27	304446
-+++ b/ext/enchant/enchant.c	2010/10/16 17:52:01	304447
-@@ -433,6 +433,8 @@
+--- a/ext/enchant/enchant.c
++++ b/ext/enchant/enchant.c
+@@ -433,6 +433,8 @@ PHP_FUNCTION(enchant_broker_set_dict_pat
  	if (!value_len) {
  		RETURN_FALSE;
  	}
@@ -9,7 +9,7 @@
  
  	switch (dict_type) {
  		case PHP_ENCHANT_MYSPELL:
-@@ -466,6 +468,8 @@
+@@ -466,6 +468,8 @@ PHP_FUNCTION(enchant_broker_get_dict_pat
  	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &broker, &dict_type) == FAILURE) {
  		RETURN_FALSE;
  	}

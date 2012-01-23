@@ -4,10 +4,8 @@ Origin: vendor
 Forwarded: http://bugs.php.net/52407
 Last-Update: 2010-07-28
 
-Index: php-5.3.3/sapi/fpm/fpm/fpm_atomic.h
-===================================================================
---- php-5.3.3.orig/sapi/fpm/fpm/fpm_atomic.h
-+++ php-5.3.3/sapi/fpm/fpm/fpm_atomic.h
+--- a/sapi/fpm/fpm/fpm_atomic.h
++++ b/sapi/fpm/fpm/fpm_atomic.h
 @@ -12,7 +12,19 @@
  #endif
  #include <sched.h>

@@ -161,7 +161,7 @@ Last-Update: 2010-01-18
    *** Pike version:             $PIKE_VERSION"
 --- a/sapi/cli/php.1.in
 +++ b/sapi/cli/php.1.in
-@@ -309,13 +309,14 @@ Shows configuration for extension
+@@ -336,13 +336,14 @@ Shows configuration for extension
  Show configuration file names
  .SH FILES
  .TP 15

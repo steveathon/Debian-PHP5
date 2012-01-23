@@ -6,8 +6,8 @@ Bug-Debian: http://bugs.debian.org/261311
 Forwarded: no
 Last-Update: 2010-01-18
 
---- pkg-php.orig/acinclude.m4
-+++ pkg-php/acinclude.m4
+--- a/acinclude.m4
++++ b/acinclude.m4
 @@ -1219,7 +1219,7 @@ $1
      }
  

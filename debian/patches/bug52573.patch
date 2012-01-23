@@ -1,6 +1,6 @@
---- a/ext/spl/spl_directory.c	2010/08/10 21:52:14	302084
-+++ b/ext/spl/spl_directory.c	2010/08/10 22:37:24	302085
-@@ -1862,7 +1862,11 @@
+--- a/ext/spl/spl_directory.c
++++ b/ext/spl/spl_directory.c
+@@ -1862,7 +1862,11 @@ static int spl_filesystem_file_call(spl_
  
  	result = zend_call_function(&fci, &fcic TSRMLS_CC);
  	

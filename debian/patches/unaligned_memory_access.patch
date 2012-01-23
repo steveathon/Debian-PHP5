@@ -3,10 +3,8 @@ Origin: vendor
 Forwarded: http://bugs.php.net/50987
 Last-Update: 2010-02-09
 
-Index: php/ext/phar/phar.c
-===================================================================
---- php.orig/ext/phar/phar.c
-+++ php/ext/phar/phar.c
+--- a/ext/phar/phar.c
++++ b/ext/phar/phar.c
 @@ -512,7 +512,7 @@ void phar_entry_remove(phar_entry_data *
  	(buffer) += 2
  #else
