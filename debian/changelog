@@ -1,3 +1,9 @@
+php5 (5.3.3-7+squeeze6) squeeze-security; urgency=low
+
+  * CVE-2012-0057: Pull complete fix including setting the default
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 31 Jan 2012 10:58:24 +0100
+
 php5 (5.3.3-7+squeeze5) squeeze-security; urgency=high
 
   * Add Conflicts/Provides: php5-idn to php5-intl (Closes: #637057)
