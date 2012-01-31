@@ -1,8 +1,9 @@
 php5 (5.2.6.dfsg.1-1+lenny15) oldstable-security; urgency=low
 
   * CVE-2012-0057: Pull complete fix including setting the default
+  * Include zend_ini.h in xsltprocessor.c (Closes: #658087)
 
- -- Ondřej Surý <ondrej@debian.org>  Tue, 31 Jan 2012 10:57:09 +0100
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 31 Jan 2012 11:11:08 +0100
 
 php5 (5.2.6.dfsg.1-1+lenny14) oldstable-security; urgency=high
 
