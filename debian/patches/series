@@ -100,3 +100,4 @@ CVE-2011-1938.patch
 CVE-2011-4566.patch
 CVE-2011-4885.patch
 CVE-2012-0057.patch
+memory_leaks.patch
