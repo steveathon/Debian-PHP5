@@ -4465,7 +4465,7 @@ the following modifications have been made:
  		case IS_CONSTANT_ARRAY:
 --- a/configure.in
 +++ b/configure.in
-@@ -289,6 +289,7 @@ sinclude(Zend/Zend.m4)
+@@ -291,6 +291,7 @@ sinclude(Zend/Zend.m4)
  sinclude(TSRM/threads.m4)
  sinclude(TSRM/tsrm.m4)
  
@@ -4473,7 +4473,7 @@ the following modifications have been made:
  
  dnl divert(2)
  
-@@ -1404,7 +1405,7 @@ PHP_ADD_SOURCES(main, main.c snprintf.c
+@@ -1406,7 +1407,7 @@ PHP_ADD_SOURCES(main, main.c snprintf.c
         php_ini.c SAPI.c rfc1867.c php_content_types.c strlcpy.c \
         strlcat.c mergesort.c reentrancy.c php_variables.c php_ticks.c \
         network.c php_open_temporary_file.c php_logos.c \
@@ -4482,7 +4482,7 @@ the following modifications have been made:
  
  PHP_ADD_SOURCES(main/streams, streams.c cast.c memory.c filter.c \
         plain_wrapper.c userspace.c transports.c xp_socket.c mmap.c \
-@@ -1432,7 +1433,7 @@ PHP_ADD_SOURCES(Zend, \
+@@ -1434,7 +1435,7 @@ PHP_ADD_SOURCES(Zend, \
      zend_list.c zend_indent.c zend_builtin_functions.c zend_sprintf.c \
      zend_ini.c zend_qsort.c zend_multibyte.c zend_ts_hash.c zend_stream.c \
      zend_iterators.c zend_interfaces.c zend_exceptions.c zend_strtod.c zend_gc.c \
@@ -4646,7 +4646,7 @@ the following modifications have been made:
  #ifdef ZEND_MULTIBYTE
 --- a/main/php.h
 +++ b/main/php.h
-@@ -458,6 +458,10 @@ END_EXTERN_C()
+@@ -459,6 +459,10 @@ END_EXTERN_C()
  #endif
  #endif /* !XtOffsetOf */
  
