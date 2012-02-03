@@ -1,0 +1,11 @@
+--- a/main/main.c
++++ b/main/main.c
+@@ -2105,7 +2105,7 @@ int php_module_startup(sapi_module_struc
+ 
+ 		while (*p) {
+ 			if (cfg_get_long((char*)*p, &val) == SUCCESS && val) {
+-				zend_error(E_WARNING, "Directive '%s' is deprecated in PHP 5.3 and greater", *p);
++				zend_error(E_DEPRECATED, "Directive '%s' is deprecated in PHP 5.3 and greater", *p);
+ 			}
+ 			++p;
+ 		}
