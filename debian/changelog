@@ -1,3 +1,20 @@
+php5 (5.3.10-1) unstable; urgency=low
+
+  [ Raphael Geissert ]
+  * Remove myself from uploaders
+  * Randomly choose the mysql server's port
+
+  [ Ondřej Surý ]
+  * Fix use_embedded_timezonedb.patch in custom builds (Courtesy of
+    Dominic Scheirlinck) (Closes: #652599)
+  * Fix typo in firebird2.1-dev build dependency
+  * Update gbp.conf for 5.3.x branch
+  * Imported Upstream version 5.3.10
+    + CVE-2012-0830: Fixed arbitrary remote code execution vulnerability
+      reported by Stefan Esser.
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 03 Feb 2012 09:38:06 +0100
+
 php5 (5.3.9-6) unstable; urgency=low
 
   * Build MySQL extensions with Native Driver as an alternative
