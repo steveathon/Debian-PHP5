@@ -1,4 +1,4 @@
-php5 (5.3.10-1) unstable; urgency=low
+php5 (5.3.10-1) unstable; urgency=high
 
   [ Raphael Geissert ]
   * Remove myself from uploaders
