@@ -1,3 +1,9 @@
+php5 (5.2.6.dfsg.1-1+lenny16) oldstable-security; urgency=low
+
+  * Fix UMR in php_register_variable_ex (pull from upstream SVN)
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 03 Feb 2012 09:01:31 +0100
+
 php5 (5.2.6.dfsg.1-1+lenny15) oldstable-security; urgency=low
 
   * CVE-2012-0057: Pull complete fix including setting the default
