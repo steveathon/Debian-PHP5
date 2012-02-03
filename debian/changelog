@@ -1,6 +1,7 @@
 php5 (5.3.3-7+squeeze7) squeeze-security; urgency=low
 
-  * Fix UMR in php_register_variable_ex (pull from upstream SVN)
+  * CVE-2012-0830: Fix PHP remote vulnerability (code injection) in the
+    implementation of the max_input_vars configuration variable
 
  -- Ondřej Surý <ondrej@debian.org>  Thu, 02 Feb 2012 18:24:21 +0100
 
