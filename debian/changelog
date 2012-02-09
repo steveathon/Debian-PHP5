@@ -1,3 +1,13 @@
+php5 (5.3.3-7+squeeze8) squeeze-security; urgency=low
+
+  * Deprecated error should use E_DEPRECATED and not E_WARNING
+    (Closes: #632838)
+  * CVE-2012-0781: Fix for Tidy::diagnose() NULL pointer dereference
+  * CVE-2011-4153: Fix PHP 5 does not always check the return value of
+    the zend_strndup function
+
+ -- Ondřej Surý <ondrej@debian.org>  Thu, 09 Feb 2012 14:50:41 +0100
+
 php5 (5.3.3-7+squeeze7) squeeze-security; urgency=low
 
   * CVE-2012-0830: Fix PHP remote vulnerability (code injection) in the
