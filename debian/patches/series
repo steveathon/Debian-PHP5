@@ -102,3 +102,4 @@ CVE-2011-4885.patch
 CVE-2012-0057.patch
 memory_leaks.patch
 fix_deprecated_register_long_arrays_warning.patch
+CVE-2012-0781.patch
