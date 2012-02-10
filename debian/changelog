@@ -5,8 +5,31 @@ php5 (5.3.3-7+squeeze8) squeeze-security; urgency=low
   * CVE-2012-0781: Fix for Tidy::diagnose() NULL pointer dereference
   * CVE-2011-4153: Fix PHP 5 does not always check the return value of
     the zend_strndup function
+  * CVE-2010-4697: use-after-free vulnerability
+  * CVE-2011-1092: denial of service and possible data disclosure
+    through integer overflow
+  * CVE-2011-1148: improve reference counting
+  * CVE-2011-1464: limit amount of precision to ensure fitting within
+    MAX_BUF_SIZE
+  * CVE-2011-1467: check for invalid attribute symbols in
+    NumberFormatter::setSymbol()
+  * CVE-2011-1468: fix memory leak of openssl contexts
+  * CVE-2011-1469: improve pointer handling to fix denial of service
+    through application crash when using HTTP proxy with the FTP wrapper
+  * CVE-2011-1470: denial of service through application crash when
+    handling ziparchive streams
+  * CVE-2011-1657: DoS in zip handling due to addGlob() crashing on
+    invalid flags
+  * CVE-2011-3182: DoS due to failure to check for memory allocation
+    errors
+  * CVE-2011-3267: DoS in errorlog() when passed NULL
+  * CVE-2012-0788: PDORow session denial of service
+  * CVE-2012-0831: magic_quotes_gpc remote disable vulnerability
+    (NOTE: magic_quotes_gpc is DEPRECATED and will be removed from
+    PHP 5.4, e.g. you should not use them in any case!)
+  * CVE-2011-1072,CVE-2011-1144: symlink tmp races in pear install
 
- -- Ondřej Surý <ondrej@debian.org>  Thu, 09 Feb 2012 14:50:41 +0100
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 10 Feb 2012 10:21:11 +0100
 
 php5 (5.3.3-7+squeeze7) squeeze-security; urgency=low
 
