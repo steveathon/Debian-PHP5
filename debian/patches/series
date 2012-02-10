@@ -104,3 +104,4 @@ memory_leaks.patch
 fix_deprecated_register_long_arrays_warning.patch
 CVE-2012-0781.patch
 CVE-2011-4153.patch
+php5-CVE-2010-4697.patch
