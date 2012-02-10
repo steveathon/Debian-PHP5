@@ -58,3 +58,4 @@ php-5.3.9-mysqlnd.patch
 php-5.3.9-gnusrc.patch
 php-5.3.3-macropen.patch
 php-5.2.4-norpath.patch
+php5-CVE-2012-0831.patch
