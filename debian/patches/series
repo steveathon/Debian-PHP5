@@ -118,3 +118,4 @@ php5-CVE-2011-3182.patch
 php5-CVE-2011-3267.patch
 php5-CVE-2012-0788.patch
 php5-CVE-2012-0831.patch
+CVE-2012-1172.patch
