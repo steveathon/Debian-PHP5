@@ -1,3 +1,13 @@
+php5 (5.3.3-7+squeeze9) squeeze-security; urgency=high
+
+  * Add more return value checks for CVE-2011-4153 (pulled from OpenSUSE)
+  * CVE-2012-1172: Fix insufficient validation of upload name leading
+    to corrupted $_FILES indices
+  * CVE-2012-1823,CVE-2012-2311: Fix PHP-CGI query string parameter
+    vulnerability
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 08 May 2012 12:18:57 +0200
+
 php5 (5.3.3-7+squeeze8) squeeze-security; urgency=low
 
   * Deprecated error should use E_DEPRECATED and not E_WARNING
