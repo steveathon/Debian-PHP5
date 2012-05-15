@@ -1,3 +1,10 @@
+php5 (5.3.3-7+squeeze10) squeeze-security; urgency=low
+
+  * Fix a regression which caused crass accessing global object itself
+    returned from its __get() (Closes: #672687)
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 15 May 2012 11:36:22 +0200
+
 php5 (5.3.3-7+squeeze9) squeeze-security; urgency=high
 
   * Add more return value checks for CVE-2011-4153 (pulled from OpenSUSE)
