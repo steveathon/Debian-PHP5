@@ -1,0 +1,15 @@
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -374,7 +374,11 @@ zval *zend_std_read_property(zval *objec
+ 			} else {
+ 				retval = &EG(uninitialized_zval_ptr);
+ 			}
+-			zval_ptr_dtor(&object);
++			if (EXPECTED(*retval != object)) {
++				zval_ptr_dtor(&object);
++			} else {
++				Z_DELREF_P(object);
++			}
+ 		} else {
+ 			if (!silent) {
+ 				zend_error(E_NOTICE,"Undefined property: %s::$%s", zobj->ce->name, Z_STRVAL_P(member));
