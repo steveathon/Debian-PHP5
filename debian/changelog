@@ -1,6 +1,6 @@
 php5 (5.3.3-7+squeeze10) squeeze-security; urgency=low
 
-  * Fix a regression which caused crass accessing global object itself
+  * Fix a regression which caused crash accessing global object itself
     returned from its __get() (Closes: #672687)
 
  -- Ondřej Surý <ondrej@debian.org>  Tue, 15 May 2012 11:36:22 +0200
