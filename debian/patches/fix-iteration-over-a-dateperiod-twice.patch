@@ -1,0 +1,179 @@
+--- a/ext/date/lib/timelib.c
++++ b/ext/date/lib/timelib.c
+@@ -46,6 +46,19 @@ timelib_rel_time* timelib_rel_time_ctor(
+ 	return t;
+ }
+ 
++timelib_time* timelib_time_clone(timelib_time *orig)
++{
++	timelib_time *tmp = timelib_time_ctor();
++	memcpy(tmp, orig, sizeof(timelib_time));
++	if (orig->tz_abbr) {
++		tmp->tz_abbr = strdup(orig->tz_abbr);
++	}
++	if (orig->tz_info) {
++		tmp->tz_info = orig->tz_info;
++	}
++	return tmp;
++}
++
+ timelib_rel_time* timelib_rel_time_clone(timelib_rel_time *rel)
+ {
+ 	timelib_rel_time *tmp = timelib_rel_time_ctor();
+--- a/ext/date/lib/timelib.h
++++ b/ext/date/lib/timelib.h
+@@ -109,6 +109,7 @@ timelib_rel_time* timelib_rel_time_clone
+ timelib_time* timelib_time_ctor(void);
+ void timelib_time_set_option(timelib_time* tm, int option, void* option_value);
+ void timelib_time_dtor(timelib_time* t);
++timelib_time* timelib_time_clone(timelib_time* orig);
+ 
+ timelib_time_offset* timelib_time_offset_ctor(void);
+ void timelib_time_offset_dtor(timelib_time_offset* t);
+--- a/ext/date/php_date.c
++++ b/ext/date/php_date.c
+@@ -1822,7 +1822,7 @@ static int date_period_it_has_more(zend_
+ {
+ 	date_period_it *iterator = (date_period_it *)iter;
+ 	php_period_obj *object   = iterator->object;
+-	timelib_time   *it_time = object->start;
++	timelib_time   *it_time = object->current;
+ 
+ 	/* apply modification if it's not the first iteration */
+ 	if (!object->include_start_date || iterator->current_index > 0) {
+@@ -1834,7 +1834,7 @@ static int date_period_it_has_more(zend_
+ 	}
+ 
+ 	if (object->end) {
+-		return object->start->sse < object->end->sse ? SUCCESS : FAILURE;
++		return object->current->sse < object->end->sse ? SUCCESS : FAILURE;
+ 	} else {
+ 		return (iterator->current_index < object->recurrences) ? SUCCESS : FAILURE;
+ 	}
+@@ -1847,7 +1847,7 @@ static void date_period_it_current_data(
+ {
+ 	date_period_it *iterator = (date_period_it *)iter;
+ 	php_period_obj *object   = iterator->object;
+-	timelib_time   *it_time = object->start;
++	timelib_time   *it_time = object->current;
+ 	php_date_obj   *newdateobj;
+ 
+ 	/* Create new object */
+@@ -1895,6 +1895,10 @@ static void date_period_it_rewind(zend_o
+ 	date_period_it   *iterator = (date_period_it *)iter;
+ 
+ 	iterator->current_index = 0;
++	if (iterator->object->current) {
++		timelib_time_dtor(iterator->object->current);
++	}
++	iterator->object->current = timelib_time_clone(iterator->object->start);
+ 	date_period_it_invalidate_current(iter TSRMLS_CC);
+ }
+ /* }}} */
+@@ -2335,6 +2339,10 @@ static void date_object_free_storage_per
+ 		timelib_time_dtor(intern->start);
+ 	}
+ 
++	if (intern->current) {
++		timelib_time_dtor(intern->current);
++	}
++
+ 	if (intern->end) {
+ 		timelib_time_dtor(intern->end);
+ 	}
+@@ -3713,6 +3721,7 @@ PHP_METHOD(DatePeriod, __construct)
+ 	}
+ 
+ 	dpobj = zend_object_store_get_object(getThis() TSRMLS_CC);
++	dpobj->current = NULL;
+ 
+ 	if (isostr_len) {
+ 		date_period_initialize(&(dpobj->start), &(dpobj->end), &(dpobj->interval), (int*) &recurrences, isostr, isostr_len TSRMLS_CC);
+@@ -3754,14 +3763,7 @@ PHP_METHOD(DatePeriod, __construct)
+ 		/* end date */
+ 		if (end) {
+ 			dateobj = (php_date_obj *) zend_object_store_get_object(end TSRMLS_CC);
+-			clone = timelib_time_ctor();
+-			memcpy(clone, dateobj->time, sizeof(timelib_time));
+-			if (dateobj->time->tz_abbr) {
+-				clone->tz_abbr = strdup(dateobj->time->tz_abbr);
+-			}
+-			if (dateobj->time->tz_info) {
+-				clone->tz_info = dateobj->time->tz_info;
+-			}
++			clone = timelib_time_clone(dateobj->time);
+ 			dpobj->end = clone;
+ 		}
+ 	}
+--- a/ext/date/php_date.h
++++ b/ext/date/php_date.h
+@@ -139,6 +139,7 @@ struct _php_interval_obj {
+ struct _php_period_obj {
+ 	zend_object       std;
+ 	timelib_time     *start;
++	timelib_time     *current;
+ 	timelib_time     *end;
+ 	timelib_rel_time *interval;
+ 	int               recurrences;
+--- /dev/null
++++ b/ext/date/tests/bug52668.phpt
+@@ -0,0 +1,25 @@
++--TEST--
++Bug #52668 (Iterating over a dateperiod twice is broken)
++--INI--
++date.timezone=UTC
++--FILE--
++<?php
++$start    = new DateTime('20101212');
++$interval = DateInterval::createFromDateString('next day');
++$dp = new DatePeriod($start, $interval, 1);
++foreach($dp as $dt) {
++    echo $dt->format('r') . "\n"; // Sun, 12 Dec 2010 00:00:00 +0100
++}
++echo $start->format('r'), "\n";
++foreach($dp as $dt) {
++    echo $dt->format('r') . "\n"; // Sun, 12 Dec 2010 00:00:00 +0100
++}
++echo $start->format('r'), "\n\n";
++?>
++--EXPECT--
++Sun, 12 Dec 2010 00:00:00 +0000
++Mon, 13 Dec 2010 00:00:00 +0000
++Sun, 12 Dec 2010 00:00:00 +0000
++Sun, 12 Dec 2010 00:00:00 +0000
++Mon, 13 Dec 2010 00:00:00 +0000
++Sun, 12 Dec 2010 00:00:00 +0000
+--- /dev/null
++++ b/ext/date/tests/bug46874.phpt
+@@ -0,0 +1,31 @@
++--TEST--
++Bug #46874 (DatePeriod not resetting after foreach loop)
++--FILE--
++<?php
++$dp = new DatePeriod('R5/2008-03-01T13:00:00Z/P1Y2M10DT2H30M');
++
++foreach ($dp as $date) {
++    echo $date->format("Y-m-d H:i:s\n");
++}
++
++echo "\n";
++
++// this should repeat the same range
++foreach ($dp as $date) {
++    echo $date->format("Y-m-d H:i:s\n");
++}
++?>
++--EXPECT--
++2008-03-01 13:00:00
++2009-05-11 15:30:00
++2010-07-21 18:00:00
++2011-10-01 20:30:00
++2012-12-11 23:00:00
++2014-02-22 01:30:00
++
++2008-03-01 13:00:00
++2009-05-11 15:30:00
++2010-07-21 18:00:00
++2011-10-01 20:30:00
++2012-12-11 23:00:00
++2014-02-22 01:30:00
