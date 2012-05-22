@@ -126,3 +126,4 @@ fix-passing-mysqli-options.patch
 php5-sybase-money-fix.patch
 fix-iteration-over-a-dateperiod-twice.patch
 fix-this-become-non-object.patch
+fix-var_export-array-with-negative-key.patch
