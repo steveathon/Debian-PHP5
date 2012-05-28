@@ -2,8 +2,10 @@ php5 (5.3.3-7+squeeze10) squeeze-security; urgency=low
 
   * Fix a regression which caused crash accessing global object itself
     returned from its __get() (Closes: #672687)
+  * CVE-2012-2386: Fix integer overflow leading to heap-buffer overflow
+    in the Phar extension
 
- -- Ondřej Surý <ondrej@debian.org>  Tue, 15 May 2012 11:36:22 +0200
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 28 May 2012 16:02:31 +0200
 
 php5 (5.3.3-7+squeeze9) squeeze-security; urgency=high
 
