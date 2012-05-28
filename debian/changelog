@@ -5,7 +5,7 @@ php5 (5.3.3-7+squeeze11) squeeze; urgency=low
     #620948)
   * Fix iterating over a dateperiod twice (Closes: #658092)
   * Fix bug where $this become non-object (Closes: #617233)
-  * Fix var_export array with negative key (Closes: #617233)
+  * Fix var_export array with negative key (Closes: #615025)
 
  -- Ondřej Surý <ondrej@debian.org>  Tue, 22 May 2012 09:59:59 +0200
 
