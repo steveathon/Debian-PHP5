@@ -122,8 +122,3 @@ CVE-2012-1172.patch
 CVE-2012-1823.patch
 CVE-2012-2311.patch
 fix-crash-accessing-global-object.patch
-fix-passing-mysqli-options.patch
-php5-sybase-money-fix.patch
-fix-iteration-over-a-dateperiod-twice.patch
-fix-this-become-non-object.patch
-fix-var_export-array-with-negative-key.patch
