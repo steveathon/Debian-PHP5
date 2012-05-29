@@ -123,3 +123,4 @@ CVE-2012-1823.patch
 CVE-2012-2311.patch
 fix-crash-accessing-global-object.patch
 CVE-2012-2386.patch
+CVE-2012-2386-1.patch
