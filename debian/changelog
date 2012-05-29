@@ -1,3 +1,10 @@
+php5 (5.3.3-7+squeeze12) squeeze-security; urgency=low
+
+  * CVE-2012-2386: one additional, similar vulnerable code construct in
+    the Phar extension
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 29 May 2012 10:12:36 +0200
+
 php5 (5.3.3-7+squeeze11) squeeze-security; urgency=low
 
   * Fix a regression which caused crash accessing global object itself
