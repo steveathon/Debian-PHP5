@@ -1,3 +1,9 @@
+php5 (5.3.3-7+squeeze13) squeeze-security; urgency=high
+
+  * Rebuild to work around against dak troubles.
+
+ -- Florian Weimer <fw@deneb.enyo.de>  Sun, 10 Jun 2012 09:16:12 +0200
+
 php5 (5.3.3-7+squeeze12) squeeze-security; urgency=low
 
   * CVE-2012-2386: one additional, similar vulnerable code construct in
