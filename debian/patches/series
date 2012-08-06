@@ -125,3 +125,4 @@ fix-crash-accessing-global-object.patch
 CVE-2012-2386.patch
 CVE-2012-2386-1.patch
 CVE-2012-2688.patch
+CVE-2012-3450.patch
