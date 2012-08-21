@@ -1,3 +1,14 @@
+php5 (5.4.4-5) unstable; urgency=low
+
+  * Get rid of empty examples directory (Closes: #684108)
+  * Provide sensible default configuration for PHP MIME-types inside
+    Apache 2 configuration (Closes: #685340)
+  * Add NEWS text about more strict extension configuration
+  * Update NEWS and README.Debian based on debian-l10n-english review
+    (Courtesy of Justing B Rye)
+  
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 21 Aug 2012 17:05:06 +0200
+
 php5 (5.4.4-4) unstable; urgency=low
 
   * Fix php5-fpm segfault (PHP#62205)
