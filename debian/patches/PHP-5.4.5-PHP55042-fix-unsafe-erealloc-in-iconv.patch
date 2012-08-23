@@ -1,0 +1,15 @@
+--- a/ext/iconv/iconv.c
++++ b/ext/iconv/iconv.c
+@@ -513,7 +513,11 @@ PHP_ICONV_API php_iconv_err_t php_iconv_
+ 	}
+ 
+ 	if (out_left < 8) {
+-		out_buffer = (char *) erealloc(out_buffer, out_size + 8);
++		size_t pos = out_p - out_buffer;
++		out_buffer = (char *) safe_erealloc(out_buffer, out_size, 1, 8);
++		out_p = out_buffer+pos;
++		out_size += 7;
++		out_left += 7;
+ 	}
+ 
+ 	/* flush the shift-out sequences */ 

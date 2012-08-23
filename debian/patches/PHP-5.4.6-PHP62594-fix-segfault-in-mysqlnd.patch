@@ -1,0 +1,17 @@
+diff --git a/ext/mysqlnd/mysqlnd_debug.c b/ext/mysqlnd/mysqlnd_debug.c
+index 5c77b42..044a7d6 100644
+--- a/ext/mysqlnd/mysqlnd_debug.c
++++ b/ext/mysqlnd/mysqlnd_debug.c
+@@ -516,9 +516,11 @@ enum mysqlnd_debug_parser_state
+ static void
+ MYSQLND_METHOD(mysqlnd_debug, set_mode)(MYSQLND_DEBUG * self, const char * const mode)
+ {
+-	unsigned int mode_len = strlen(mode), i;
++	unsigned int mode_len, i;
+ 	enum mysqlnd_debug_parser_state state = PARSER_WAIT_MODIFIER;
+ 
++	mode_len = mode? strlen(mode) : 0;
++
+ 	self->flags = 0;
+ 	self->nest_level_limit = 0;
+ 	if (self->file_name && self->file_name != mysqlnd_debug_default_trace_file) {

@@ -1,0 +1,50 @@
+diff --git a/ext/standard/tests/serialize/bug62373.phpt b/ext/standard/tests/serialize/bug62373.phpt
+new file mode 100644
+index 0000000..666c33e
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug62373.phpt
+@@ -0,0 +1,25 @@
++--TEST--
++Bug #62373 (serialize() generates wrong reference to the object)
++--FILE--
++<?php
++class A {}
++class B {}
++
++$size_of_ce = (((int)(log(PHP_INT_MAX) / log(2)) + 1 == 32 ? 368: 680) + 15) & ~15;
++$dummy = array();
++$b = new B();
++$period = $size_of_ce << 5;
++for ($i = 0; $i < $period * 3; $i++) {
++    $a = new A();
++    $s = unserialize(serialize(array($b, $a)));
++    if ($s[0] === $s[1]) {
++        echo "OOPS\n";
++        break; 
++    }
++    $dummy[] = $a;
++}
++
++echo "OK\n";
++?>
++--EXPECT--
++OK
+diff --git a/ext/standard/var.c b/ext/standard/var.c
+index c6126e9..735d0a7 100644
+--- a/ext/standard/var.c
++++ b/ext/standard/var.c
+@@ -541,12 +541,9 @@ static inline int php_add_var_hash(HashTable *var_hash, zval *var, void *var_old
+ 
+ 	/* relies on "(long)" being a perfect hash function for data pointers,
+ 	 * however the actual identity of an object has had to be determined
+-	 * by its object handle and the class entry since 5.0. */
++	 * by its object handle since 5.0. */
+ 	if ((Z_TYPE_P(var) == IS_OBJECT) && Z_OBJ_HT_P(var)->get_class_entry) {
+-		p = smart_str_print_long(id + sizeof(id) - 1,
+-				(((size_t)Z_OBJCE_P(var) << 5)
+-				| ((size_t)Z_OBJCE_P(var) >> (sizeof(long) * 8 - 5)))
+-				+ (long) Z_OBJ_HANDLE_P(var));
++		p = smart_str_print_long(id + sizeof(id) - 1, (long) Z_OBJ_HANDLE_P(var));
+ 		*(--p) = 'O';
+ 		len = id + sizeof(id) - 1 - p;
+ 	} else {

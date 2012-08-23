@@ -1,0 +1,161 @@
+diff --git a/ext/fileinfo/libmagic/apprentice.c b/ext/fileinfo/libmagic/apprentice.c
+index 4a54849..98bde27 100644
+--- a/ext/fileinfo/libmagic/apprentice.c
++++ b/ext/fileinfo/libmagic/apprentice.c
+@@ -753,7 +753,7 @@ private int
+ apprentice_load(struct magic_set *ms, struct magic **magicp, uint32_t *nmagicp,
+     const char *fn, int action)
+ {
+-	int errs = 0;
++	int errs = 0, mflen = 0;
+ 	struct magic_entry *marray;
+ 	uint32_t marraycount, i, mentrycount = 0, starttest;
+ 	size_t files = 0, maxfiles = 0;
+@@ -782,7 +782,7 @@ apprentice_load(struct magic_set *ms, struct magic **magicp, uint32_t *nmagicp,
+ 			goto out;
+ 		}
+ 		while ((d = readdir(dir)) != NULL) {
+-			if (snprintf(mfn, sizeof(mfn), "%s/%s", fn, d->d_name) < 0) {
++			if ((mflen = snprintf(mfn, sizeof(mfn), "%s/%s", fn, d->d_name)) < 0) {
+ 				file_oomem(ms,
+ 				    strlen(fn) + strlen(d->d_name) + 2);
+ 				errs++;
+@@ -804,14 +804,14 @@ apprentice_load(struct magic_set *ms, struct magic **magicp, uint32_t *nmagicp,
+ 					goto out;
+ 				}
+ 			}
+-			filearr[files++] = mfn;
++			filearr[files++] = estrndup(mfn, mflen);
+ 		}
+ 		closedir(dir);
+ 		qsort(filearr, files, sizeof(*filearr), cmpstrp);
+ 		for (i = 0; i < files; i++) {
+ 			load_1(ms, action, filearr[i], &errs, &marray,
+ 			    &marraycount);
+-			free(filearr[i]);
++			efree(filearr[i]);
+ 		}
+ 		free(filearr);
+ 	} else
+@@ -886,9 +886,14 @@ apprentice_load(struct magic_set *ms, struct magic **magicp, uint32_t *nmagicp,
+ 		mentrycount += marray[i].cont_count;
+ 	}
+ out:
+-	for (i = 0; i < marraycount; i++)
+-		efree(marray[i].mp);
+-	efree(marray);
++	for (i = 0; i < marraycount; i++) {
++		if (marray[i].mp) {
++			efree(marray[i].mp);
++		}
++	}
++	if (marray) {
++		efree(marray);
++	}
+ 	if (errs) {
+ 		*magicp = NULL;
+ 		*nmagicp = 0;
+@@ -1165,6 +1170,9 @@ parse(struct magic_set *ms, struct magic_entry **mentryp, uint32_t *nmentryp,
+ 			return -1;
+ 		}
+ 		me = &(*mentryp)[*nmentryp - 1];
++		if (me->mp == NULL) {
++			return -1;
++		}
+ 		if (me->cont_count == me->max_count) {
+ 			struct magic *nm;
+ 			size_t cnt = me->max_count + ALLOC_CHUNK;
+@@ -1329,6 +1337,10 @@ parse(struct magic_set *ms, struct magic_entry **mentryp, uint32_t *nmentryp,
+ 	if (m->type == FILE_INVALID) {
+ 		if (ms->flags & MAGIC_CHECK)
+ 			file_magwarn(ms, "type `%s' invalid", l);
++		if (me->mp) {
++			efree(me->mp);
++			me->mp = NULL;
++		}
+ 		return -1;
+ 	}
+ 
+@@ -2219,6 +2231,7 @@ apprentice_map(struct magic_set *ms, struct magic **magicp, uint32_t *nmagicp,
+ 	mm = emalloc((size_t)st.sb.st_size);
+ 	if (php_stream_read(stream, mm, (size_t)st.sb.st_size) != (size_t)st.sb.st_size) {
+ 		file_badread(ms);
++		ret = 1;
+ 		goto error1;
+ 	}
+ 	ret = 1;
+diff --git a/ext/fileinfo/tests/bug61964.phpt b/ext/fileinfo/tests/bug61964.phpt
+new file mode 100644
+index 0000000..99c8fd2
+--- /dev/null
++++ b/ext/fileinfo/tests/bug61964.phpt
+@@ -0,0 +1,69 @@
++--TEST--
++Bug #61964 (finfo_open with directory cause invalid free)
++--SKIPIF--
++<?php require_once(dirname(__FILE__) . '/skipif.inc'); ?>
++--FILE--
++<?php
++
++$magic_file = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'magic';
++
++$ret = @finfo_open(FILEINFO_NONE, $magic_file . ".non-exits");
++var_dump($ret);
++
++$dir = __DIR__ . "/test-folder";
++@mkdir($dir);
++
++$magic_file_copy = $dir . "/magic.copy";
++$magic_file_copy2 = $magic_file_copy . "2";
++copy($magic_file, $magic_file_copy);
++copy($magic_file, $magic_file_copy2);
++
++$ret = finfo_open(FILEINFO_NONE, $dir);
++var_dump($ret);
++
++$ret = @finfo_open(FILEINFO_NONE, $dir);
++var_dump($ret);
++
++$ret = @finfo_open(FILEINFO_NONE, $dir. "/non-exits-dir");
++var_dump($ret);
++
++// write some test files to test folder
++file_put_contents($dir . "/test1.txt", "string\n> Core\n> Me");
++file_put_contents($dir . "/test2.txt", "a\nb\n");
++@mkdir($dir . "/test-inner-folder");
++
++finfo_open(FILEINFO_NONE, $dir);
++echo "DONE: testing dir with files\n";
++
++rmdir($dir . "/test-inner-folder");
++unlink($dir . "/test1.txt");
++unlink($dir . "/test2.txt");
++
++unlink($magic_file_copy);
++unlink($magic_file_copy2);
++rmdir($dir);
++?>
++===DONE===
++--EXPECTF--
++bool(false)
++resource(%d) of type (file_info)
++resource(%d) of type (file_info)
++bool(false)
++
++Notice: finfo_open(): Warning: offset `string' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: offset ` Core' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: type `Core' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: offset `a' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: type `a' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: offset `b' invalid in %sbug61964.php on line %d
++
++Notice: finfo_open(): Warning: type `b' invalid in %sbug61964.php on line %d
++
++Warning: finfo_open(): Failed to load magic database at '%stest-folder'. in %sbug61964.php on line %d
++DONE: testing dir with files
++===DONE===

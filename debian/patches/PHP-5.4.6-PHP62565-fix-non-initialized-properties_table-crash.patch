@@ -1,0 +1,73 @@
+diff --git a/ext/intl/collator/collator_class.c b/ext/intl/collator/collator_class.c
+index de744dc..d1fa10e 100755
+--- a/ext/intl/collator/collator_class.c
++++ b/ext/intl/collator/collator_class.c
+@@ -67,6 +67,7 @@ zend_object_value Collator_object_create(
+ 	intern = ecalloc( 1, sizeof(Collator_object) );
+ 	intl_error_init( COLLATOR_ERROR_P( intern ) TSRMLS_CC );
+ 	zend_object_std_init( &intern->zo, ce TSRMLS_CC );
++	object_properties_init(&intern->zo, ce);
+ 
+ 	retval.handle = zend_objects_store_put(
+ 		intern,
+diff --git a/ext/intl/dateformat/dateformat_class.c b/ext/intl/dateformat/dateformat_class.c
+index c66610f..a9e06c1 100755
+--- a/ext/intl/dateformat/dateformat_class.c
++++ b/ext/intl/dateformat/dateformat_class.c
+@@ -63,6 +63,7 @@ zend_object_value IntlDateFormatter_object_create(zend_class_entry *ce TSRMLS_DC
+ 	intern = ecalloc( 1, sizeof(IntlDateFormatter_object) );
+ 	dateformat_data_init( &intern->datef_data TSRMLS_CC );
+ 	zend_object_std_init( &intern->zo, ce TSRMLS_CC );
++	object_properties_init(&intern->zo, ce);
+ 	intern->date_type = 0;
+ 	intern->time_type = 0;
+ 	intern->calendar  = 1;		/* Gregorian calendar */
+diff --git a/ext/intl/formatter/formatter_class.c b/ext/intl/formatter/formatter_class.c
+index 8fcda64..28af14e 100755
+--- a/ext/intl/formatter/formatter_class.c
++++ b/ext/intl/formatter/formatter_class.c
+@@ -62,6 +62,7 @@ zend_object_value NumberFormatter_object_create(zend_class_entry *ce TSRMLS_DC)
+ 	intern = ecalloc( 1, sizeof(NumberFormatter_object) );
+ 	formatter_data_init( &intern->nf_data TSRMLS_CC );
+ 	zend_object_std_init( &intern->zo, ce TSRMLS_CC );
++	object_properties_init(&intern->zo, ce);
+ 
+ 	retval.handle = zend_objects_store_put(
+ 		intern,
+diff --git a/ext/intl/resourcebundle/resourcebundle_class.c b/ext/intl/resourcebundle/resourcebundle_class.c
+index 1205450..23e9449 100644
+--- a/ext/intl/resourcebundle/resourcebundle_class.c
++++ b/ext/intl/resourcebundle/resourcebundle_class.c
+@@ -63,6 +63,7 @@ static zend_object_value ResourceBundle_object_create( zend_class_entry *ce TSRM
+ 	rb = ecalloc( 1, sizeof(ResourceBundle_object) );
+ 
+ 	zend_object_std_init( (zend_object *) rb, ce TSRMLS_CC );
++	object_properties_init((zend_object *) rb, ce);
+ 
+ 	intl_error_init( INTL_DATA_ERROR_P(rb) TSRMLS_CC );
+ 	rb->me = NULL;
+diff --git a/ext/intl/spoofchecker/spoofchecker_class.c b/ext/intl/spoofchecker/spoofchecker_class.c
+index 6c19fbb..507a2ca 100755
+--- a/ext/intl/spoofchecker/spoofchecker_class.c
++++ b/ext/intl/spoofchecker/spoofchecker_class.c
+@@ -61,6 +61,7 @@ zend_object_value Spoofchecker_object_create(
+ 	intern = ecalloc(1, sizeof(Spoofchecker_object));
+ 	intl_error_init(SPOOFCHECKER_ERROR_P(intern) TSRMLS_CC);
+ 	zend_object_std_init(&intern->zo, ce TSRMLS_CC);
++	object_properties_init(&intern->zo, ce);
+ 
+ 	retval.handle = zend_objects_store_put(
+ 		intern,
+diff --git a/ext/standard/incomplete_class.c b/ext/standard/incomplete_class.c
+index 0ca2f04..f6d3750 100644
+--- a/ext/standard/incomplete_class.c
++++ b/ext/standard/incomplete_class.c
+@@ -109,6 +109,8 @@ static zend_object_value php_create_incomplete_object(zend_class_entry *class_ty
+ 	value = zend_objects_new(&object, class_type TSRMLS_CC);
+ 	value.handlers = &php_incomplete_object_handlers;
+ 	
++	object_properties_init(object, class_type);
++	
+ 	return value;
+ }
+ 

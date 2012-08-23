@@ -1,0 +1,29 @@
+--- a/ext/spl/spl_iterators.c
++++ b/ext/spl/spl_iterators.c
+@@ -1289,6 +1289,8 @@ static union _zend_function *spl_dual_it
+ 				*object_ptr = intern->inner.zobject;
+ 				function_handler = Z_OBJ_HT_P(*object_ptr)->get_method(object_ptr, method, method_len, key TSRMLS_CC);
+ 			}
++		} else {
++			*object_ptr = intern->inner.zobject;
+ 		}
+ 	}
+ 	return function_handler;
+--- /dev/null
++++ b/ext/spl/tests/bug62616.phpt
+@@ -0,0 +1,15 @@
++--TEST--
++Bug #62616 (ArrayIterator::count() from IteratorIterator instance gives Segmentation fault)
++--FILE--
++<?php
++$ai = new ArrayIterator(array(0,1));
++
++var_dump($ai->count());
++
++$ii = new IteratorIterator($ai);
++
++var_dump($ii->count());
++?>
++--EXPECTF--
++int(2)
++int(2)

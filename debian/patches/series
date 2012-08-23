@@ -64,3 +64,14 @@ php-fpm-error-reporting.patch
 php-fpm-segfault.patch
 CVE-2012-2688.patch
 fix_gzip_output_compression.patch
+PHP-5.4.5-fix-information-leak-in-exif.patch
+PHP-5.4.5-PHP55042-fix-unsafe-erealloc-in-iconv.patch
+PHP-5.4.5-PHP61998-fix-crash-when-using-traits-with-method-aliases.patch
+PHP-5.4.5-PHP62266-fix-custom-extensions-segfault-in-libxml.patch
+PHP-5.4.5-PHP62373-fix-wrong-reference-in-serialize.patch
+PHP-5.4.6-PHP61964-fix-invalid-free-in-finfo_open.patch
+PHP-5.4.6-PHP62564-fix-crash-when-extendind-MessageFormater-in-intl.patch
+PHP-5.4.6-PHP62565-fix-non-initialized-properties_table-crash.patch
+PHP-5.4.6-PHP62594-fix-segfault-in-mysqlnd.patch
+PHP-5.4.6-PHP62616-fix-segfault-in-SPL.patch
+PHP-5.4.6-PHP62653-fix-unset_array_float-crash.patch
