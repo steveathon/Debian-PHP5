@@ -63,3 +63,4 @@ libxml-reset-the-handler.patch
 php-fpm-error-reporting.patch
 php-fpm-segfault.patch
 CVE-2012-2688.patch
+fix_gzip_output_compression.patch
