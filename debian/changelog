@@ -1,10 +1,14 @@
 php5 (5.4.4-8) unstable; urgency=low
 
-  * Remove IfModule to always interpret PHP if the module is enabled (Closes: #690413)
+  * Remove IfModule to always interpret PHP if the module is enabled
+    (Closes: #690413)
   * Fix extended DES crypt() when salt != 9 (Closes: #687031)
   * Fix libphp5-embed linking (Closes: #690173):
-    + Expose all installed (and not built time) SAPIs via php-config --php-sapis
-    + Add /usr/lib/php5 to php-config --ldflags output to allow linking with libphp5.so
+    + Expose all installed (and not built time) SAPIs via php-config
+      --php-sapis
+    + Add /usr/lib/php5 to php-config --ldflags output to allow linking
+      with libphp5.so
+    + Remove useless libtool file in libphp5-embed
 
  -- Ondřej Surý <ondrej@debian.org>  Thu, 25 Oct 2012 13:23:08 +0200
 
