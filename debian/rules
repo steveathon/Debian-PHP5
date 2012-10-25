@@ -529,6 +529,7 @@ install: build
 
 	# install embed SAPI
 	cd embed-build && make install-headers install-build install-sapi install-programs INSTALL_ROOT=$(CURDIR)/debian/libphp5-embed
+	rm $(CURDIR)/debian/libphp5-embed/usr/lib/php5/*.la
 
 	# install the apache modules' files
 	cd apache2-build && $(MAKE) install-headers install-build install-modules install-programs INSTALL_ROOT=$(CURDIR)/debian/libapache2-mod-php5
