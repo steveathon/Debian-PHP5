@@ -1,3 +1,11 @@
+php5 (5.4.4-9) unstable; urgency=low
+
+  * Add logrotate script for php5-fpm (Closes: #683415)
+  * Add more warning text about new php5_cgi apache2 module (Closes: #687307)
+  * Add Breaks: php5-suhosin so people don't try to use it with PHP 5.4
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 26 Oct 2012 14:32:02 +0200
+
 php5 (5.4.4-8) unstable; urgency=low
 
   * Remove IfModule to always interpret PHP if the module is enabled
