@@ -1,3 +1,11 @@
+php5 (5.4.4-10) unstable; urgency=low
+
+  [ Lior Kaplan ]
+  * Support removing dangling symlinks, users are allowed to remove configuration files
+  * Exit with code 0 even if module symlink doesn't exist (Closes: #692013)
+
+ -- Ondřej Surý <ondrej@debian.org>  Sat, 24 Nov 2012 11:51:17 +0100
+
 php5 (5.4.4-9) unstable; urgency=low
 
   * Add logrotate script for php5-fpm (Closes: #683415)
