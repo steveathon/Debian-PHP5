@@ -1,3 +1,10 @@
+php5 (5.4.4-12) unstable; urgency=low
+
+  * Apply two workaround patches for crashes caused by infinite recursion
+    in php_rfc1867_callback (Closes: #694473, #691318)
+
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 21 Jan 2013 11:02:25 +0100
+
 php5 (5.4.4-11) unstable; urgency=low
 
   * Install logrotate script in php5-fpm package (Closes: #673558)
