@@ -76,3 +76,4 @@ PHP-5.4.6-PHP62616-fix-segfault-in-SPL.patch
 PHP-5.4.6-PHP62653-fix-unset_array_float-crash.patch
 expose_all_built_and_installed_apis.patch
 session.c_rfc1867_crashes_php_even_though_turned_off.patch
+php-5.4.11-session-reset-global-var-in-shutdown.patch
