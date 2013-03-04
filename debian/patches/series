@@ -78,3 +78,4 @@ expose_all_built_and_installed_apis.patch
 session.c_rfc1867_crashes_php_even_though_turned_off.patch
 php-5.4.11-session-reset-global-var-in-shutdown.patch
 CVE-2013-1635.patch
+CVE-2013-1643.patch
