@@ -1,3 +1,11 @@
+php5 (5.4.4-14) unstable; urgency=high
+
+  * [CVE-2013-1635] Fixed external entity loading
+  * [CVE-2013-1643] Check if soap.wsdl_cache_dir confirms to open_basedir
+    (Closes: #702221)
+
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 04 Mar 2013 14:30:16 +0100
+
 php5 (5.4.4-13) unstable; urgency=high
 
   * Add yet another patch to fix unlimited recursion in session extension
