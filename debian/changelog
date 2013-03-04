@@ -1,3 +1,23 @@
+php5 (5.3.3-7+squeeze15) squeeze-security; urgency=high
+
+  * [CVE-2013-1635] Fixed external entity loading
+  * [CVE-2013-1643] Check if soap.wsdl_cache_dir confirms to open_basedir
+
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 04 Mar 2013 13:34:39 +0100
+
+php5 (5.3.3-7+squeeze14) squeeze-security; urgency=high
+
+  * CVE-2012-2688: potential overflow in _php_stream_scandir
+  * CVE-2012-3450: parsing bug in PDO can lead to access violations
+
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 06 Aug 2012 15:47:26 +0200
+
+php5 (5.3.3-7+squeeze13) squeeze-security; urgency=high
+
+  * Rebuild to work around against dak troubles.
+
+ -- Florian Weimer <fw@deneb.enyo.de>  Sun, 10 Jun 2012 09:16:12 +0200
+
 php5 (5.3.3-7+squeeze12) squeeze-security; urgency=low
 
   * CVE-2012-2386: one additional, similar vulnerable code construct in
