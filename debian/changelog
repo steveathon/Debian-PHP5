@@ -1,3 +1,10 @@
+php5 (5.4.4-15) unstable; urgency=high
+
+  * [CVE-2013-1824]: CVE-2013-1643 had incomplete fix for external entity
+    loading
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 22 Mar 2013 13:51:47 +0100
+
 php5 (5.4.4-14) unstable; urgency=high
 
   * [CVE-2013-1635] Fixed external entity loading
