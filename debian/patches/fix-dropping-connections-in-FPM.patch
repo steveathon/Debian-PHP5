@@ -1,0 +1,46 @@
+X-Git-Url: http://git.php.net/?p=php-src.git;a=blobdiff_plain;f=sapi%2Ffpm%2Ffpm%2Ffastcgi.c;h=9df26f11cdb497108850d4b5ad42089d8129312b;hp=212b6ff1db5221e7540f23f4c58ed02deae9822a;hb=60cca8b9c9b879295dbf1f76e305882e347dcb53;hpb=e052da3a6bc353636fa4bf9cb488573c50adf9a0
+
+--- a/sapi/fpm/fpm/fastcgi.c
++++ b/sapi/fpm/fpm/fastcgi.c
+@@ -399,7 +399,7 @@ static inline int fcgi_param_get_eff_len
+ {
+ 	int ret = 1;
+ 	int zero_found = 0;
+-        *eff_len = 0;
++	*eff_len = 0;
+ 	for (; p != end; ++p) {
+ 		if (*p == '\0') {
+ 			zero_found = 1;
+@@ -427,7 +427,7 @@ static int fcgi_get_params(fcgi_request
+ 	char *tmp = buf;
+ 	size_t buf_size = sizeof(buf);
+ 	int name_len, val_len;
+-	uint eff_name_len, eff_val_len;
++	uint eff_name_len;
+ 	char *s;
+ 	int ret = 1;
+ 	size_t bytes_consumed;
+@@ -453,8 +453,12 @@ static int fcgi_get_params(fcgi_request
+ 			ret = 0;
+ 			break;
+ 		}
+-		if (!fcgi_param_get_eff_len(p, p+name_len, &eff_name_len) ||
+-		    !fcgi_param_get_eff_len(p+name_len, p+name_len+val_len, &eff_val_len)) {
++
++		/*
++		 * get the effective length of the name in case it's not a valid string
++		 * don't do this on the value because it can be binary data
++		 */
++		if (!fcgi_param_get_eff_len(p, p+name_len, &eff_name_len)){
+ 			/* Malicious request */
+ 			ret = 0;
+ 			break;
+@@ -473,7 +477,7 @@ static int fcgi_get_params(fcgi_request
+ 		}
+ 		memcpy(tmp, p, eff_name_len);
+ 		tmp[eff_name_len] = 0;
+-		s = estrndup((char*)p + name_len, eff_val_len);
++		s = estrndup((char*)p + name_len, val_len);
+ 		if (s == NULL) {
+ 			ret = 0;
+ 			break;
