@@ -81,3 +81,4 @@ CVE-2013-1635.patch
 CVE-2013-1824.patch
 fix-dropping-connections-in-FPM.patch
 fix-crash-in-garbage-collection.patch
+libmagic-vision-fix.patch
