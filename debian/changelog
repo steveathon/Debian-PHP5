@@ -1,4 +1,4 @@
-php5 (5.4.4-16) unstable; urgency=low
+php5 (5.4.4-14+deb7u1) unstable; urgency=low
 
   * Pull upstream fix for FPM drops connection while receiving some binary
     values in FastCGI requests (Closes: #703056)
@@ -6,15 +6,10 @@ php5 (5.4.4-16) unstable; urgency=low
     (Closes: #706082)
   * Update libmagic detection of MS Office documents (Closes: #703504)
   * Fix mssql connector to work with Azure SQL (Closes: #702079)
+  * [CVE-2013-1824]: CVE-2013-1643 was incomplete fix; this pulls full
+    upstream patch (5.4.4-14 already had all the relevant security parts)
 
- -- Ondřej Surý <ondrej@debian.org>  Fri, 03 May 2013 23:20:24 +0200
-
-php5 (5.4.4-15) unstable; urgency=high
-
-  * [CVE-2013-1824]: CVE-2013-1643 had incomplete fix for external entity
-    loading
-
- -- Ondřej Surý <ondrej@debian.org>  Fri, 22 Mar 2013 13:51:47 +0100
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 06 May 2013 18:15:49 +0200
 
 php5 (5.4.4-14) unstable; urgency=high
 
