@@ -1,0 +1,21 @@
+From 2019062cfc6e4b4832aaca3b73891d93adc115a8 Mon Sep 17 00:00:00 2001
+From: Felipe Pena <felipensp@gmail.com>
+Date: Sun, 8 Jul 2012 14:05:28 -0300
+Subject: [PATCH] - Fixed bug #62507 (['REQUEST_TIME'] under mod_php5 returns
+ miliseconds instead of seconds)
+
+---
+ sapi/apache2filter/sapi_apache2.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/sapi/apache2filter/sapi_apache2.c
++++ b/sapi/apache2filter/sapi_apache2.c
+@@ -311,7 +311,7 @@ php_apache_disable_caching(ap_filter_t *
+ static double php_apache_sapi_get_request_time(TSRMLS_D)
+ {
+ 	php_struct *ctx = SG(server_context);
+-	return apr_time_as_msec(ctx->r->request_time);
++	return ((double) apr_time_as_msec(ctx->r->request_time)) / 1000.0;
+ }
+ 
+ extern zend_module_entry php_apache_module;
