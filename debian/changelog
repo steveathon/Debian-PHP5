@@ -1,3 +1,9 @@
+php5 (5.4.4-14+deb7u2) UNRELEASED; urgency=low
+
+  * Fix $_SERVER[REQUEST_TIME] in filter SAPI (Closes: #709023)
+
+ -- Ondřej Surý <ondrej@debian.org>  Mon, 20 May 2013 14:36:42 +0200
+
 php5 (5.4.4-14+deb7u1) unstable; urgency=low
 
   * Pull upstream fix for FPM drops connection while receiving some binary
