@@ -1,4 +1,4 @@
-php5 (5.4.4-14+deb7u1) unstable; urgency=low
+php5 (5.4.4-14+deb7u1) stable; urgency=low
 
   * Pull upstream fix for FPM drops connection while receiving some binary
     values in FastCGI requests (Closes: #703056)
