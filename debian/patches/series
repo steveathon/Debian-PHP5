@@ -84,3 +84,4 @@ fix-crash-in-garbage-collection.patch
 libmagic-vision-fix.patch
 pdo_dblib.patch
 fix-filter-SAPI-REQUEST_TIME.patch
+fix-segfault-when-using-passwords-longer-than-30-chars.patch
