@@ -1,4 +1,4 @@
-php5 (5.4.4-14+deb7s1) unstable; urgency=low
+php5 (5.4.4-14+deb7s1) stable-security; urgency=low
 
   * [CVE-2013-2110]: fix denial of service and possible code execution via
     quoted_printable_encode overflow
