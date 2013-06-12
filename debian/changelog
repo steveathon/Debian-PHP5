@@ -1,3 +1,10 @@
+php5 (5.4.4-14+deb7s1) unstable; urgency=low
+
+  * [CVE-2013-2110]: fix denial of service and possible code execution via
+    quoted_printable_encode overflow
+
+ -- Ondřej Surý <ondrej@debian.org>  Wed, 12 Jun 2013 09:41:47 +0200
+
 php5 (5.4.4-14) unstable; urgency=high
 
   * [CVE-2013-1635] Fixed external entity loading
