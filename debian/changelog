@@ -1,15 +1,14 @@
 php5 (5.4.4-14+deb7u3) stable; urgency=low
 
-  * Make the php5{en,dis}mod more resilient:
-    + Don't fail when there's no /etc/php5/mods-available/<module>.ini
-    + Don't fail when the symlink in /etc/php5/conf.d/ is different
+  * CVE-2013-4113: Fix heap corruption in xml parser (Closes: #717139)
   * Pull upstream fix for segfaults in PDO module when using password
     longer than 30 chars or in out of bound colnums in getColumnMeta()
     (Closes: #711980).
-  * [CVE-2013-2110]: fix denial of service and possible code execution via
-    quoted_printable_encode overflow
+  * Make the php5{en,dis}mod more resilient:
+    + Don't fail when there's no /etc/php5/mods-available/<module>.ini
+    + Don't fail when the symlink in /etc/php5/conf.d/ is different
 
- -- Ondřej Surý <ondrej@debian.org>  Wed, 12 Jun 2013 09:35:55 +0200
+ -- Ondřej Surý <ondrej@debian.org>  Wed, 17 Jul 2013 16:34:38 +0200
 
 php5 (5.4.4-14+deb7u2) stable; urgency=low
 
