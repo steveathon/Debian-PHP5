@@ -86,3 +86,4 @@ pdo_dblib.patch
 fix-filter-SAPI-REQUEST_TIME.patch
 fix-segfault-when-using-passwords-longer-than-30-chars.patch
 CVE-2013-2110.patch
+CVE-2013-4113.patch
