@@ -1,3 +1,9 @@
+php5 (5.3.3-7+squeeze17) squeeze-security; urgency=low
+
+  * [CVE-2013-4248]: Fix handling of certs with NULL bytes (Closes: #719765)
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 23 Aug 2013 16:57:14 +0200
+
 php5 (5.3.3-7+squeeze16) squeeze-security; urgency=low
 
   * CVE-2013-4113: Fix heap corruption in xml parser (Closes: #717139)
