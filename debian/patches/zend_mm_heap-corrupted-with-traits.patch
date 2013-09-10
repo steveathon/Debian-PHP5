@@ -1,0 +1,84 @@
+commit 74228c515197c8a3bda878a077d30c9b14482eb2
+Author: Xinchen Hui <laruence@php.net>
+Date:   Tue Oct 23 11:34:25 2012 +0800
+
+    Fixed bug #63305 (zend_mm_heap corrupted with traits)
+
+--- a/NEWS
++++ b/NEWS
+@@ -915,6 +915,9 @@
+   . Fixed bug #60150 (Integer overflow during the parsing of invalid exif
+     header). (CVE-2011-4566) (Stas, flolechaud at gmail dot com)
+ 
++- Core:
++  . Fixed bug #63305 (zend_mm_heap corrupted with traits). (Dmitry, Laruence)
++
+ - Fileinfo:
+   . Fixed bug #60094 (C++ comment fails in c89). (Laruence)
+   . Fixed possible memory leak in finfo_open(). (Felipe)
+--- /dev/null
++++ b/Zend/tests/bug63305.phpt
+@@ -0,0 +1,43 @@
++--TEST--
++Bug #63305 (zend_mm_heap corrupted with traits)
++--FILE--
++<?php
++new Attachment("");
++
++function __autoload($class) {
++    switch ($class) {
++    case "Attachment":
++        eval(<<<'PHP'
++class Attachment extends File {
++}
++PHP
++    );
++        break;
++    case "File":
++        eval(<<<'PHP'
++class File {
++    use TDatabaseObject {
++        TDatabaseObject::__construct as private databaseObjectConstruct;
++    }
++    public function __construct() {
++    }
++}
++PHP
++    );
++        break;
++    case "TDatabaseObject":
++        eval(<<<'PHP'
++trait TDatabaseObject {
++    public function __construct() {
++    }
++}
++PHP
++    );
++        break;
++    }
++    return TRUE;
++}
++echo "okey";
++?>
++--EXPECT--
++okey
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -3877,7 +3877,7 @@
+ 					
+ 				/* if it is 0, no modifieres has been changed */
+ 				if (aliases[i]->modifiers) { 
+-					fn_copy.common.fn_flags = aliases[i]->modifiers;
++					fn_copy.common.fn_flags = aliases[i]->modifiers | ZEND_ACC_ALIAS;
+ 					if (!(aliases[i]->modifiers & ZEND_ACC_PPP_MASK)) {
+ 						fn_copy.common.fn_flags |= ZEND_ACC_PUBLIC;
+ 					}
+@@ -3917,7 +3917,7 @@
+ 					&& (!aliases[i]->trait_method->ce || fn->common.scope == aliases[i]->trait_method->ce)
+ 					&& (aliases[i]->trait_method->mname_len == fnname_len)
+ 					&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, fn->common.function_name, fnname_len) == 0)) {
+-					fn_copy.common.fn_flags = aliases[i]->modifiers;
++					fn_copy.common.fn_flags = aliases[i]->modifiers | ZEND_ACC_ALIAS;
+ 
+ 					if (!(aliases[i]->modifiers & ZEND_ACC_PPP_MASK)) {
+ 						fn_copy.common.fn_flags |= ZEND_ACC_PUBLIC;
