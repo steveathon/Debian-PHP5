@@ -1,0 +1,102 @@
+commit 42437dd870de28eee6c9127f4c7e7c78ba8e0152
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Mon Feb 18 16:07:51 2013 +0400
+
+    Fixed bug #64070 (Inheritance with Traits failed with error)
+
+--- a/NEWS
++++ b/NEWS
+@@ -135,6 +135,7 @@
+   . Fixed bug #52719 (array_walk_recursive crashes if third param of the
+     function is by reference). (Nikita Popov)
+   . Improve performance of set_exception_handler while doing reset (Laruence)
++  . Fixed bug #64070 (Inheritance with Traits failed with error). (Dmitry)
+ 
+ - fileinfo:
+   . Fix fileinfo test problems. (Anatoliy Belsky)
+--- /dev/null
++++ b/Zend/tests/traits/bug64070.phpt
+@@ -0,0 +1,36 @@
++--TEST--
++Bug #64070 (Inheritance with Traits failed with error)
++--FILE--
++<?php
++trait first_trait
++{
++    function first_function()
++    {
++        echo "From First Trait\n";
++    }
++}
++
++trait second_trait
++{
++    use first_trait {
++        first_trait::first_function as second_function;
++    }
++
++    function first_function()
++    {
++        echo "From Second Trait\n";
++    }
++}
++
++class first_class
++{
++    use second_trait;
++}
++
++$obj = new first_class();
++$obj->first_function();
++$obj->second_function();
++?>
++--EXPECT--
++From Second Trait
++From First Trait
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -3858,7 +3858,7 @@
+ 	aliases       = va_arg(args, zend_trait_alias**);
+ 	exclude_table = va_arg(args, HashTable*);
+ 
+-	fnname_len = strlen(fn->common.function_name);
++	fnname_len = hash_key->nKeyLength - 1;
+ 
+ 	/* apply aliases which are qualified with a class name, there should not be any ambiguity */
+ 	if (aliases) {
+@@ -3867,7 +3867,7 @@
+ 			if (aliases[i]->alias != NULL
+ 				&& (!aliases[i]->trait_method->ce || fn->common.scope == aliases[i]->trait_method->ce)
+ 				&& aliases[i]->trait_method->mname_len == fnname_len
+-				&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, fn->common.function_name, fnname_len) == 0)) {
++				&& (zend_binary_strcasecmp(alias->trait_method->method_name, alias->trait_method->mname_len, hash_key->arKey, fnname_len) == 0)) {
+ 				fn_copy = *fn;
+ 				function_add_ref(&fn_copy);
+ 				/* this function_name is never destroyed, because its refcount
+@@ -3900,7 +3900,7 @@
+ 		}
+ 	}
+ 
+-	lcname = zend_str_tolower_dup(fn->common.function_name, fnname_len);
++	lcname = hash_key->arKey;
+ 
+ 	if (exclude_table == NULL || zend_hash_find(exclude_table, lcname, fnname_len, &dummy) == FAILURE) {
+ 		/* is not in hashtable, thus, function is not to be excluded */
+@@ -3916,7 +3916,7 @@
+ 				if (aliases[i]->alias == NULL && aliases[i]->modifiers != 0
+ 					&& (!aliases[i]->trait_method->ce || fn->common.scope == aliases[i]->trait_method->ce)
+ 					&& (aliases[i]->trait_method->mname_len == fnname_len)
+-					&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, fn->common.function_name, fnname_len) == 0)) {
++					&& (zend_binary_strcasecmp(alias->trait_method->method_name, alias->trait_method->mname_len, lcname, fnname_len) == 0)) {
+ 					fn_copy.common.fn_flags = aliases[i]->modifiers | ZEND_ACC_ALIAS;
+ 
+ 					if (!(aliases[i]->modifiers & ZEND_ACC_PPP_MASK)) {
+@@ -3938,8 +3938,6 @@
+ 		}
+ 	}
+ 
+-	efree(lcname);
+-
+ 	return ZEND_HASH_APPLY_KEEP;
+ }
+ /* }}} */
