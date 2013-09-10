@@ -1,0 +1,146 @@
+commit 6566ea61732a1ab42c1a57e60adc96788cb0feb2
+Author: Arpad Ray <arraypad@gmail.com>
+Date:   Thu Dec 13 23:51:43 2012 +0000
+
+    Fix #63379 - Don't reset mod_user_is_open in destroy
+    
+    The parent handler is still open so the reset here was in error.
+
+diff --git a/ext/session/mod_user_class.c b/ext/session/mod_user_class.c
+index 70d2f40..4edac28 100644
+--- a/ext/session/mod_user_class.c
++++ b/ext/session/mod_user_class.c
+@@ -121,7 +121,6 @@ PHP_METHOD(SessionHandler, destroy)
+ 		return;
+ 	}
+ 	
+-	PS(mod_user_is_open) = 0;
+ 	RETVAL_BOOL(SUCCESS == PS(default_mod)->s_destroy(&PS(mod_data), key TSRMLS_CC));
+ }
+ /* }}} */
+diff --git a/ext/session/tests/bug63379.phpt b/ext/session/tests/bug63379.phpt
+new file mode 100644
+index 0000000..8094182
+--- /dev/null
++++ b/ext/session/tests/bug63379.phpt
+@@ -0,0 +1,57 @@
++--TEST--
++Bug #63379: Warning when using session_regenerate_id(TRUE) with a SessionHandler
++--INI--
++session.save_handler=files
++session.name=PHPSESSID
++--SKIPIF--
++<?php include('skipif.inc'); ?>
++--FILE--
++<?php
++
++ob_start();
++
++$handler = new SessionHandler;
++session_set_save_handler($handler);
++
++session_start();
++
++$_SESSION['foo'] = 'hello';
++var_dump($_SESSION);
++
++session_regenerate_id(true);
++
++echo "*** Regenerated ***\n";
++var_dump($_SESSION);
++
++$_SESSION['bar'] = 'world';
++
++var_dump($_SESSION);
++
++session_write_close();
++session_unset();
++
++session_start();
++var_dump($_SESSION);
++
++--EXPECTF--
++array(1) {
++  ["foo"]=>
++  string(5) "hello"
++}
++*** Regenerated ***
++array(1) {
++  ["foo"]=>
++  string(5) "hello"
++}
++array(2) {
++  ["foo"]=>
++  string(5) "hello"
++  ["bar"]=>
++  string(5) "world"
++}
++array(2) {
++  ["foo"]=>
++  string(5) "hello"
++  ["bar"]=>
++  string(5) "world"
++}
+diff --git a/ext/session/tests/bug63379_nodestroy.phpt b/ext/session/tests/bug63379_nodestroy.phpt
+new file mode 100644
+index 0000000..03a9ae7
+--- /dev/null
++++ b/ext/session/tests/bug63379_nodestroy.phpt
+@@ -0,0 +1,57 @@
++--TEST--
++Bug #63379: Warning when using session_regenerate_id(TRUE) with a SessionHandler
++--INI--
++session.save_handler=files
++session.name=PHPSESSID
++--SKIPIF--
++<?php include('skipif.inc'); ?>
++--FILE--
++<?php
++
++ob_start();
++
++$handler = new SessionHandler;
++session_set_save_handler($handler);
++
++session_start();
++
++$_SESSION['foo'] = 'hello';
++var_dump($_SESSION);
++
++session_regenerate_id(false);
++
++echo "*** Regenerated ***\n";
++var_dump($_SESSION);
++
++$_SESSION['bar'] = 'world';
++
++var_dump($_SESSION);
++
++session_write_close();
++session_unset();
++
++session_start();
++var_dump($_SESSION);
++
++--EXPECTF--
++array(1) {
++  ["foo"]=>
++  string(5) "hello"
++}
++*** Regenerated ***
++array(1) {
++  ["foo"]=>
++  string(5) "hello"
++}
++array(2) {
++  ["foo"]=>
++  string(5) "hello"
++  ["bar"]=>
++  string(5) "world"
++}
++array(2) {
++  ["foo"]=>
++  string(5) "hello"
++  ["bar"]=>
++  string(5) "world"
++}
