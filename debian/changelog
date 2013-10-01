@@ -1,3 +1,15 @@
+php5 (5.4.4-14+deb7u5) stable; urgency=low
+
+  [ William Dauchy ]
+  * upstream fix: zend_mm_heap corrupted with traits (Closes: #719507)
+  * upstream fix: Inheritance with Traits failed with error (Closes: #721127)
+  * upstream fix: Segfault when using traits a lot (Closes: #721336)
+  * upstream fix: Don't reset mod_user_is_open in destroy (Closes: #722222)
+    removes an annoying warning when using sessions
+  * Add myself to maintainers
+
+ -- William Dauchy <wdauchy@gmail.com>  Tue, 10 Sep 2013 20:20:29 +0200
+
 php5 (5.4.4-14+deb7u4) stable; urgency=low
 
   * [CVE-2013-4248]: Fix handling of certs with NULL bytes (Closes: #719765)
