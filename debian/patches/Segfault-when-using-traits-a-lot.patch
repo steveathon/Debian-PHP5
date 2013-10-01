@@ -1,0 +1,159 @@
+commit 6d1bebfcb0ad746cd0410d403a3812853a2cd457
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Aug 23 15:41:49 2012 +0800
+
+    Fixed bug #62358 (Segfault when using traits a lot)
+
+commit d39aa984ad3ef79a8fc3db0cf8dc525a0738a7bc
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Aug 23 16:06:17 2012 +0800
+
+    Refix #62358, previous has side-affect
+
+commit 6c0508f8d5d5a62adb37a76bc682c94540199ee3
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Wed Sep 5 09:58:22 2012 +0400
+
+    Fixed bug #62907 (Double free when use traits)
+
+--- a/NEWS
++++ b/NEWS
+@@ -42,6 +42,8 @@
+   . Fixed bug #54197 ([PATH=] sections incompatibility with user_ini.filename
+     set to null). (Anatoliy)
+   . Changed php://fd to be available only for CLI.
++  . Fixed bug #62358 (Segfault when using traits a lot). (Laruence)
++  . Fixed bug #62907 (Double free when use traits). (Dmitry)
+ 
+ - CURL:
+   . Fixed bug #61948 (CURLOPT_COOKIEFILE '' raises open_basedir restriction).
+@@ -55,6 +57,9 @@
+   . Fixed handling null bytes in subjectAltName (CVE-2013-4073). 
+     (Christian Heimes)
+ 
++- Installation:
++  . Fixed bug #62460 (php binaries installed as binary.dSYM). (Reeze Xia)
++
+ - PDO:
+   . Fixed bug #61755 (A parsing bug in the prepared statements can lead to
+     access violations). (Johannes)
+--- /dev/null
++++ b/Zend/tests/bug62358.phpt
+@@ -0,0 +1,32 @@
++--TEST--
++Bug #62358 (Segfault when using traits a lot)
++--SKIPIF--
++<?php
++if (getenv("USE_ZEND_ALLOC") !== "0") {
++    die("skip Need Zend MM enabled");
++}
++?>
++--FILE--
++<?php 
++
++trait T {
++    public function foo() {
++        echo "from T";
++    }
++}
++
++interface I {
++    public function foo();
++}
++
++abstract class A implements I{
++    use T;
++}
++
++class B extends A {
++   public function foo($var) {
++   } 
++}
++?>
++--EXPECTF--
++Strict Standards: Declaration of B::foo() should be compatible with A::foo() in %sbug62358.php on line %d
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -3801,9 +3801,12 @@
+ 		if (prototype) {
+ 			do_inheritance_check_on_method(fn, prototype TSRMLS_CC);
+ 		}
++
+ 		/* one more thing: make sure we properly implement an abstract method */
+ 		if (existing_fn && existing_fn->common.fn_flags & ZEND_ACC_ABSTRACT) {
++            prototype = fn->common.prototype;
+ 			do_inheritance_check_on_method(fn, existing_fn TSRMLS_CC);
++            fn->common.prototype = prototype;
+ 		}
+ 
+ 		/* delete inherited fn if the function to be added is not abstract */
+@@ -3870,10 +3873,10 @@
+ 				&& (zend_binary_strcasecmp(alias->trait_method->method_name, alias->trait_method->mname_len, hash_key->arKey, fnname_len) == 0)) {
+ 				fn_copy = *fn;
+ 				function_add_ref(&fn_copy);
+-				/* this function_name is never destroyed, because its refcount
+-				   greater than 1 and classes are always destoyed before the
+-				   traits they use */
++				/* this function_name is never destroyed, because ZEND_ACC_ALIAS
++				   flag is set */
+ 				fn_copy.common.function_name = aliases[i]->alias;
++				fn_copy.common.fn_flags |= ZEND_ACC_ALIAS;
+ 					
+ 				/* if it is 0, no modifieres has been changed */
+ 				if (aliases[i]->modifiers) { 
+@@ -3906,6 +3909,7 @@
+ 		/* is not in hashtable, thus, function is not to be excluded */
+ 		fn_copy = *fn;
+ 		function_add_ref(&fn_copy);
++		fn_copy.common.fn_flags |= ZEND_ACC_ALIAS;
+ 
+ 		/* apply aliases which are not qualified by a class name, or which have not
+ 		 * alias name, just setting visibility */
+--- a/Zend/zend_compile.h
++++ b/Zend/zend_compile.h
+@@ -207,6 +207,8 @@
+ #define ZEND_ACC_RETURN_REFERENCE		0x4000000
+ #define ZEND_ACC_DONE_PASS_TWO			0x8000000
+ 
++#define ZEND_ACC_ALIAS					0x10000000
++
+ char *zend_visibility_string(zend_uint fn_flags);
+ 
+ 
+--- a/Zend/zend_opcode.c
++++ b/Zend/zend_opcode.c
+@@ -267,6 +267,15 @@
+ 	}
+ }
+ 
++static int zend_clear_trait_method_name(zend_op_array *op_array TSRMLS_DC)
++{
++	if (op_array->function_name && (op_array->fn_flags & ZEND_ACC_ALIAS) == 0) {
++		efree(op_array->function_name);
++		op_array->function_name = NULL;
++	}
++	return 0;
++}
++
+ ZEND_API void destroy_zend_class(zend_class_entry **pce)
+ {
+ 	zend_class_entry *ce = *pce;
+@@ -298,6 +307,9 @@
+ 			}
+ 			zend_hash_destroy(&ce->properties_info);
+ 			str_efree(ce->name);
++			if ((ce->ce_flags & ZEND_ACC_TRAIT) == ZEND_ACC_TRAIT) {
++				zend_hash_apply(&ce->function_table, (apply_func_t)zend_clear_trait_method_name TSRMLS_CC);
++			}
+ 			zend_hash_destroy(&ce->function_table);
+ 			zend_hash_destroy(&ce->constants_table);
+ 			if (ce->num_interfaces > 0 && ce->interfaces) {
+@@ -387,7 +399,7 @@
+ 	}
+ 	efree(op_array->opcodes);
+ 
+-	if (op_array->function_name) {
++	if (op_array->function_name && (op_array->fn_flags & ZEND_ACC_ALIAS) == 0) {
+ 		efree((char*)op_array->function_name);
+ 	}
+ 	if (op_array->doc_comment) {

@@ -89,3 +89,4 @@ CVE-2013-4113.patch
 CVE-2013-4248.patch
 zend_mm_heap-corrupted-with-traits.patch
 Inheritance-with-Traits-failed-with-error.patch
+Segfault-when-using-traits-a-lot.patch
