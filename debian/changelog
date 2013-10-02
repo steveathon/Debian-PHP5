@@ -1,14 +1,17 @@
 php5 (5.4.4-14+deb7u5) stable; urgency=low
 
   [ William Dauchy ]
-  * upstream fix: zend_mm_heap corrupted with traits (Closes: #719507)
-  * upstream fix: Inheritance with Traits failed with error (Closes: #721127)
-  * upstream fix: Segfault when using traits a lot (Closes: #721336)
-  * upstream fix: Don't reset mod_user_is_open in destroy (Closes: #722222)
-    removes an annoying warning when using sessions
+  * Fix zend_mm_heap corrupted when using traits (Closes: #719507)
+  * Fix inheritance with Traits failing with error (Closes: #721127)
+  * Fix segfault when using traits a lot (Closes: #721336)
+  * Don't reset mod_user_is_open in destroy (Closes: #722222)
+    + Removes an annoying warning when using sessions
   * Add myself to maintainers
 
- -- William Dauchy <wdauchy@gmail.com>  Tue, 10 Sep 2013 20:20:29 +0200
+  [ Ondřej Surý ]
+  * Upload to stable-proposed-updates
+
+ -- Ondřej Surý <ondrej@debian.org>  Wed, 02 Oct 2013 12:47:02 +0200
 
 php5 (5.4.4-14+deb7u4) stable; urgency=low
 
