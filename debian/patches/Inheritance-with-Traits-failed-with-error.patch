@@ -69,7 +69,7 @@ Date:   Mon Feb 18 16:07:51 2013 +0400
  				&& (!aliases[i]->trait_method->ce || fn->common.scope == aliases[i]->trait_method->ce)
  				&& aliases[i]->trait_method->mname_len == fnname_len
 -				&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, fn->common.function_name, fnname_len) == 0)) {
-+				&& (zend_binary_strcasecmp(alias->trait_method->method_name, alias->trait_method->mname_len, hash_key->arKey, fnname_len) == 0)) {
++				&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, hash_key->arKey, fnname_len) == 0)) {
  				fn_copy = *fn;
  				function_add_ref(&fn_copy);
  				/* this function_name is never destroyed, because its refcount
@@ -87,7 +87,7 @@ Date:   Mon Feb 18 16:07:51 2013 +0400
  					&& (!aliases[i]->trait_method->ce || fn->common.scope == aliases[i]->trait_method->ce)
  					&& (aliases[i]->trait_method->mname_len == fnname_len)
 -					&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, fn->common.function_name, fnname_len) == 0)) {
-+					&& (zend_binary_strcasecmp(alias->trait_method->method_name, alias->trait_method->mname_len, lcname, fnname_len) == 0)) {
++					&& (zend_binary_strcasecmp(aliases[i]->trait_method->method_name, aliases[i]->trait_method->mname_len, lcname, fnname_len) == 0)) {
  					fn_copy.common.fn_flags = aliases[i]->modifiers | ZEND_ACC_ALIAS;
  
  					if (!(aliases[i]->modifiers & ZEND_ACC_PPP_MASK)) {
