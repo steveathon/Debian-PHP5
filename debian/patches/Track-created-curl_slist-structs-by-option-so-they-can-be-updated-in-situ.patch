@@ -16,25 +16,21 @@ Date:   Mon Aug 19 11:58:57 2013 -0700
     
     Fixes bug #65458 (curl memory leak).
 
-diff --git a/NEWS b/NEWS
-index ff79a29..64e049d 100644
 --- a/NEWS
 +++ b/NEWS
-@@ -19,6 +19,9 @@ PHP                                                                        NEWS
-   . Fixed bug #61268 (--enable-dtrace leads make to clobber
-     Zend/zend_dtrace.d) (Chris Jones)
+@@ -53,6 +53,9 @@
+   . Fixed bug #62082 (Memory corruption in internal function 
+     get_icu_disp_value_src_php()). (Gustavo)
  
 +- cURL:
 +  . Fixed bug #65458 (curl memory leak). (Adam)
 +
  - Openssl:
-   . Fixed bug #64802 (openssl_x509_parse fails to parse subject properly in 
-     some cases). (Mark Jones)
-diff --git a/ext/curl/interface.c b/ext/curl/interface.c
-index 531f15b..f79d0d5 100644
+   . Fixed handling null bytes in subjectAltName (CVE-2013-4073). 
+     (Christian Heimes)
 --- a/ext/curl/interface.c
 +++ b/ext/curl/interface.c
-@@ -1373,9 +1373,9 @@ static void curl_free_post(void **post)
+@@ -1356,9 +1356,9 @@
  
  /* {{{ curl_free_slist
   */
@@ -46,7 +42,7 @@ index 531f15b..f79d0d5 100644
  }
  /* }}} */
  
-@@ -1443,8 +1443,10 @@ static void alloc_curl_handle(php_curl **ch)
+@@ -1426,8 +1426,10 @@
  	(*ch)->handlers->read->stream = NULL;
  
  	zend_llist_init(&(*ch)->to_free->str,   sizeof(char *),            (llist_dtor_func_t) curl_free_string, 0);
@@ -58,7 +54,7 @@ index 531f15b..f79d0d5 100644
  }
  /* }}} */
  
-@@ -1675,6 +1677,7 @@ PHP_FUNCTION(curl_copy_handle)
+@@ -1658,6 +1660,7 @@
  	curl_easy_setopt(dupch->cp, CURLOPT_WRITEHEADER,       (void *) dupch);
  	curl_easy_setopt(dupch->cp, CURLOPT_PROGRESSDATA,      (void *) dupch); 
  
@@ -66,7 +62,7 @@ index 531f15b..f79d0d5 100644
  	efree(dupch->to_free);
  	dupch->to_free = ch->to_free;
  
-@@ -2184,7 +2187,7 @@ string_copy:
+@@ -2158,7 +2161,7 @@
  					return 1;
  				}
  			}
@@ -75,7 +71,7 @@ index 531f15b..f79d0d5 100644
  
  			error = curl_easy_setopt(ch->cp, option, slist);
  
-@@ -2680,8 +2683,9 @@ static void _php_curl_close_ex(php_curl *ch TSRMLS_DC)
+@@ -2637,8 +2640,9 @@
  	/* cURL destructors should be invoked only by last curl handle */
  	if (Z_REFCOUNT_P(ch->clone) <= 1) {
  		zend_llist_clean(&ch->to_free->str);
@@ -86,11 +82,9 @@ index 531f15b..f79d0d5 100644
  		efree(ch->to_free);
  		FREE_ZVAL(ch->clone);
  	} else {
-diff --git a/ext/curl/php_curl.h b/ext/curl/php_curl.h
-index 945f0a4..911d87a 100644
 --- a/ext/curl/php_curl.h
 +++ b/ext/curl/php_curl.h
-@@ -126,7 +126,7 @@ struct _php_curl_send_headers {
+@@ -126,7 +126,7 @@
  struct _php_curl_free {
  	zend_llist str;
  	zend_llist post;
@@ -99,9 +93,6 @@ index 945f0a4..911d87a 100644
  };
  
  typedef struct {
-diff --git a/ext/curl/tests/bug65458.phpt b/ext/curl/tests/bug65458.phpt
-new file mode 100644
-index 0000000..99288f2
 --- /dev/null
 +++ b/ext/curl/tests/bug65458.phpt
 @@ -0,0 +1,25 @@

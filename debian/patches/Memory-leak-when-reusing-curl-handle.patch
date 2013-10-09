@@ -11,11 +11,9 @@ Date:   Thu Dec 27 13:31:55 2012 -0500
     function in which case we can not know if the post data is
     still in use or not by any curl handle
 
-diff --git a/ext/curl/interface.c b/ext/curl/interface.c
-index a23f859..55102da 100644
 --- a/ext/curl/interface.c
 +++ b/ext/curl/interface.c
-@@ -2131,6 +2131,9 @@ string_copy:
+@@ -2111,6 +2111,9 @@
  					return 1;
  				}
  
