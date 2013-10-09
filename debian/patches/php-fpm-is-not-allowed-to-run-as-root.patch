@@ -1,0 +1,124 @@
+commit 06c7c3674b5e205023de7a150d29d78c313143f8
+Author: Jerome Loyet <fat@php.net>
+Date:   Wed May 23 10:32:42 2012 +0200
+
+    - Fixed bug #61835 (php-fpm is not allowed to run as root)
+
+diff --git a/sapi/fpm/fpm/fpm.c b/sapi/fpm/fpm/fpm.c
+index 96aabbf..909902b 100644
+--- a/sapi/fpm/fpm/fpm.c
++++ b/sapi/fpm/fpm/fpm.c
+@@ -37,10 +37,11 @@ struct fpm_globals_s fpm_globals = {
+ 	.max_requests = 0,
+ 	.is_child = 0,
+ 	.test_successful = 0,
+-	.heartbeat = 0
++	.heartbeat = 0,
++	.run_as_root = 0,
+ };
+ 
+-int fpm_init(int argc, char **argv, char *config, char *prefix, char *pid, int test_conf) /* {{{ */
++int fpm_init(int argc, char **argv, char *config, char *prefix, char *pid, int test_conf, int run_as_root) /* {{{ */
+ {
+ 	fpm_globals.argc = argc;
+ 	fpm_globals.argv = argv;
+@@ -49,6 +50,7 @@ int fpm_init(int argc, char **argv, char *config, char *prefix, char *pid, int t
+ 	}
+ 	fpm_globals.prefix = prefix;
+ 	fpm_globals.pid = pid;
++	fpm_globals.run_as_root = run_as_root;
+ 
+ 	if (0 > fpm_php_init_main()           ||
+ 	    0 > fpm_stdio_init_main()         ||
+diff --git a/sapi/fpm/fpm/fpm.h b/sapi/fpm/fpm/fpm.h
+index bfeac4d..2a69cb2 100644
+--- a/sapi/fpm/fpm/fpm.h
++++ b/sapi/fpm/fpm/fpm.h
+@@ -8,7 +8,7 @@
+ #include <unistd.h>
+ 
+ int fpm_run(int *max_requests);
+-int fpm_init(int argc, char **argv, char *config, char *prefix, char *pid, int test_conf);
++int fpm_init(int argc, char **argv, char *config, char *prefix, char *pid, int test_conf, int run_as_root);
+ 
+ struct fpm_globals_s {
+ 	pid_t parent_pid;
+@@ -25,6 +25,7 @@ struct fpm_globals_s {
+ 	int is_child;
+ 	int test_successful;
+ 	int heartbeat;
++	int run_as_root;
+ };
+ 
+ extern struct fpm_globals_s fpm_globals;
+diff --git a/sapi/fpm/fpm/fpm_main.c b/sapi/fpm/fpm/fpm_main.c
+index a28af53..dd48ffd 100644
+--- a/sapi/fpm/fpm/fpm_main.c
++++ b/sapi/fpm/fpm/fpm_main.c
+@@ -154,6 +154,7 @@ static const opt_struct OPTIONS[] = {
+ 	{'t', 0, "test"},
+ 	{'p', 1, "prefix"},
+ 	{'g', 1, "pid"},
++	{'R', 0, "allow-to-run-as-root"},
+ 	{'-', 0, NULL} /* end of args */
+ };
+ 
+@@ -927,6 +928,8 @@ static void php_cgi_usage(char *argv0)
+ 				"  -y, --fpm-config <file>\n"
+ 				"                   Specify alternative path to FastCGI process manager config file.\n"
+ 				"  -t, --test       Test FPM configuration and exit\n",
++				"  -R, allow-to-run-as-root\n"
++				"                   Allow pool to run as root (disabled by default)\n",
+ 				prog, PHP_PREFIX);
+ }
+ /* }}} */
+@@ -1548,6 +1551,7 @@ int main(int argc, char *argv[])
+ 	char *fpm_pid = NULL;
+ 	int test_conf = 0;
+ 	int php_information = 0;
++	int php_allow_to_run_as_root = 0;
+ 
+ #ifdef HAVE_SIGNAL_H
+ #if defined(SIGPIPE) && defined(SIG_IGN)
+@@ -1662,6 +1666,10 @@ int main(int argc, char *argv[])
+ 				php_information = 1;
+ 				break;
+ 
++			case 'R': /* allow to run as root */
++				php_allow_to_run_as_root = 1;
++				break;
++
+ 			default:
+ 			case 'h':
+ 			case '?':
+@@ -1789,7 +1797,7 @@ consult the installation file that came with this distribution, or visit \n\
+ 		}
+ 	}
+ 
+-	if (0 > fpm_init(argc, argv, fpm_config ? fpm_config : CGIG(fpm_config), fpm_prefix, fpm_pid, test_conf)) {
++	if (0 > fpm_init(argc, argv, fpm_config ? fpm_config : CGIG(fpm_config), fpm_prefix, fpm_pid, test_conf, php_allow_to_run_as_root)) {
+ 		return FAILURE;
+ 	}
+ 
+diff --git a/sapi/fpm/fpm/fpm_unix.c b/sapi/fpm/fpm/fpm_unix.c
+index 17d0b81..fb61d63 100644
+--- a/sapi/fpm/fpm/fpm_unix.c
++++ b/sapi/fpm/fpm/fpm_unix.c
+@@ -112,12 +112,12 @@ static int fpm_unix_conf_wp(struct fpm_worker_pool_s *wp) /* {{{ */
+ 			}
+ 		}
+ 
+-#ifndef I_REALLY_WANT_ROOT_PHP
+-		if (wp->set_uid == 0 || wp->set_gid == 0) {
+-			zlog(ZLOG_ERROR, "[pool %s] please specify user and group other than root", wp->config->name);
+-			return -1;
++		if (!fpm_globals.run_as_root) {
++			if (wp->set_uid == 0 || wp->set_gid == 0) {
++				zlog(ZLOG_ERROR, "[pool %s] please specify user and group other than root", wp->config->name);
++				return -1;
++			}
+ 		}
+-#endif
+ 	} else { /* not root */
+ 		if (wp->config->user && *wp->config->user) {
+ 			zlog(ZLOG_WARNING, "[pool %s] 'user' directive is ignored when FPM is not running as root", wp->config->name);
