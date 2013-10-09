@@ -1,0 +1,132 @@
+commit aa7d3d8e6d8de73ebe8dd015fb5392a4bde5bfc6
+Author: Adam Harvey <aharvey@php.net>
+Date:   Mon Aug 19 11:58:57 2013 -0700
+
+    Track created curl_slist structs by option so they can be updated in situ.
+    
+    At present, when curl_setopt() is called with an option that requires the
+    creation of a curl_slist, we simply push the new curl_slist onto a list to be
+    freed when the curl handle is freed. This avoids a memory leak, but means that
+    repeated calls to curl_setopt() on the same handle with the same option wastes
+    previously allocated memory on curl_slist structs that will no longer be read.
+    
+    This commit changes the zend_llist that was previously used to track the lists
+    to a HashTable keyed by the option number, which means that we can simply
+    update the hash table each time curl_setopt() is called.
+    
+    Fixes bug #65458 (curl memory leak).
+
+diff --git a/NEWS b/NEWS
+index ff79a29..64e049d 100644
+--- a/NEWS
++++ b/NEWS
+@@ -19,6 +19,9 @@ PHP                                                                        NEWS
+   . Fixed bug #61268 (--enable-dtrace leads make to clobber
+     Zend/zend_dtrace.d) (Chris Jones)
+ 
++- cURL:
++  . Fixed bug #65458 (curl memory leak). (Adam)
++
+ - Openssl:
+   . Fixed bug #64802 (openssl_x509_parse fails to parse subject properly in 
+     some cases). (Mark Jones)
+diff --git a/ext/curl/interface.c b/ext/curl/interface.c
+index 531f15b..f79d0d5 100644
+--- a/ext/curl/interface.c
++++ b/ext/curl/interface.c
+@@ -1373,9 +1373,9 @@ static void curl_free_post(void **post)
+ 
+ /* {{{ curl_free_slist
+  */
+-static void curl_free_slist(void **slist)
++static void curl_free_slist(void *slist)
+ {
+-	curl_slist_free_all((struct curl_slist *) *slist);
++	curl_slist_free_all(*((struct curl_slist **) slist));
+ }
+ /* }}} */
+ 
+@@ -1443,8 +1443,10 @@ static void alloc_curl_handle(php_curl **ch)
+ 	(*ch)->handlers->read->stream = NULL;
+ 
+ 	zend_llist_init(&(*ch)->to_free->str,   sizeof(char *),            (llist_dtor_func_t) curl_free_string, 0);
+-	zend_llist_init(&(*ch)->to_free->slist, sizeof(struct curl_slist), (llist_dtor_func_t) curl_free_slist,  0);
+ 	zend_llist_init(&(*ch)->to_free->post,  sizeof(struct HttpPost),   (llist_dtor_func_t) curl_free_post,   0);
++
++	(*ch)->to_free->slist = emalloc(sizeof(HashTable));
++	zend_hash_init((*ch)->to_free->slist, 4, NULL, curl_free_slist, 0);
+ }
+ /* }}} */
+ 
+@@ -1675,6 +1677,7 @@ PHP_FUNCTION(curl_copy_handle)
+ 	curl_easy_setopt(dupch->cp, CURLOPT_WRITEHEADER,       (void *) dupch);
+ 	curl_easy_setopt(dupch->cp, CURLOPT_PROGRESSDATA,      (void *) dupch); 
+ 
++	efree(dupch->to_free->slist);
+ 	efree(dupch->to_free);
+ 	dupch->to_free = ch->to_free;
+ 
+@@ -2184,7 +2187,7 @@ string_copy:
+ 					return 1;
+ 				}
+ 			}
+-			zend_llist_add_element(&ch->to_free->slist, &slist);
++			zend_hash_index_update(ch->to_free->slist, (ulong) option, &slist, sizeof(struct curl_slist *), NULL);
+ 
+ 			error = curl_easy_setopt(ch->cp, option, slist);
+ 
+@@ -2680,8 +2683,9 @@ static void _php_curl_close_ex(php_curl *ch TSRMLS_DC)
+ 	/* cURL destructors should be invoked only by last curl handle */
+ 	if (Z_REFCOUNT_P(ch->clone) <= 1) {
+ 		zend_llist_clean(&ch->to_free->str);
+-		zend_llist_clean(&ch->to_free->slist);
+ 		zend_llist_clean(&ch->to_free->post);
++		zend_hash_destroy(ch->to_free->slist);
++		efree(ch->to_free->slist);
+ 		efree(ch->to_free);
+ 		FREE_ZVAL(ch->clone);
+ 	} else {
+diff --git a/ext/curl/php_curl.h b/ext/curl/php_curl.h
+index 945f0a4..911d87a 100644
+--- a/ext/curl/php_curl.h
++++ b/ext/curl/php_curl.h
+@@ -126,7 +126,7 @@ struct _php_curl_send_headers {
+ struct _php_curl_free {
+ 	zend_llist str;
+ 	zend_llist post;
+-	zend_llist slist;
++	HashTable *slist;
+ };
+ 
+ typedef struct {
+diff --git a/ext/curl/tests/bug65458.phpt b/ext/curl/tests/bug65458.phpt
+new file mode 100644
+index 0000000..99288f2
+--- /dev/null
++++ b/ext/curl/tests/bug65458.phpt
+@@ -0,0 +1,25 @@
++--TEST--
++Bug #65458 (curl memory leak)
++--SKIPIF--
++<?php
++if (!extension_loaded('curl')) exit("skip curl extension not loaded");
++?>
++--FILE--
++<?php
++$ch = curl_init();
++$init = memory_get_usage();
++for ($i = 0; $i < 10000; $i++) {
++    curl_setopt($ch, CURLOPT_HTTPHEADER, [ "SOAPAction: getItems" ]);
++}
++
++$preclose = memory_get_usage();
++curl_close($ch);
++
++// This is a slightly tricky heuristic, but basically, we want to ensure
++// $preclose - $init has a delta in the order of bytes, not megabytes. Given
++// the number of iterations in the loop, if we're wasting memory here, we
++// should have megs and megs of extra allocations.
++var_dump(($preclose - $init) < 10000);
++?>
++--EXPECT--
++bool(true)

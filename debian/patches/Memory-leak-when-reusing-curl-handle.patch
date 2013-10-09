@@ -1,0 +1,27 @@
+commit ac3d227e28056bf5294a8a64e2f41ce2beebaa05
+Author: Pierrick Charron <pierrick@php.net>
+Date:   Thu Dec 27 13:31:55 2012 -0500
+
+    Fixed #63859 Memory leak when reusing curl-handle
+    
+    When CURLOPT_POSTFIELDS is called more than once on the same
+    curl handle, php/curl did not free the memory of the previous
+    post data. This commit will fix the problem unless the curl
+    handle was previously duplicated using the curl_copy_handle()
+    function in which case we can not know if the post data is
+    still in use or not by any curl handle
+
+diff --git a/ext/curl/interface.c b/ext/curl/interface.c
+index a23f859..55102da 100644
+--- a/ext/curl/interface.c
++++ b/ext/curl/interface.c
+@@ -2131,6 +2131,9 @@ string_copy:
+ 					return 1;
+ 				}
+ 
++				if (Z_REFCOUNT_P(ch->clone) <= 1) {
++					zend_llist_clean(&ch->to_free->post);
++				}
+ 				zend_llist_add_element(&ch->to_free->post, &first);
+ 				error = curl_easy_setopt(ch->cp, CURLOPT_HTTPPOST, first);
+ 

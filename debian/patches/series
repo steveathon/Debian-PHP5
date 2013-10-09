@@ -91,3 +91,5 @@ zend_mm_heap-corrupted-with-traits.patch
 Inheritance-with-Traits-failed-with-error.patch
 Segfault-when-using-traits-a-lot.patch
 Dont-reset-mod_user_is_open-in-destroy.patch
+Track-created-curl_slist-structs-by-option-so-they-can-be-updated-in-situ.patch
+Memory-leak-when-reusing-curl-handle.patch
