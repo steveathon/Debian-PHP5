@@ -94,3 +94,4 @@ Dont-reset-mod_user_is_open-in-destroy.patch
 Track-created-curl_slist-structs-by-option-so-they-can-be-updated-in-situ.patch
 Memory-leak-when-reusing-curl-handle.patch
 php-fpm-is-not-allowed-to-run-as-root.patch
+Unneccesary-warnings-on-FPM.patch

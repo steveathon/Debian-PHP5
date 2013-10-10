@@ -1,0 +1,197 @@
+commit decc394a2089b955a175aed0091044d0fc3d1aab
+Author: Jerome Loyet <fat@php.net>
+Date:   Sat May 26 18:24:08 2012 +0200
+
+    - Fixed bug #62160 (Add process.priority to set nice(2) priorities)
+
+commit e31553c2042f2a5e05d9ad1ba77b888c63e4c36f
+Author: Jerome Loyet <fat@php.net>
+Date:   Fri Sep 28 01:08:08 2012 +0200
+
+    - Fixed bug #62947 (Unneccesary warnings on FPM)
+
+--- a/sapi/fpm/fpm/fpm_conf.c
++++ b/sapi/fpm/fpm/fpm_conf.c
+@@ -70,6 +70,7 @@
+ 	.syslog_facility = -1,
+ #endif
+ 	.process_max = 0,
++	.process_priority = 64, /* 64 means unset */
+ };
+ static struct fpm_worker_pool_s *current_wp = NULL;
+ static int ini_recursion = 0;
+@@ -92,6 +93,7 @@
+ 	{ "emergency_restart_interval",  &fpm_conf_set_time,            GO(emergency_restart_interval) },
+ 	{ "process_control_timeout",     &fpm_conf_set_time,            GO(process_control_timeout) },
+ 	{ "process.max",                 &fpm_conf_set_integer,         GO(process_max) },
++	{ "process.priority",            &fpm_conf_set_integer,         GO(process_priority) },
+ 	{ "daemonize",                   &fpm_conf_set_boolean,         GO(daemonize) },
+ 	{ "rlimit_files",                &fpm_conf_set_integer,         GO(rlimit_files) },
+ 	{ "rlimit_core",                 &fpm_conf_set_rlimit_core,     GO(rlimit_core) },
+@@ -112,6 +114,7 @@
+ 	{ "listen.group",              &fpm_conf_set_string,      WPO(listen_group) },
+ 	{ "listen.mode",               &fpm_conf_set_string,      WPO(listen_mode) },
+ 	{ "listen.allowed_clients",    &fpm_conf_set_string,      WPO(listen_allowed_clients) },
++	{ "process.priority",          &fpm_conf_set_integer,     WPO(process_priority) },
+ 	{ "pm",                        &fpm_conf_set_pm,          WPO(pm) },
+ 	{ "pm.max_children",           &fpm_conf_set_integer,     WPO(pm_max_children) },
+ 	{ "pm.start_servers",          &fpm_conf_set_integer,     WPO(pm_start_servers) },
+@@ -577,6 +580,7 @@
+ 	memset(wp->config, 0, sizeof(struct fpm_worker_pool_config_s));
+ 	wp->config->listen_backlog = FPM_BACKLOG_DEFAULT;
+ 	wp->config->pm_process_idle_timeout = 10; /* 10s by default */
++	wp->config->process_priority = 64; /* 64 means unset */
+ 
+ 	if (!fpm_worker_all_pools) {
+ 		fpm_worker_all_pools = wp;
+@@ -741,6 +745,11 @@
+ 			return -1;
+ 		}
+ 
++		if (wp->config->process_priority != 64 && (wp->config->process_priority < -19 || wp->config->process_priority > 20)) {
++			zlog(ZLOG_ERROR, "[pool %s] process.priority must be included into [-19,20]", wp->config->name);
++			return -1;
++		}
++
+ 		/* pm */
+ 		if (wp->config->pm != PM_STYLE_STATIC && wp->config->pm != PM_STYLE_DYNAMIC && wp->config->pm != PM_STYLE_ONDEMAND) {
+ 			zlog(ZLOG_ALERT, "[pool %s] the process manager is missing (static, dynamic or ondemand)", wp->config->name);
+@@ -1103,6 +1112,11 @@
+ 		return -1;
+ 	}
+ 
++	if (fpm_global_config.process_priority != 64 && (fpm_global_config.process_priority < -19 || fpm_global_config.process_priority > 20)) {
++		zlog(ZLOG_ERROR, "process.priority must be included into [-19,20]");
++		return -1;
++	}
++
+ 	if (!fpm_global_config.error_log) {
+ 		fpm_global_config.error_log = strdup("log/php-fpm.log");
+ 	}
+@@ -1485,6 +1499,11 @@
+ 	zlog(ZLOG_NOTICE, "\temergency_restart_threshold = %d", fpm_global_config.emergency_restart_threshold);
+ 	zlog(ZLOG_NOTICE, "\tprocess_control_timeout = %ds",    fpm_global_config.process_control_timeout);
+ 	zlog(ZLOG_NOTICE, "\tprocess.max = %d",                 fpm_global_config.process_max);
++	if (fpm_global_config.process_priority == 64) {
++		zlog(ZLOG_NOTICE, "\tprocess.priority = undefined");
++	} else {
++		zlog(ZLOG_NOTICE, "\tprocess.priority = %d", fpm_global_config.process_priority);
++	}
+ 	zlog(ZLOG_NOTICE, "\tdaemonize = %s",                   BOOL2STR(fpm_global_config.daemonize));
+ 	zlog(ZLOG_NOTICE, "\trlimit_files = %d",                fpm_global_config.rlimit_files);
+ 	zlog(ZLOG_NOTICE, "\trlimit_core = %d",                 fpm_global_config.rlimit_core);
+@@ -1504,6 +1523,11 @@
+ 		zlog(ZLOG_NOTICE, "\tlisten.group = %s",               STR2STR(wp->config->listen_group));
+ 		zlog(ZLOG_NOTICE, "\tlisten.mode = %s",                STR2STR(wp->config->listen_mode));
+ 		zlog(ZLOG_NOTICE, "\tlisten.allowed_clients = %s",     STR2STR(wp->config->listen_allowed_clients));
++		if (wp->config->process_priority == 64) {
++			zlog(ZLOG_NOTICE, "\tprocess.priority = undefined");
++		} else {
++			zlog(ZLOG_NOTICE, "\tprocess.priority = %d", wp->config->process_priority);
++		}
+ 		zlog(ZLOG_NOTICE, "\tpm = %s",                         PM2STR(wp->config->pm));
+ 		zlog(ZLOG_NOTICE, "\tpm.max_children = %d",            wp->config->pm_max_children);
+ 		zlog(ZLOG_NOTICE, "\tpm.start_servers = %d",           wp->config->pm_start_servers);
+--- a/sapi/fpm/fpm/fpm_conf.h
++++ b/sapi/fpm/fpm/fpm_conf.h
+@@ -35,6 +35,7 @@
+ 	int emergency_restart_interval;
+ 	int process_control_timeout;
+ 	int process_max;
++	int process_priority;
+ 	int daemonize;
+ 	int rlimit_files;
+ 	int rlimit_core;
+@@ -57,6 +58,7 @@
+ 	char *listen_group;
+ 	char *listen_mode;
+ 	char *listen_allowed_clients;
++	int process_priority;
+ 	int pm;
+ 	int pm_max_children;
+ 	int pm_start_servers;
+--- a/sapi/fpm/fpm/fpm_unix.c
++++ b/sapi/fpm/fpm/fpm_unix.c
+@@ -128,6 +128,9 @@
+ 		if (wp->config->chroot && *wp->config->chroot) {
+ 			zlog(ZLOG_WARNING, "[pool %s] 'chroot' directive is ignored when FPM is not running as root", wp->config->name);
+ 		}
++		if (wp->config->process_priority != 64) {
++			zlog(ZLOG_WARNING, "[pool %s] 'process.priority' directive is ignored when FPM is not running as root", wp->config->name);
++		}
+ 
+ 		/* set up HOME and USER anyway */
+ 		pwd = getpwuid(getuid());
+@@ -183,6 +186,14 @@
+ 	}
+ 
+ 	if (is_root) {
++
++		if (wp->config->process_priority != 64) {
++			if (setpriority(PRIO_PROCESS, 0, wp->config->process_priority) < 0) {
++				zlog(ZLOG_SYSERROR, "[pool %s] Unable to set priority for this new process", wp->config->name);
++				return -1;
++			}
++		}
++
+ 		if (wp->set_gid) {
+ 			if (0 > setgid(wp->set_gid)) {
+ 				zlog(ZLOG_SYSERROR, "[pool %s] failed to setgid(%d)", wp->config->name, wp->set_gid);
+@@ -217,6 +228,7 @@
+ int fpm_unix_init_main() /* {{{ */
+ {
+ 	struct fpm_worker_pool_s *wp;
++	int is_root = !geteuid();
+ 
+ 	if (fpm_global_config.rlimit_files) {
+ 		struct rlimit r;
+@@ -259,6 +271,17 @@
+ 		return -1;
+ 	}
+ 
++	if (fpm_global_config.process_priority != 64) {
++		if (is_root) {
++			if (setpriority(PRIO_PROCESS, 0, fpm_global_config.process_priority) < 0) {
++				zlog(ZLOG_SYSERROR, "Unable to set priority for the master process");
++				return -1;
++			}
++		} else {
++			zlog(ZLOG_WARNING, "'process.priority' directive is ignored when FPM is not running as root");
++		}
++	}
++
+ 	fpm_globals.parent_pid = getpid();
+ 	for (wp = fpm_worker_all_pools; wp; wp = wp->next) {
+ 		if (0 > fpm_unix_conf_wp(wp)) {
+--- a/sapi/fpm/php-fpm.conf.in
++++ b/sapi/fpm/php-fpm.conf.in
+@@ -76,6 +76,14 @@
+ ; Default Value: 0
+ ; process.max = 128
+ 
++; Specify the nice(2) priority to apply to the master process (only if set)
++; The value can vary from -19 (highest priority) to 20 (lower priority)
++; Note: - It will only work if the FPM master process is launched as root
++;       - The pool process will inherit the master process priority
++;         unless it specified otherwise
++; Default Value: no set
++; process.priority = -19
++
+ ; Send FPM to background. Set to 'no' to keep FPM in foreground for debugging.
+ ; Default Value: yes
+ ;daemonize = yes
+@@ -167,6 +175,14 @@
+ ; Default Value: any
+ ;listen.allowed_clients = 127.0.0.1
+ 
++; Specify the nice(2) priority to apply to the pool processes (only if set)
++; The value can vary from -19 (highest priority) to 20 (lower priority)
++; Note: - It will only work if the FPM master process is launched as root
++;       - The pool processes will inherit the master process priority
++;         unless it specified otherwise
++; Default Value: no set
++; priority = -19
++
+ ; Choose how the process manager will control the number of child processes.
+ ; Possible Values:
+ ;   static  - a fixed number (pm.max_children) of child processes;
