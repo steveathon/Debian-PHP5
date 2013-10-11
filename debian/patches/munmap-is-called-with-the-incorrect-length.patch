@@ -1,0 +1,19 @@
+commit 433089ccb4d4747a01d522e8678664ff17584615
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Aug 2 12:30:07 2012 +0800
+
+    Fixed bug #62716 (munmap() is called with the incorrect length)
+
+diff --git a/Zend/zend_stream.c b/Zend/zend_stream.c
+index 5a02ecd..bc5206c 100644
+--- a/Zend/zend_stream.c
++++ b/Zend/zend_stream.c
+@@ -79,7 +79,7 @@ static size_t zend_stream_stdio_fsizer(void *handle TSRMLS_DC) /* {{{ */
+ static void zend_stream_unmap(zend_stream *stream TSRMLS_DC) { /* {{{ */
+ #if HAVE_MMAP
+ 	if (stream->mmap.map) {
+-		munmap(stream->mmap.map, stream->mmap.len);
++		munmap(stream->mmap.map, stream->mmap.len + ZEND_MMAP_AHEAD);
+ 	} else
+ #endif
+ 	if (stream->mmap.buf) {
