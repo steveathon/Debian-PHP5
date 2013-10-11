@@ -1,0 +1,41 @@
+commit 5e9377ebd57f419de7b421878df540795ace01ef
+Author: Xinchen Hui <laruence@php.net>
+Date:   Tue Mar 26 11:44:57 2013 +0800
+
+    Fixed bug #64515 (Memoryleak when using the same variablename 2times in function declaration)
+
+--- /dev/null
++++ b/Zend/tests/bug64515.phpt
+@@ -0,0 +1,10 @@
++--TEST--
++Bug #64515 (Memoryleak when using the same variablename 2times in function declaration)
++--FILE--
++<?php
++function foo($unused = null, $unused = null, $arg = array()) {
++	    return 1;
++}
++foo();
++?>
++--EXPECT--
+--- a/Zend/zend_vm_def.h
++++ b/Zend/zend_vm_def.h
+@@ -3240,7 +3240,7 @@
+ 
+ 	zend_verify_arg_type((zend_function *) EG(active_op_array), arg_num, assignment_value, opline->extended_value TSRMLS_CC);
+ 	var_ptr = _get_zval_ptr_ptr_cv_BP_VAR_W(EX_CVs(), opline->result.var TSRMLS_CC);
+-	Z_DELREF_PP(var_ptr);
++	zval_ptr_dtor(var_ptr);
+ 	*var_ptr = assignment_value;
+ 
+ 	CHECK_EXCEPTION();
+--- a/Zend/zend_vm_execute.h
++++ b/Zend/zend_vm_execute.h
+@@ -1368,7 +1368,7 @@
+ 
+ 	zend_verify_arg_type((zend_function *) EG(active_op_array), arg_num, assignment_value, opline->extended_value TSRMLS_CC);
+ 	var_ptr = _get_zval_ptr_ptr_cv_BP_VAR_W(EX_CVs(), opline->result.var TSRMLS_CC);
+-	Z_DELREF_PP(var_ptr);
++	zval_ptr_dtor(var_ptr);
+ 	*var_ptr = assignment_value;
+ 
+ 	CHECK_EXCEPTION();
