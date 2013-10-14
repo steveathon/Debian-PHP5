@@ -97,3 +97,4 @@ php-fpm-is-not-allowed-to-run-as-root.patch
 Unneccesary-warnings-on-FPM.patch
 Memoryleak-when-using-the-same-variablename-2times-in-function-declaration.patch
 munmap-is-called-with-the-incorrect-length.patch
+SegFault-on-zend_deactivate.patch

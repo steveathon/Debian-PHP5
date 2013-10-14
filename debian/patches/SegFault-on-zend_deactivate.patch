@@ -1,0 +1,87 @@
+commit 77fffff15762137e2d8173df9b733b4cb70fc996
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Tue May 21 09:58:11 2013 +0400
+
+    Fixed bug #64720 (SegFault on zend_deactivate)
+
+--- /dev/null
++++ b/Zend/tests/bug64720.phpt
+@@ -0,0 +1,48 @@
++--TEST--
++Bug #64720 (SegFault on zend_deactivate)
++--FILE--
++<?php
++class Stat {
++    private static $requests;
++    public static function getInstance() {
++        if (!isset(self::$requests[1])) {
++            self::$requests[1] = new self();
++        }
++        return self::$requests[1];
++    }
++    
++    public function __destruct() {
++        unset(self::$requests[1]);
++    }
++}
++
++class Foo {
++    public function __construct() {
++        Stat::getInstance();
++    }
++}
++
++class Error {
++    private $trace;
++    public function __construct() {
++        $this->trace = debug_backtrace(1);
++    }
++}
++
++class Bar {
++    public function __destruct() {
++        Stat::getInstance();
++        new Error();
++    }
++
++    public function test() {
++        new Error();
++    }
++}
++
++$foo = new Foo();
++$bar = new Bar();
++$bar->test();
++?>
++--EXPECTF--
++Fatal error: Access to undeclared static property: Stat::$requests in %sbug64720.php on line 12
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -1255,6 +1255,14 @@
+ 		}
+ 	}
+ 
++	if (UNEXPECTED(CE_STATIC_MEMBERS(ce) == NULL) ||
++	    UNEXPECTED(CE_STATIC_MEMBERS(ce)[property_info->offset] == NULL)) {
++		if (!silent) {
++			zend_error_noreturn(E_ERROR, "Access to undeclared static property: %s::$%s", ce->name, property_name);
++		}
++		return NULL;
++	}
++	
+ 	return &CE_STATIC_MEMBERS(ce)[property_info->offset];
+ }
+ /* }}} */
+--- a/Zend/zend_opcode.c
++++ b/Zend/zend_opcode.c
+@@ -162,8 +162,9 @@
+ 
+ 		for (i = 0; i < ce->default_static_members_count; i++) {
+ 			if (ce->static_members_table[i]) {
+-				zval_ptr_dtor(&ce->static_members_table[i]);
++				zval *p = ce->static_members_table[i];
+ 				ce->static_members_table[i] = NULL;
++				zval_ptr_dtor(&p);
+ 			}
+ 		}
+ 		ce->static_members_table = NULL;
