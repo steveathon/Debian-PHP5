@@ -99,3 +99,4 @@ Memoryleak-when-using-the-same-variablename-2times-in-function-declaration.patch
 munmap-is-called-with-the-incorrect-length.patch
 SegFault-on-zend_deactivate.patch
 Possible-null-dereference.patch
+Phar-buildFromDirectory-creates-corrupt-archives-for-some-specific-contents.patch
