@@ -1,0 +1,19 @@
+commit 4c6678d6058fd740a9e186b49f9daa72d09ed300
+Author: Xinchen Hui <laruence@php.net>
+Date:   Sat Sep 15 11:50:16 2012 +0800
+
+    Fixed bug #63093 (Segfault while load extension failed in zts-build).
+
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -2265,7 +2265,9 @@
+ 	/* Deinitilaise module globals */
+ 	if (module->globals_size) {
+ #ifdef ZTS
+-		ts_free_id(*module->globals_id_ptr);
++		if (*module->globals_id_ptr) {
++			ts_free_id(*module->globals_id_ptr);
++		}
+ #else
+ 		if (module->globals_dtor) {
+ 			module->globals_dtor(module->globals_ptr TSRMLS_CC);
