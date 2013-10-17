@@ -1,0 +1,37 @@
+commit f2bffdc2e48174e38a059d425953e8b1c08dd4bf
+Author: Antony Dovgal <tony2001@php.net>
+Date:   Fri Oct 26 16:36:47 2012 +0400
+
+    fix bug #63369
+    
+    (un)serialize() leaves dangling pointers, causes crashes
+
+Index: php/NEWS
+===================================================================
+--- php.orig/NEWS	2013-10-17 14:43:54.224097271 +0200
++++ php/NEWS	2013-10-17 14:43:54.336097271 +0200
+@@ -926,6 +926,8 @@
+ 
+ - Core:
+   . Fixed bug #63305 (zend_mm_heap corrupted with traits). (Dmitry, Laruence)
++  . Fixed bug #63369 ((un)serialize() leaves dangling pointers, causes crashes).
++    (Tony, Andrew Sitnikov)
+ 
+ - Fileinfo:
+   . Fixed bug #60094 (C++ comment fails in c89). (Laruence)
+Index: php/ext/standard/basic_functions.c
+===================================================================
+--- php.orig/ext/standard/basic_functions.c	2013-10-17 14:43:50.372097298 +0200
++++ php/ext/standard/basic_functions.c	2013-10-17 14:43:54.336097271 +0200
+@@ -3684,6 +3684,11 @@
+ PHP_RINIT_FUNCTION(basic) /* {{{ */
+ {
+ 	memset(BG(strtok_table), 0, 256);
++
++	BG(serialize_lock) = 0;
++	memset(&BG(serialize), 0, sizeof(BG(serialize)));
++	memset(&BG(unserialize), 0, sizeof(BG(unserialize)));
++
+ 	BG(strtok_string) = NULL;
+ 	BG(strtok_zval) = NULL;
+ 	BG(strtok_last) = NULL;
