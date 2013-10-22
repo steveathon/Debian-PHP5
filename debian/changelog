@@ -1,3 +1,22 @@
+php5 (5.4.4-14+deb7u6) stable; urgency=low
+
+  [ William Dauchy ]
+  * upstream fix: curl memory leak (Closes: #725868)
+  * upstream fix: allow root to run php-fpm (Closes: #725891)
+  * upstream fix: remove annoying warnings with php-fpm and user usage
+    (Closes: #725972)
+  * upstream fix: memoryleak in function declaration (Closes: #726033)
+  * upstream fix: munmap() is called with the incorrect length (Closes: #726037)
+  * upstream fix: segfault on zend_deactivate (Closes: #726295)
+  * upstream fix: Possible null dereference (Closes: #726320)
+  * upstream fix: Phar::buildFromDirectory creates corrupt archives
+    (Closes: #726379)
+  * upstream fix: segfault while loading extensions (Closes: #726627)
+  * upstream fix: (un)serialize() leaves dangling pointers, causes crashes
+    (Closes: #726633)
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 22 Oct 2013 08:33:07 +0200
+
 php5 (5.4.4-14+deb7u5) stable; urgency=low
 
   [ William Dauchy ]
