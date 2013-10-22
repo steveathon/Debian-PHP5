@@ -2,7 +2,7 @@ php5 (5.4.4-14+deb7u6) stable; urgency=low
 
   [ William Dauchy ]
   * upstream fix: curl memory leak (Closes: #725868)
-  * upstream fix: allow root to run php-fpm (Closes: #725899)
+  * upstream fix: allow root to run php-fpm (Closes: #725890)
   * upstream fix: remove annoying warnings with php-fpm and user usage
     (Closes: #725972)
   * upstream fix: memoryleak in function declaration (Closes: #726033)
