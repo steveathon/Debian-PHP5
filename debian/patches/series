@@ -103,3 +103,4 @@ Phar-buildFromDirectory-creates-corrupt-archives-for-some-specific-contents.patc
 Segfault-while-load-extension-failed-in-zts-build.patch
 serialize-leaves-dangling-pointers-causes-crashes.patch
 CVE-2013-6420.patch
+CVE-2013-6712.patch
