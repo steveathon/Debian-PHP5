@@ -1,3 +1,10 @@
+php5 (5.4.4-14+deb7u7) wheezy-security; urgency=low
+
+  * [CVE-2013-6420]: Fix memory corruption in openssl_x509_parse (Closes: #731895)
+  * [CVE-2013-6712] Fix heap buffer over-read in DateInterval (Closes: #731112)
+
+ -- Ondřej Surý <ondrej@debian.org>  Thu, 12 Dec 2013 09:28:14 +0100
+
 php5 (5.4.4-14+deb7u6) stable; urgency=low
 
   [ William Dauchy ]
