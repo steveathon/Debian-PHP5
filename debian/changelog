@@ -1,3 +1,10 @@
+php5 (5.3.3-7+squeeze18) squeeze-security; urgency=low
+
+  * [CVE-2013-6420]: Fix memory corruption in openssl_x509_parse (Closes: #731895)
+  * [CVE-2013-6712] Fix heap buffer over-read in DateInterval (Closes: #731112)
+
+ -- Ondřej Surý <ondrej@debian.org>  Thu, 12 Dec 2013 09:31:13 +0100
+
 php5 (5.3.3-7+squeeze17) squeeze-security; urgency=low
 
   * [CVE-2013-4248]: Fix handling of certs with NULL bytes (Closes: #719765)
