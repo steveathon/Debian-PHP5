@@ -79,9 +79,8 @@ CVE-2013-1824.patch
 fix-dropping-connections-in-FPM.patch
 fix-crash-in-garbage-collection.patch
 libmagic-vision-fix.patch
-pdo_dblib.patch
 fix-filter-SAPI-REQUEST_TIME.patch
-fix-segfault-when-using-passwords-longer-than-30-chars.patch
+Fix-PDO_DBLIB.patch
 CVE-2013-4113.patch
 CVE-2013-4248.patch
 zend_mm_heap-corrupted-with-traits.patch

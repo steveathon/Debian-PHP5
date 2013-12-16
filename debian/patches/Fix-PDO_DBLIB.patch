@@ -1,0 +1,454 @@
+commit 5a04ab9a54f529f4197bed6f17599604266cdb35
+Author: Stanley Sufficool <ssufficool@php.net>
+Date:   Mon Jun 3 20:02:08 2013 -0700
+
+    Fix PDO_DBLIB bugs: #64338, #64808, #63638
+    
+    Synchronize with master
+
+--- a/ext/pdo_dblib/dblib_driver.c
++++ b/ext/pdo_dblib/dblib_driver.c
+@@ -32,6 +32,9 @@
+ #include "php_pdo_dblib_int.h"
+ #include "zend_exceptions.h"
+ 
++/* Cache of the server supported datatypes, initialized in handle_factory */
++zval* pdo_dblib_datatypes;
++
+ static int dblib_fetch_error(pdo_dbh_t *dbh, pdo_stmt_t *stmt, zval *info TSRMLS_DC)
+ {
+ 	pdo_dblib_db_handle *H = (pdo_dblib_db_handle *)dbh->driver_data;
+@@ -262,17 +265,41 @@
+ static int pdo_dblib_handle_factory(pdo_dbh_t *dbh, zval *driver_options TSRMLS_DC)
+ {
+ 	pdo_dblib_db_handle *H;
+-	int i, ret = 0;
++	int i, nvars, nvers, ret = 0;
++	int *val;
++	
++	const pdo_dblib_keyval tdsver[] = {
++		 {"4.2",DBVERSION_42}
++		,{"4.6",DBVERSION_46}
++		,{"5.0",DBVERSION_70} /* FIXME: This does not work with Sybase, but environ will */
++		,{"6.0",DBVERSION_70}
++		,{"7.0",DBVERSION_70}
++#ifdef DBVERSION_71
++		,{"7.1",DBVERSION_71}
++#endif
++#ifdef DBVERSION_72
++		,{"7.2",DBVERSION_72}
++		,{"8.0",DBVERSION_72}
++#endif
++		,{"10.0",DBVERSION_100}
++		,{"auto",0} /* Only works with FreeTDS. Other drivers will bork */
++		
++	};
++	
++	nvers = sizeof(tdsver)/sizeof(tdsver[0]);
++	
+ 	struct pdo_data_src_parser vars[] = {
+-		{ "charset",	NULL,	0 },
+-		{ "appname",	"PHP " PDO_DBLIB_FLAVOUR,	0 },
+-		{ "host",		"127.0.0.1", 0 },
+-		{ "dbname",		NULL,	0 },
+-		{ "secure",		NULL,	0 }, /* DBSETLSECURE */
+-		/* TODO: DBSETLVERSION ? */
++		{ "charset",	NULL,	0 }
++		,{ "appname",	"PHP " PDO_DBLIB_FLAVOUR,	0 }
++		,{ "host",		"127.0.0.1", 0 }
++		,{ "dbname",	NULL,	0 }
++		,{ "secure",	NULL,	0 } /* DBSETLSECURE */
++		,{ "version",	NULL,	0 } /* DBSETLVERSION */
+ 	};
+-
+-	php_pdo_parse_data_source(dbh->data_source, dbh->data_source_len, vars, 5);
++	
++	nvars = sizeof(vars)/sizeof(vars[0]);
++	
++	php_pdo_parse_data_source(dbh->data_source, dbh->data_source_len, vars, nvars);
+ 
+ 	H = pecalloc(1, sizeof(*H), dbh->is_persistent);
+ 	H->login = dblogin();
+@@ -282,11 +309,37 @@
+ 		goto cleanup;
+ 	}
+ 
++	DBERRHANDLE(H->login, (EHANDLEFUNC) error_handler);
++	DBMSGHANDLE(H->login, (MHANDLEFUNC) msg_handler);
++	
++	if(vars[5].optval) {
++		for(i=0;i<nvers;i++) {
++			if(strcmp(vars[5].optval,tdsver[i].key) == 0) {
++				if(FAIL==dbsetlversion(H->login, tdsver[i].value)) {
++					pdo_raise_impl_error(dbh, NULL, "HY000", "PDO_DBLIB: Failed to set version specified in connection string." TSRMLS_CC);		
++					goto cleanup;
++				}
++				break;
++			}
++		}
++		
++		if (i==nvers) {
++			printf("Invalid version '%s'\n", vars[5].optval);
++			pdo_raise_impl_error(dbh, NULL, "HY000", "PDO_DBLIB: Invalid version specified in connection string." TSRMLS_CC);		
++			goto cleanup; /* unknown version specified */
++		}
++	}
++
+ 	if (dbh->username) {
+-		DBSETLUSER(H->login, dbh->username);
++		if(FAIL == DBSETLUSER(H->login, dbh->username)) {
++			goto cleanup;
++		}
+ 	}
++
+ 	if (dbh->password) {
+-		DBSETLPWD(H->login, dbh->password);
++		if(FAIL == DBSETLPWD(H->login, dbh->password)) {
++			goto cleanup;
++		}
+ 	}
+ 	
+ #if !PHP_DBLIB_IS_MSSQL
+@@ -297,17 +350,29 @@
+ 
+ 	DBSETLAPP(H->login, vars[1].optval);
+ 
+-#if PHP_DBLIB_IS_MSSQL
+-	dbprocerrhandle(H->login, (EHANDLEFUNC) error_handler);
+-	dbprocmsghandle(H->login, (MHANDLEFUNC) msg_handler);
++/* DBSETLDBNAME is only available in FreeTDS 0.92 or above */
++#ifdef DBSETLDBNAME
++	if (vars[3].optval) {
++		if(FAIL == DBSETLDBNAME(H->login, vars[3].optval)) goto cleanup;
++	}
+ #endif
+ 
+ 	H->link = dbopen(H->login, vars[2].optval);
+ 
+-	if (H->link == NULL) {
++	if (!H->link) {
+ 		goto cleanup;
+ 	}
+ 
++/*
++ * FreeTDS < 0.92 does not support the DBSETLDBNAME option
++ * Send use database here after login (Will not work with SQL Azure)
++ */
++#ifndef DBSETLDBNAME
++	if (vars[3].optval) {
++		if(FAIL == dbuse(H->link, vars[3].optval)) goto cleanup;
++	}
++#endif
++
+ #if PHP_DBLIB_IS_MSSQL
+ 	/* dblib do not return more than this length from text/image */
+ 	DBSETOPT(H->link, DBTEXTLIMIT, "2147483647");
+@@ -317,18 +382,14 @@
+ 	DBSETOPT(H->link, DBTEXTSIZE, "2147483647");
+ 
+ 	/* allow double quoted indentifiers */
+-	DBSETOPT(H->link, DBQUOTEDIDENT, 1);
+-
+-	if (vars[3].optval && FAIL == dbuse(H->link, vars[3].optval)) {
+-		goto cleanup;
+-	}
++	DBSETOPT(H->link, DBQUOTEDIDENT, "1");
+ 
+ 	ret = 1;
+ 	dbh->max_escaped_char_length = 2;
+ 	dbh->alloc_own_columns = 1;
+ 
+ cleanup:
+-	for (i = 0; i < sizeof(vars)/sizeof(vars[0]); i++) {
++	for (i = 0; i < nvars; i++) {
+ 		if (vars[i].freeme) {
+ 			efree(vars[i].optval);
+ 		}
+--- a/ext/pdo_dblib/dblib_stmt.c
++++ b/ext/pdo_dblib/dblib_stmt.c
+@@ -36,35 +36,51 @@
+ 
+ /* {{{ pdo_dblib_get_field_name
+  * 
+- * Updated for MSSQL 2008 SR2 extended types
++ * Return the data type name for a given TDS number
+  * 
+  */
+ static char *pdo_dblib_get_field_name(int type)
+ {
++	/* 
++	 * I don't return dbprtype(type) because it does not fully describe the type 
++	 * (example: varchar is reported as char by dbprtype)
++	 * 
++	 * FIX ME: Cache datatypes from server systypes table in pdo_dblib_handle_factory()
++	 * 		   to make this future proof.
++	 */
++	 
+ 	switch (type) {
++		case 31: return "nvarchar";
+ 		case 34: return "image";
+ 		case 35: return "text";
+ 		case 36: return "uniqueidentifier";
++		case 37: return "varbinary"; /* & timestamp - Sybase AS12 */
++		case 38: return "bigint"; /* & bigintn - Sybase AS12 */
++		case 39: return "varchar"; /* & sysname & nvarchar - Sybase AS12 */
+ 		case 40: return "date";
+ 		case 41: return "time";
+ 		case 42: return "datetime2";
+ 		case 43: return "datetimeoffset";
++		case 45: return "binary"; /* Sybase AS12 */
++		case 47: return "char"; /* & nchar & uniqueidentifierstr Sybase AS12 */
+ 		case 48: return "tinyint";
++		case 50: return "bit"; /* Sybase AS12 */
+ 		case 52: return "smallint";
++		case 55: return "decimal"; /* Sybase AS12 */
+ 		case 56: return "int";
+ 		case 58: return "smalldatetime";
+ 		case 59: return "real";
+ 		case 60: return "money";
+ 		case 61: return "datetime";
+ 		case 62: return "float";
++		case 63: return "numeric"; /* or uint, ubigint, usmallint Sybase AS12 */
+ 		case 98: return "sql_variant";
+ 		case 99: return "ntext";
+ 		case 104: return "bit";
+-		case 106: return "decimal";
+-		case 108: return "numeric";
++		case 106: return "decimal"; /* decimal n on sybase */
++		case 108: return "numeric"; /* numeric n on sybase */
+ 		case 122: return "smallmoney";
+ 		case 127: return "bigint";
+-		case 240: return "geometry";
+ 		case 165: return "varbinary";
+ 		case 167: return "varchar";
+ 		case 173: return "binary";
+@@ -72,23 +88,22 @@
+ 		case 189: return "timestamp";
+ 		case 231: return "nvarchar";
+ 		case 239: return "nchar";
++		case 240: return "geometry";
+ 		case 241: return "xml";
+-		default: 
+-			return "unknown";
+-			break;
++		default: return "unknown";
+ 	}
+ }
+ /* }}} */
+ 
+-static int dblib_dblib_stmt_cursor_closer(pdo_stmt_t *stmt TSRMLS_DC)
++static int pdo_dblib_stmt_cursor_closer(pdo_stmt_t *stmt TSRMLS_DC)
+ {
+ 	pdo_dblib_stmt *S = (pdo_dblib_stmt*)stmt->driver_data;
+ 	pdo_dblib_db_handle *H = S->H;
+ 
+ 	/* Cancel any pending results */
+ 	dbcancel(H->link);
+-
+-	efree(stmt->columns);
++	
++	efree(stmt->columns); 
+ 	stmt->columns = NULL;
+ 	
+ 	return 1;
+@@ -98,7 +113,8 @@
+ {
+ 	pdo_dblib_stmt *S = (pdo_dblib_stmt*)stmt->driver_data;
+ 
+-	dblib_dblib_stmt_cursor_closer(stmt TSRMLS_CC);
++	efree(stmt->columns); 
++	stmt->columns = NULL;
+ 
+ 	efree(S);
+ 		
+@@ -113,7 +129,12 @@
+ 	
+ 	ret = dbresults(H->link);
+ 	
+-	if (ret == FAIL || ret == NO_MORE_RESULTS) {
++	if (FAIL == ret) {
++		pdo_raise_impl_error(stmt->dbh, stmt, "HY000", "PDO_DBLIB: dbresults() returned FAIL" TSRMLS_CC);		
++		return 0;
++	}
++		
++	if(NO_MORE_RESULTS == ret) {
+ 		return 0;
+ 	}
+ 	
+@@ -131,6 +152,8 @@
+ 	
+ 	dbsetuserdata(H->link, (BYTE*) &S->err);
+ 	
++	pdo_dblib_stmt_cursor_closer(stmt TSRMLS_CC);
++	
+ 	if (FAIL == dbcmd(H->link, stmt->active_query_string)) {
+ 		return 0;
+ 	}
+@@ -141,10 +164,6 @@
+ 	
+ 	ret = pdo_dblib_stmt_next_rowset(stmt TSRMLS_CC);
+ 	
+-	if (ret == 0) {
+-		return 0;
+-	}
+-	
+ 	stmt->row_count = DBCOUNT(H->link);
+ 	stmt->column_count = dbnumcols(H->link);
+ 	
+@@ -162,7 +181,12 @@
+ 	
+ 	ret = dbnextrow(H->link);
+ 	
+-	if (ret == FAIL || ret == NO_MORE_ROWS) {
++	if (FAIL == ret) {
++		pdo_raise_impl_error(stmt->dbh, stmt, "HY000", "PDO_DBLIB: dbnextrow() returned FAIL" TSRMLS_CC);
++		return 0;
++	}
++		
++	if(NO_MORE_ROWS == ret) {
+ 		return 0;
+ 	}
+ 	
+@@ -174,6 +198,10 @@
+ 	pdo_dblib_stmt *S = (pdo_dblib_stmt*)stmt->driver_data;
+ 	pdo_dblib_db_handle *H = S->H;
+ 	
++	if(colno >= stmt->column_count || colno < 0)  {
++		return FAILURE;
++	}
++	
+ 	struct pdo_column_data *col = &stmt->columns[colno];
+ 	
+ 	col->name = (char*)dbcolname(H->link, colno+1);
+@@ -205,11 +233,12 @@
+ 	}
+ 	
+ 	switch (coltype) {
+-		case SQLCHAR:
+-		case SQLTEXT:
+ 		case SQLVARBINARY:
+ 		case SQLBINARY:
+ 		case SQLIMAGE:
++		case SQLTEXT:
++			/* FIXME: Above types should be returned as a stream as they can be VERY large */
++		case SQLCHAR:
+ 		case SQLVARCHAR:
+ 			tmp_ptr = emalloc(*len + 1);
+ 			memcpy(tmp_ptr, *ptr, *len);
+@@ -225,34 +254,26 @@
+ 			*ptr = tmp_ptr;
+ 			break;
+ 		}
+-#ifdef SQLUNIQUE
+ 		case SQLUNIQUE: {
+-#else
+-		case 36: { /* FreeTDS hack, also used by ext/mssql */
+-#endif
+ 			*len = 36+1;
+ 			tmp_ptr = emalloc(*len + 1);
+ 
+ 			/* uniqueidentifier is a 16-byte binary number, convert to 32 char hex string */
+-#ifdef SQLUNIQUE
+ 			*len = dbconvert(NULL, SQLUNIQUE, *ptr, *len, SQLCHAR, tmp_ptr, *len);
+-#else
+-			*len = dbconvert(NULL, 36, *ptr, *len, SQLCHAR, tmp_ptr, *len);
+-#endif
+ 			php_strtoupper(tmp_ptr, *len);
+ 			*ptr = tmp_ptr;
+ 			break;
+ 		}
+ 		default:
+ 			if (dbwillconvert(coltype, SQLCHAR)) {
+-				tmp_len = 32 + (2 * (*len));
++				tmp_len = 32 + (2 * (*len)); /* FIXME: We allocate more than we need here */
+ 				tmp_ptr = emalloc(tmp_len);
+ 				*len = dbconvert(NULL, coltype, *ptr, *len, SQLCHAR, tmp_ptr, -1);
+ 				*ptr = tmp_ptr;
+-		} else {
+-			*len = 0;
+-			*ptr = NULL;
+-		}
++			} else {
++				*len = 0; /* FIXME: Silently fails and returns null on conversion errors */
++				*ptr = NULL;
++			}
+ 	}
+ 
+ 	*caller_frees = 1;
+@@ -270,17 +291,25 @@
+ {
+ 	pdo_dblib_stmt *S = (pdo_dblib_stmt*)stmt->driver_data;
+ 	pdo_dblib_db_handle *H = S->H;
+-	
++	DBTYPEINFO* dbtypeinfo;
++
++	if(colno >= stmt->column_count || colno < 0)  {
++		return FAILURE;
++	}
++
+ 	array_init(return_value);
+ 
+-	DBTYPEINFO* dbtypeinfo;
+ 	dbtypeinfo = dbcoltypeinfo(H->link, colno+1);
++	
++	if(!dbtypeinfo) return FAILURE;
+ 		
+ 	add_assoc_long(return_value, "max_length", dbcollen(H->link, colno+1) );
+ 	add_assoc_long(return_value, "precision", (int) dbtypeinfo->precision );
+ 	add_assoc_long(return_value, "scale", (int) dbtypeinfo->scale );
+ 	add_assoc_string(return_value, "column_source", dbcolsource(H->link, colno+1), 1);
+ 	add_assoc_string(return_value, "native_type", pdo_dblib_get_field_name(dbcoltype(H->link, colno+1)), 1);
++	add_assoc_long(return_value, "native_type_id", dbcoltype(H->link, colno+1));
++	add_assoc_long(return_value, "native_usertype_id", dbcolutype(H->link, colno+1));
+ 
+ 	return 1;
+ }
+@@ -297,6 +326,6 @@
+ 	NULL, /* get attr */
+ 	pdo_dblib_stmt_get_column_meta, /* meta */
+ 	pdo_dblib_stmt_next_rowset, /* nextrow */
+-	dblib_dblib_stmt_cursor_closer
++	pdo_dblib_stmt_cursor_closer
+ };
+ 
+--- a/ext/pdo_dblib/pdo_dblib.c
++++ b/ext/pdo_dblib/pdo_dblib.c
+@@ -93,8 +93,12 @@
+ 	char *state = "HY000";
+ 	TSRMLS_FETCH();
+ 
+-	einfo = (pdo_dblib_err*)dbgetuserdata(dbproc);
+-	if (!einfo) einfo = &DBLIB_G(err);
++	if(dbproc) {
++		einfo = (pdo_dblib_err*)dbgetuserdata(dbproc);
++		if (!einfo) einfo = &DBLIB_G(err);
++	} else {
++		einfo = &DBLIB_G(err);
++	}	
+ 
+ 	einfo->severity = severity;
+ 	einfo->oserr = oserr;
+--- a/ext/pdo_dblib/php_pdo_dblib_int.h
++++ b/ext/pdo_dblib/php_pdo_dblib_int.h
+@@ -71,6 +71,8 @@
+ # define SQLVARBINARY	SYBVARBINARY
+ # ifdef SYBUNIQUE
+ #  define SQLUNIQUE		SYBUNIQUE
++#else 
++#  define SQLUNIQUE		36 /* FreeTDS Hack */
+ # endif
+ 
+ # define DBERRHANDLE(a, b)	dberrhandle(b)
+@@ -118,6 +120,12 @@
+ 	pdo_dblib_err err;
+ } pdo_dblib_stmt;
+ 
++typedef struct {
++	const char* key;
++	int value;
++} pdo_dblib_keyval;
++
++
+ ZEND_BEGIN_MODULE_GLOBALS(dblib)
+ 	pdo_dblib_err err;
+ 	char sqlstate[6];
