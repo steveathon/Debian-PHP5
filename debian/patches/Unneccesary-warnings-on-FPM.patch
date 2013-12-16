@@ -112,16 +112,26 @@ Date:   Fri Sep 28 01:08:08 2012 +0200
  	int pm_start_servers;
 --- a/sapi/fpm/fpm/fpm_unix.c
 +++ b/sapi/fpm/fpm/fpm_unix.c
-@@ -128,6 +128,9 @@
- 		if (wp->config->chroot && *wp->config->chroot) {
- 			zlog(ZLOG_WARNING, "[pool %s] 'chroot' directive is ignored when FPM is not running as root", wp->config->name);
+@@ -120,13 +120,16 @@
  		}
-+		if (wp->config->process_priority != 64) {
-+			zlog(ZLOG_WARNING, "[pool %s] 'process.priority' directive is ignored when FPM is not running as root", wp->config->name);
+ 	} else { /* not root */
+ 		if (wp->config->user && *wp->config->user) {
+-			zlog(ZLOG_WARNING, "[pool %s] 'user' directive is ignored when FPM is not running as root", wp->config->name);
++			zlog(ZLOG_NOTICE, "[pool %s] 'user' directive is ignored when FPM is not running as root", wp->config->name);
+ 		}
+ 		if (wp->config->group && *wp->config->group) {
+-			zlog(ZLOG_WARNING, "[pool %s] 'group' directive is ignored when FPM is not running as root", wp->config->name);
++			zlog(ZLOG_NOTICE, "[pool %s] 'group' directive is ignored when FPM is not running as root", wp->config->name);
+ 		}
+ 		if (wp->config->chroot && *wp->config->chroot) {
+-			zlog(ZLOG_WARNING, "[pool %s] 'chroot' directive is ignored when FPM is not running as root", wp->config->name);
++			zlog(ZLOG_NOTICE, "[pool %s] 'chroot' directive is ignored when FPM is not running as root", wp->config->name);
 +		}
++		if (wp->config->process_priority != 64) {
++			zlog(ZLOG_NOTICE, "[pool %s] 'process.priority' directive is ignored when FPM is not running as root", wp->config->name);
+ 		}
  
  		/* set up HOME and USER anyway */
- 		pwd = getpwuid(getuid());
 @@ -183,6 +186,14 @@
  	}
  
@@ -156,7 +166,7 @@ Date:   Fri Sep 28 01:08:08 2012 +0200
 +				return -1;
 +			}
 +		} else {
-+			zlog(ZLOG_WARNING, "'process.priority' directive is ignored when FPM is not running as root");
++			zlog(ZLOG_NOTICE, "'process.priority' directive is ignored when FPM is not running as root");
 +		}
 +	}
 +
