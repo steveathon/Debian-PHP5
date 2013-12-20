@@ -1,0 +1,118 @@
+commit f9e8678dd3a41ed8a100d8201153a41d6fd25f2e
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Wed Jan 9 11:30:50 2013 +0400
+
+    Fixed bug #63882 (zend_std_compare_objects crash on recursion)
+
+--- a/NEWS
++++ b/NEWS
+@@ -48,6 +48,7 @@
+ - CURL:
+   . Fixed bug #61948 (CURLOPT_COOKIEFILE '' raises open_basedir restriction).
+     (Laruence)
++  . Fixed bug #63882 (zend_std_compare_objects crash on recursion). (Dmitry)
+ 
+ - Intl:
+   . Fixed bug #62082 (Memory corruption in internal function 
+--- /dev/null
++++ b/Zend/tests/bug63882.phpt
+@@ -0,0 +1,15 @@
++--TEST--
++Bug #63882 (zend_std_compare_objects crash on recursion)
++--FILE--
++<?php
++class Test { public $x = 5; }
++
++$testobj1 = new Test;
++$testobj2 = new Test;
++$testobj1->x = $testobj1;
++$testobj2->x = $testobj2;
++
++var_dump($testobj1 == $testobj2);
++?>
++--EXPECTF--
++Fatal error: Nesting level too deep - recursive dependency? in %sbug63882.php on line 9
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -35,6 +35,17 @@
+ #define Z_OBJ_P(zval_p) \
+ 	((zend_object*)(EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].bucket.obj.object))
+ 
++#define Z_OBJ_PROTECT_RECURSION(zval_p) \
++	do { \
++		if (EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].apply_count++ >= 3) { \
++			zend_error(E_ERROR, "Nesting level too deep - recursive dependency?"); \
++		} \
++	} while (0)
++
++
++#define Z_OBJ_UNPROTECT_RECURSION(zval_p) \
++	EG(objects_store).object_buckets[Z_OBJ_HANDLE_P(zval_p)].apply_count--
++
+ /*
+   __X accessors explanation:
+ 
+@@ -1325,28 +1336,43 @@
+ 	}
+ 	if (!zobj1->properties && !zobj2->properties) {
+ 		int i;
++
++		Z_OBJ_PROTECT_RECURSION(o1);
++		Z_OBJ_PROTECT_RECURSION(o2);
+ 		for (i = 0; i < zobj1->ce->default_properties_count; i++) {
+ 			if (zobj1->properties_table[i]) {
+ 				if (zobj2->properties_table[i]) {
+ 					zval result;
+ 
+ 					if (compare_function(&result, zobj1->properties_table[i], zobj2->properties_table[i] TSRMLS_CC)==FAILURE) {
++						Z_OBJ_UNPROTECT_RECURSION(o1);
++						Z_OBJ_UNPROTECT_RECURSION(o2);
+ 						return 1;
+ 					}
+ 					if (Z_LVAL(result) != 0) {
++						Z_OBJ_UNPROTECT_RECURSION(o1);
++						Z_OBJ_UNPROTECT_RECURSION(o2);
+ 						return Z_LVAL(result);
+ 					}
+ 				} else {
++					Z_OBJ_UNPROTECT_RECURSION(o1);
++					Z_OBJ_UNPROTECT_RECURSION(o2);
+ 					return 1;
+ 				}
+ 			} else {
+ 				if (zobj2->properties_table[i]) {
++					Z_OBJ_UNPROTECT_RECURSION(o1);
++					Z_OBJ_UNPROTECT_RECURSION(o2);
+ 					return 1;
+ 				} else {
++					Z_OBJ_UNPROTECT_RECURSION(o1);
++					Z_OBJ_UNPROTECT_RECURSION(o2);
+ 					return 0;
+ 				}
+ 			}
+ 		}
++		Z_OBJ_UNPROTECT_RECURSION(o1);
++		Z_OBJ_UNPROTECT_RECURSION(o2);
+ 		return 0;
+ 	} else {
+ 		if (!zobj1->properties) {
+--- a/Zend/zend_objects_API.c
++++ b/Zend/zend_objects_API.c
+@@ -117,6 +117,7 @@
+ 	obj = &EG(objects_store).object_buckets[handle].bucket.obj;
+ 	EG(objects_store).object_buckets[handle].destructor_called = 0;
+ 	EG(objects_store).object_buckets[handle].valid = 1;
++	EG(objects_store).object_buckets[handle].apply_count = 0;
+ 
+ 	obj->refcount = 1;
+ 	GC_OBJ_INIT(obj);
+--- a/Zend/zend_objects_API.h
++++ b/Zend/zend_objects_API.h
+@@ -31,6 +31,7 @@
+ typedef struct _zend_object_store_bucket {
+ 	zend_bool destructor_called;
+ 	zend_bool valid;
++	zend_uchar apply_count;
+ 	union _store_bucket {
+ 		struct _store_object {
+ 			void *object;
