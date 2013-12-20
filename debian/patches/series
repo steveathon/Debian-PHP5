@@ -105,3 +105,4 @@ serialize-leaves-dangling-pointers-causes-crashes.patch
 CVE-2013-6420.patch
 CVE-2013-6712.patch
 Segfault-calling-bind_param-on-mysqli.patch
+fix-bug-65808-the-socket_connect-won-t-work-with-IPv.patch
