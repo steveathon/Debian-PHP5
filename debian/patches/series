@@ -107,3 +107,4 @@ CVE-2013-6712.patch
 CVE-2014-1943.patch
 Segfault-calling-bind_param-on-mysqli.patch
 fix-bug-65808-the-socket_connect-won-t-work-with-IPv.patch
+zend_std_compare_objects-crash-on-recursion.patch
