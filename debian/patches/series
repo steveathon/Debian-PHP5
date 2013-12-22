@@ -117,3 +117,4 @@ is_callable-lies-for-abstract-static-method.patch
 is_callable-triggers-Fatal-Error.patch
 Using-traits-with-get_class_methods-causes-segfault.patch
 class_alias-should-accept-classes-with-leading-backslashes.patch
+Segfault-in-gc_zval_possible_root-when-return-reference-fails.patch
