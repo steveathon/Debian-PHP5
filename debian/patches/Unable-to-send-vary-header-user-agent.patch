@@ -1,0 +1,68 @@
+commit 5cea7a9047ca45c99b107a89d833c2d0dbe96ec8
+Author: Michael Wallner <mike@php.net>
+Date:   Fri Aug 9 11:14:04 2013 +0200
+
+    fix bug #65391
+    
+    Unable to send vary header user-agent when
+    ob_start('ob_gzhandler') is called
+
+--- /dev/null
++++ b/ext/zlib/tests/bug65391.phpt
+@@ -0,0 +1,27 @@
++--TEST--
++Bug #65391 (Unable to send vary header user-agent when ob_start('ob_gzhandler') is called)
++--SKIPIF--
++<?php
++extension_loaded("zlib") or die("skip need zlib");
++?>
++--GET--
++dummy=1
++--FILE--
++<?php
++header("Vary: Cookie");
++ob_start("ob_gzhandler");
++
++// run-tests cannot test for a multiple Vary header
++ob_flush();
++print_r(headers_list());
++
++?>
++Done
++--EXPECTF--
++Array
++(
++    [0] => X-Powered-By: PHP/%s
++    [1] => Vary: Cookie
++    [2] => Vary: Accept-Encoding
++)
++Done
+--- a/ext/zlib/zlib.c
++++ b/ext/zlib/zlib.c
+@@ -190,7 +190,7 @@
+ 		if ((output_context->op & PHP_OUTPUT_HANDLER_START)
+ 		&&	(output_context->op != (PHP_OUTPUT_HANDLER_START|PHP_OUTPUT_HANDLER_CLEAN|PHP_OUTPUT_HANDLER_FINAL))
+ 		) {
+-			sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 1 TSRMLS_CC);
++			sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0 TSRMLS_CC);
+ 		}
+ 		return FAILURE;
+ 	}
+@@ -220,7 +220,7 @@
+ 						deflateEnd(&ctx->Z);
+ 						return FAILURE;
+ 				}
+-				sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 1 TSRMLS_CC);
++				sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0 TSRMLS_CC);
+ 				php_output_handler_hook(PHP_OUTPUT_HANDLER_HOOK_IMMUTABLE, NULL TSRMLS_CC);
+ 			}
+ 		}
+@@ -478,7 +478,7 @@
+ 				sapi_add_header_ex(ZEND_STRL("Content-Encoding: deflate"), 1, 1 TSRMLS_CC);
+ 				break;
+ 		}
+-		sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 1 TSRMLS_CC);
++		sapi_add_header_ex(ZEND_STRL("Vary: Accept-Encoding"), 1, 0 TSRMLS_CC);
+ 	}
+ 
+ 	if (!ZLIBG(ob_gzhandler)) {
