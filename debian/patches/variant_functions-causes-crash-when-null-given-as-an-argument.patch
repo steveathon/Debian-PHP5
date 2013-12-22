@@ -1,0 +1,19 @@
+commit 42896968282a607a26e4aa152d3c8dc90dad5826
+Author: Felipe Pena <felipensp@gmail.com>
+Date:   Tue Jun 25 21:36:50 2013 -0300
+
+    - Fixed bug #62475 (variant_* functions causes crash when null given as an argument)
+
+--- a/ext/com_dotnet/com_variant.c
++++ b/ext/com_dotnet/com_variant.c
+@@ -102,8 +102,9 @@
+ {
+ 	OLECHAR *olestring;
+ 	php_com_dotnet_object *obj;
++	zend_uchar ztype = (z == NULL ? IS_NULL : Z_TYPE_P(z));
+ 	
+-	switch (Z_TYPE_P(z)) {
++	switch (ztype) {
+ 		case IS_NULL:
+ 			V_VT(v) = VT_NULL;
+ 			break;
