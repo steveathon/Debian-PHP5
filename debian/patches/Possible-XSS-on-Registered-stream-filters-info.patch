@@ -1,0 +1,21 @@
+commit 41b73e4cee9ce68b8b78a00eddd4322b0d48dd06
+Author: Felipe Pena <felipensp@gmail.com>
+Date:   Tue Jun 25 18:00:33 2013 -0300
+
+    - Fixed bug #62964 (Possible XSS on "Registered stream filters" info) patch by: david at nnucomputerwhiz dot com
+
+--- a/ext/standard/info.c
++++ b/ext/standard/info.c
+@@ -125,7 +125,11 @@
+ 			zend_hash_internal_pointer_reset_ex(ht, &pos);
+ 			while (zend_hash_get_current_key_ex(ht, &key, &len, NULL, 0, &pos) == HASH_KEY_IS_STRING)
+ 			{
+-				php_info_print(key);
++				if (!sapi_module.phpinfo_as_text) {
++					php_info_print_html_esc(key, len-1);
++				} else {
++					php_info_print(key);
++				}
+ 				zend_hash_move_forward_ex(ht, &pos);
+ 				if (zend_hash_get_current_key_ex(ht, &key, &len, NULL, 0, &pos) == HASH_KEY_IS_STRING) {
+ 					php_info_print(", ");
