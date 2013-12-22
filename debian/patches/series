@@ -112,3 +112,4 @@ Crash-with-clone-XMLReader.patch
 PHP_BINARY-incorrectly-set.patch
 Memleak-with-static-properties-and-internal-user-classes.patch
 wrong-called-method-as-callback-with-inheritance.patch
+is_callable-lies-for-abstract-static-method.patch
