@@ -120,3 +120,4 @@ Segfault-in-gc_zval_possible_root-when-return-reference-fails.patch
 Use-of-max-int-in-array_sum.patch
 Unable-to-send-vary-header-user-agent.patch
 ZipArchive-addFile-has-to-check-for-file-existence.patch
+chroot-does-not-get-enabled.patch
