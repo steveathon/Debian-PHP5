@@ -1,0 +1,121 @@
+commit 968ae4a56a08587d73f81f30a0d57fbd109e4cf4
+Author: Anatol Belski <ab@php.net>
+Date:   Wed Apr 10 20:39:17 2013 +0200
+
+    Fixed bug #64342 ZipArchive::addFile() has to check for file existence
+
+--- a/ext/zip/php_zip.c
++++ b/ext/zip/php_zip.c
+@@ -28,6 +28,7 @@
+ #include "ext/standard/file.h"
+ #include "ext/standard/php_string.h"
+ #include "ext/pcre/php_pcre.h"
++#include "ext/standard/php_filestat.h"
+ #include "php_zip.h"
+ #include "lib/zip.h"
+ #include "lib/zipint.h"
+@@ -300,6 +301,7 @@
+ 	struct zip_source *zs;
+ 	int cur_idx;
+ 	char resolved_path[MAXPATHLEN];
++	zval exists_flag;
+ 
+ 
+ 	if (ZIP_OPENBASEDIR_CHECKPATH(filename)) {
+@@ -310,6 +312,11 @@
+ 		return -1;
+ 	}
+ 
++	php_stat(resolved_path, strlen(resolved_path), FS_EXISTS, &exists_flag TSRMLS_CC);
++	if (!Z_BVAL(exists_flag)) {
++		return -1;
++	}
++
+ 	zs = zip_source_file(za, resolved_path, offset_start, offset_len);
+ 	if (!zs) {
+ 		return -1;
+--- /dev/null
++++ b/ext/zip/tests/bug64342_0.phpt
+@@ -0,0 +1,42 @@
++--TEST--
++Bug #64342 ZipArchive::addFile() has to check file existance (variation 1)
++--SKIPIF--
++<?php
++	if(!extension_loaded('zip')) die('skip');
++?>
++--FILE--
++<?php
++
++$zip = new ZipArchive;
++$res = $zip->open(dirname(__FILE__) . '/bug64342.zip', ZipArchive::CREATE);
++if ($res === TRUE) {
++	$f = md5(uniqid()) . '.txt';
++	echo "$f\n";
++	$res = $zip->addFile($f);
++	if (true == $res) {
++		echo "add ok\n";
++	} else {
++		echo "add failed\n";
++	}
++	$res = $zip->close();
++	if (true == $res) {
++		echo "close ok\n";
++	} else {
++		echo "close failed\n";
++	}
++} else {
++	echo "open failed\n";
++}
++
++
++?>
++DONE
++--CLEAN--
++<?php
++
++@unlink(dirname(__FILE__) . '/bug64342.zip');
++--EXPECTF--
++%s.txt
++add failed
++close ok
++DONE
+--- /dev/null
++++ b/ext/zip/tests/bug64342_1.phpt
+@@ -0,0 +1,37 @@
++--TEST--
++Bug #64342 ZipArchive::addFile() has to check file existance (variation 2)
++--SKIPIF--
++<?php
++/* $Id$ */
++if(!extension_loaded('zip')) die('skip');
++?>
++--FILE--
++<?php
++
++$dirname = dirname(__FILE__) . '/';
++include $dirname . 'utils.inc';
++$file = $dirname . '__tmp_oo_addfile.zip';
++
++copy($dirname . 'test.zip', $file);
++
++$zip = new ZipArchive;
++if (!$zip->open($file)) {
++	exit('failed');
++}
++if (!$zip->addFile($dirname . 'cant_find_me.txt', 'test.php')) {
++	echo "failed\n";
++}
++if ($zip->status == ZIPARCHIVE::ER_OK) {
++	dump_entries_name($zip);
++	$zip->close();
++} else {
++	echo "failed\n";
++}
++@unlink($file);
++?>
++--EXPECTF--
++failed
++0 bar
++1 foobar/
++2 foobar/baz
++3 entry1.txt
