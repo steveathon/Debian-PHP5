@@ -109,3 +109,4 @@ Segfault-or-broken-object-references-on-unserialize.patch
 Unserialize-array-of-objects-whose-class-cant-be-autoloaded-fail.patch
 shutdown-segfault-due-to-serialize.patch
 Crash-with-clone-XMLReader.patch
+PHP_BINARY-incorrectly-set.patch
