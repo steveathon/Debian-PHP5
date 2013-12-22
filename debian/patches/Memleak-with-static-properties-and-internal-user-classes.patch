@@ -1,0 +1,41 @@
+commit 3d86e6d881a5f425c3b37a85ea7f1eb5acd12b18
+Author: Xinchen Hui <laruence@php.net>
+Date:   Mon Dec 10 20:29:51 2012 +0800
+
+    Fixed bug #63726 (Memleak with static properties and internal/user classes)
+    
+    No test scripts provided (will try to find one)
+
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -3699,6 +3699,8 @@
+ 				(*property)->value = value->value;
+ 				if (Z_REFCOUNT_P(value) > 0) {
+ 					zval_copy_ctor(*property);
++				} else {
++					efree(value);
+ 				}
+ 			} else {
+ 				zval *garbage = *property;
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -3327,7 +3327,7 @@
+ 		if ((child_info->flags & ZEND_ACC_PPP_MASK) > (parent_info->flags & ZEND_ACC_PPP_MASK)) {
+ 			zend_error(E_COMPILE_ERROR, "Access level to %s::$%s must be %s (as in class %s)%s", ce->name, hash_key->arKey, zend_visibility_string(parent_info->flags), parent_ce->name, (parent_info->flags&ZEND_ACC_PUBLIC) ? "" : " or weaker");
+ 		} else if ((child_info->flags & ZEND_ACC_STATIC) == 0) {
+-			Z_DELREF_P(ce->default_properties_table[parent_info->offset]);
++			zval_ptr_dtor(&(ce->default_properties_table[parent_info->offset]));
+ 			ce->default_properties_table[parent_info->offset] = ce->default_properties_table[child_info->offset];
+ 			ce->default_properties_table[child_info->offset] = NULL;
+ 			child_info->offset = parent_info->offset;
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -550,6 +550,8 @@
+ 				(*variable_ptr)->value = value->value;
+ 				if (Z_REFCOUNT_P(value) > 0) {
+ 					zval_copy_ctor(*variable_ptr);
++				} else {
++					efree(value);
+ 				}
+ 				zval_dtor(&garbage);
+ 			} else {
