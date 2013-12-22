@@ -1,0 +1,51 @@
+commit 04db57066deb73ef9c960a2c5bebad49195bc1bb
+Author: Felipe Pena <felipensp@gmail.com>
+Date:   Tue Jun 25 21:18:09 2013 -0300
+
+    - Fixed bug #62672 (Error on serialize of ArrayObject) patch by: lior dot k at zend dot com
+
+--- a/ext/spl/spl_array.c
++++ b/ext/spl/spl_array.c
+@@ -1781,7 +1781,7 @@
+ 	++p;
+ 
+ 	if (*p!='m') {
+-		if (*p!='a' && *p!='O' && *p!='C') {
++		if (*p!='a' && *p!='O' && *p!='C' && *p!='r') {
+ 			goto outexcept;
+ 		}
+ 		intern->ar_flags &= ~SPL_ARRAY_CLONE_MASK;
+--- /dev/null
++++ b/ext/spl/tests/bug62672.phpt
+@@ -0,0 +1,31 @@
++--TEST--
++Bug #62672 (Error on serialize of ArrayObject)
++--FILE--
++<?php
++
++class ObjA
++{
++    private $_varA;
++
++    public function __construct(Iterator $source)
++    {
++        $this->_varA = $source;
++    }
++}
++
++class ObjB extends ObjA
++{
++    private $_varB;
++
++    public function __construct(ArrayObject $keys)
++    {
++        $this->_varB = $keys;
++        parent::__construct($keys->getIterator());
++    }
++}
++
++$obj = new ObjB(new ArrayObject());
++
++var_dump($obj == unserialize(serialize($obj)));
++--EXPECTF--
++bool(true)
