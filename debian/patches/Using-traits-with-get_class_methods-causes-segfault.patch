@@ -1,0 +1,426 @@
+commit 4a6291508d69fab951562b996ed7223c052a0168
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Tue Mar 19 14:56:53 2013 +0400
+
+    Fixed bug #62343 (Show class_alias In get_declared_classes())
+
+commit 984561cfa81adfd893833bce506544349b04c803
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Tue Mar 19 15:45:48 2013 +0400
+
+    Partial fix for bug #64239
+
+commit 7dce0194c815cdc75a780b6471660042aed7bd7a
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Mar 21 21:09:30 2013 +0800
+
+    Fixed bug #64239 (Debug backtrace changed behavior since 5.4.10 or 5.4.11)
+
+commit 72027cd0848f1a5c580c601573448cdea9b095ca
+Author: Adam Harvey <aharvey@php.net>
+Date:   Wed Aug 28 20:33:42 2013 -0700
+
+    Fix bug #65579 (Using traits with get_class_methods causes segfault).
+    
+    Specifically, this checks if there are trait aliases defined in the class scope
+    before attempting to dereference the first trait alias. This handles the case
+    where a trait alias was used in a child trait but no aliases exist in the
+    concrete class.
+
+commit 747daa53546bfa2c4a0fd88d2d3dffd30356c1ad
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Aug 29 14:02:15 2013 +0800
+
+    Avoid compiler warning
+
+--- /dev/null
++++ b/Zend/tests/bug62343.phpt
+@@ -0,0 +1,13 @@
++--TEST--
++Bug #62343 (Show class_alias In get_declared_classes())
++--FILE--
++<?php
++class a { }
++class_alias("a", "b");
++$c = get_declared_classes();
++var_dump(end($c));
++var_dump(prev($c));
++?>
++--EXPECT--
++string(1) "b"
++string(1) "a"
+--- a/Zend/zend_builtin_functions.c
++++ b/Zend/zend_builtin_functions.c
+@@ -1025,6 +1025,13 @@
+ }
+ /* }}} */
+ 
++static int same_name(const char *key, const char *name, zend_uint name_len)
++{
++	char *lcname = zend_str_tolower_dup(name, name_len);
++	int ret = memcmp(lcname, key, name_len) == 0;
++	efree(lcname);
++	return ret;
++}
+ 
+ /* {{{ proto array get_class_methods(mixed class)
+    Returns an array of method names for class or class instance. */
+@@ -1072,14 +1079,26 @@
+ 			uint len = strlen(mptr->common.function_name);
+ 
+ 			/* Do not display old-style inherited constructors */
+-			if ((mptr->common.fn_flags & ZEND_ACC_CTOR) == 0 ||
+-			    mptr->common.scope == ce ||
+-			    zend_hash_get_current_key_ex(&ce->function_table, &key, &key_len, &num_index, 0, &pos) != HASH_KEY_IS_STRING ||
+-			    zend_binary_strcasecmp(key, key_len-1, mptr->common.function_name, len) == 0) {
+-
++			if (zend_hash_get_current_key_ex(&ce->function_table, &key, &key_len, &num_index, 0, &pos) != HASH_KEY_IS_STRING) {
+ 				MAKE_STD_ZVAL(method_name);
+ 				ZVAL_STRINGL(method_name, mptr->common.function_name, len, 1);
+ 				zend_hash_next_index_insert(return_value->value.ht, &method_name, sizeof(zval *), NULL);
++			} else if ((mptr->common.fn_flags & ZEND_ACC_CTOR) == 0 ||
++			    mptr->common.scope == ce ||
++			    zend_binary_strcasecmp(key, key_len-1, mptr->common.function_name, len) == 0) {
++
++				if (mptr->type == ZEND_USER_FUNCTION &&
++				    *mptr->op_array.refcount > 1 &&
++			    	(len != key_len - 1 ||
++			    	 !same_name(key, mptr->common.function_name, len))) {
++					MAKE_STD_ZVAL(method_name);
++					ZVAL_STRINGL(method_name, zend_find_alias_name(mptr->common.scope, key, key_len - 1), key_len - 1, 1);
++					zend_hash_next_index_insert(return_value->value.ht, &method_name, sizeof(zval *), NULL);
++				} else {
++					MAKE_STD_ZVAL(method_name);
++					ZVAL_STRINGL(method_name, mptr->common.function_name, len, 1);
++					zend_hash_next_index_insert(return_value->value.ht, &method_name, sizeof(zval *), NULL);
++				}
+ 			}
+ 		}
+ 		zend_hash_move_forward_ex(&ce->function_table, &pos);
+@@ -1640,7 +1659,6 @@
+ }
+ /* }}} */
+ 
+-
+ static int copy_class_or_interface_name(zend_class_entry **pce TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key)
+ {
+ 	zval *array = va_arg(args, zval *);
+@@ -1651,7 +1669,13 @@
+ 
+ 	if ((hash_key->nKeyLength==0 || hash_key->arKey[0]!=0)
+ 		&& (comply_mask == (ce->ce_flags & mask))) {
+-		add_next_index_stringl(array, ce->name, ce->name_length, 1);
++		if (ce->refcount > 1 && 
++		    (ce->name_length != hash_key->nKeyLength - 1 || 
++		     !same_name(hash_key->arKey, ce->name, ce->name_length))) {
++			add_next_index_stringl(array, hash_key->arKey, hash_key->nKeyLength - 1, 1);
++		} else {
++			add_next_index_stringl(array, ce->name, ce->name_length, 1);
++		}
+ 	}
+ 	return ZEND_HASH_APPLY_KEEP;
+ }
+@@ -2094,7 +2118,14 @@
+ 			lineno = 0;
+ 		}
+ 
+-		function_name = ptr->function_state.function->common.function_name;
++		function_name = (ptr->function_state.function->common.scope &&
++			ptr->function_state.function->common.scope->trait_aliases) ?
++				zend_resolve_method_name(
++					ptr->object ?
++						Z_OBJCE_P(ptr->object) : 
++						ptr->function_state.function->common.scope,
++					ptr->function_state.function) :
++				ptr->function_state.function->common.function_name;
+ 
+ 		if (function_name) {
+ 			if (ptr->object) {
+@@ -2275,7 +2306,14 @@
+ 			filename = NULL;
+ 		}
+ 
+-		function_name = ptr->function_state.function->common.function_name;
++		function_name = (ptr->function_state.function->common.scope &&
++			ptr->function_state.function->common.scope->trait_aliases) ?
++				zend_resolve_method_name(
++					ptr->object ?
++						Z_OBJCE_P(ptr->object) : 
++						ptr->function_state.function->common.scope,
++					ptr->function_state.function) :
++				ptr->function_state.function->common.function_name;
+ 
+ 		if (function_name) {
+ 			add_assoc_string_ex(stack_frame, "function", sizeof("function"), (char*)function_name, 1);
+--- /dev/null
++++ b/Zend/tests/bug64239_1.phpt
+@@ -0,0 +1,28 @@
++--TEST--
++Bug #64239 (get_class_methods() changed behavior)
++--FILE--
++<?php
++class A {
++	use T2 { t2method as Bmethod; }
++}
++
++class B extends A {
++}
++
++trait T2 {
++	public function t2method() {
++	}
++}
++print_r(get_class_methods("A"));
++print_r(get_class_methods("B"));
++--EXPECT--
++Array
++(
++    [0] => Bmethod
++    [1] => t2method
++)
++Array
++(
++    [0] => Bmethod
++    [1] => t2method
++)
+--- /dev/null
++++ b/Zend/tests/bug64239_2.phpt
+@@ -0,0 +1,58 @@
++--TEST--
++Bug #64239 (debug_backtrace() changed behavior)
++--FILE--
++<?php
++class A {
++	use T1;
++	public function test() { $this->backtrace(); }
++}
++
++class B {
++	use T2 { t2method as Bmethod; }
++}
++
++class C extends A {
++}
++
++trait T1 {
++	protected function backtrace() {
++		$b = new B();
++		$b->Bmethod();
++	}
++}
++trait T2 {
++	public function t2method() {
++		print_r(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1));
++	}
++}
++$a = new A();
++$a->test();
++
++$c = new C();
++$c->test();
++?>
++--EXPECTF--
++Array
++(
++    [0] => Array
++        (
++            [file] => %sbug64239_2.php
++            [line] => %d
++            [function] => Bmethod
++            [class] => B
++            [type] => ->
++        )
++
++)
++Array
++(
++    [0] => Array
++        (
++            [file] => %sbug64239_2.php
++            [line] => %d
++            [function] => Bmethod
++            [class] => B
++            [type] => ->
++        )
++
++)
+--- /dev/null
++++ b/Zend/tests/bug64239_3.phpt
+@@ -0,0 +1,33 @@
++--TEST--
++Bug #64239 (debug_print_backtrace() changed behavior)
++--FILE--
++<?php
++class A {
++	use T2 { t2method as Bmethod; }
++}
++
++class C extends A {
++	public function Bmethod() {
++		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
++    }
++}
++
++trait T2 {
++	public function t2method() {
++		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
++	}
++}
++
++$a = new A();
++$a->Bmethod();
++$a->t2method();
++
++$c = new C();
++$c->Bmethod();
++$c->t2method();
++?>
++--EXPECTF--
++#0  A->Bmethod() called at [%sbug64239_3.php:%d]
++#0  A->t2method() called at [%sbug64239_3.php:%d]
++#0  C->Bmethod() called at [%sbug64239_3.php:%d]
++#0  A->t2method() called at [%sbug64239_3.php:%d]
+--- /dev/null
++++ b/Zend/tests/bug64239_4.phpt
+@@ -0,0 +1,31 @@
++--TEST--
++Bug #64239 (debug_print_backtrace() changed behavior)
++--FILE--
++<?php
++class A {
++	use T2 { t2method as Bmethod; }
++}
++
++class C extends A {
++	public static function Bmethod() {
++		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
++    }
++}
++
++trait T2 {
++	public static function t2method() {
++		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1);
++	}
++}
++
++A::Bmethod();
++A::t2method();
++
++C::Bmethod();
++C::t2method();
++?>
++--EXPECTF--
++#0  A::Bmethod() called at [%sbug64239_4.php:%d]
++#0  A::t2method() called at [%sbug64239_4.php:%d]
++#0  C::Bmethod() called at [%sbug64239_4.php:%d]
++#0  A::t2method() called at [%sbug64239_4.php:%d]
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -3876,6 +3876,63 @@
+ }
+ /* }}} */
+ 
++ZEND_API const char* zend_find_alias_name(zend_class_entry *ce, const char *name, zend_uint len) /* {{{ */
++{
++	zend_trait_alias *alias, **alias_ptr;
++
++	if ((alias_ptr = ce->trait_aliases)) {
++		alias = *alias_ptr;
++		while (alias) {
++			if (alias->alias_len == len &&
++				!strncasecmp(name, alias->alias, alias->alias_len)) {
++				return alias->alias;
++			}
++			alias_ptr++;
++			alias = *alias_ptr;
++		}
++	}
++
++	return name;
++}
++/* }}} */
++
++ZEND_API const char* zend_resolve_method_name(zend_class_entry *ce, zend_function *f) /* {{{ */
++{
++	zend_function *func;
++	HashPosition iterator;
++	HashTable *function_table;
++
++	if (f->common.type != ZEND_USER_FUNCTION ||
++	    *(f->op_array.refcount) < 2 ||
++	    !f->common.scope ||
++	    !f->common.scope->trait_aliases) {
++		return f->common.function_name;
++	}
++
++	function_table = &ce->function_table;
++	zend_hash_internal_pointer_reset_ex(function_table, &iterator);
++	while (zend_hash_get_current_data_ex(function_table, (void **)&func, &iterator) == SUCCESS) {
++		if (func == f) {
++			char *name;
++			uint len;
++			ulong idx;
++
++			if (zend_hash_get_current_key_ex(function_table, &name, &len, &idx, 0, &iterator) != HASH_KEY_IS_STRING) {
++				return f->common.function_name;
++			}
++			--len;
++			if (len == strlen(f->common.function_name) &&
++			    !strncasecmp(name, f->common.function_name, len)) {
++				return f->common.function_name;
++			}
++			return zend_find_alias_name(f->common.scope, name, len);
++		}
++		zend_hash_move_forward_ex(function_table, &iterator);
++	}
++	return f->common.function_name;
++}
++/* }}} */
++
+ /*
+  * Local variables:
+  * tab-width: 4
+--- a/Zend/zend_API.h
++++ b/Zend/zend_API.h
+@@ -512,6 +512,9 @@
+ 
+ ZEND_API void zend_rebuild_symbol_table(TSRMLS_D);
+ 
++ZEND_API const char* zend_find_alias_name(zend_class_entry *ce, const char *name, zend_uint len);
++ZEND_API const char* zend_resolve_method_name(zend_class_entry *ce, zend_function *f);
++
+ #define add_method(arg, key, method)	add_assoc_function((arg), (key), (method))
+ 
+ ZEND_API ZEND_FUNCTION(display_disabled_function);
+--- /dev/null
++++ b/Zend/tests/bug65579.phpt
+@@ -0,0 +1,29 @@
++--TEST--
++Bug #65579 (Using traits with get_class_methods causes segfault)
++--FILE--
++<?php
++trait ParentTrait {
++    public function testMethod() { }
++}
++
++trait ChildTrait {
++    use ParentTrait {
++        testMethod as testMethodFromParentTrait;
++    }
++    public function testMethod() { }
++}
++
++class TestClass {
++    use ChildTrait;
++}
++
++$obj = new TestClass();
++var_dump(get_class_methods($obj));
++?>
++--EXPECT--
++array(2) {
++  [0]=>
++  string(10) "testMethod"
++  [1]=>
++  string(25) "testmethodfromparenttrait"
++}

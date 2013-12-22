@@ -115,3 +115,4 @@ Memleak-with-static-properties-and-internal-user-classes.patch
 wrong-called-method-as-callback-with-inheritance.patch
 is_callable-lies-for-abstract-static-method.patch
 is_callable-triggers-Fatal-Error.patch
+Using-traits-with-get_class_methods-causes-segfault.patch
