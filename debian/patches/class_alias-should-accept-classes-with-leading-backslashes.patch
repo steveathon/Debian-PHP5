@@ -1,0 +1,41 @@
+commit dfc6feb6e84f27094e6a2e3947caa094f7c35d26
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Thu Aug 29 11:16:56 2013 +0400
+
+    Fixed bug #61759 (class_alias() should accept classes with leading backslashes). (Julien)
+
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -2479,7 +2479,12 @@
+ 	char *lcname = zend_str_tolower_dup(name, name_len);
+ 	int ret;
+ 
+-	ret = zend_hash_add(CG(class_table), lcname, name_len+1, &ce, sizeof(zend_class_entry *), NULL);
++	if (lcname[0] == '\\') {
++		ret = zend_hash_add(CG(class_table), lcname+1, name_len, &ce, sizeof(zend_class_entry *), NULL);
++	} else {
++		ret = zend_hash_add(CG(class_table), lcname, name_len+1, &ce, sizeof(zend_class_entry *), NULL);
++	}
++
+ 	efree(lcname);
+ 	if (ret == SUCCESS) {
+ 		ce->refcount++;
+--- a/Zend/zend_builtin_functions.c
++++ b/Zend/zend_builtin_functions.c
+@@ -1399,15 +1399,8 @@
+ 		return;
+ 	}
+ 
+-	if (!autoload) {
+-		lc_name = do_alloca(class_name_len + 1, use_heap);
+-		zend_str_tolower_copy(lc_name, class_name, class_name_len);
++	found = zend_lookup_class_ex(class_name, class_name_len, NULL, autoload, &ce TSRMLS_CC);
+ 	
+-		found = zend_hash_find(EG(class_table), lc_name, class_name_len+1, (void **) &ce);
+-		free_alloca(lc_name, use_heap);
+-	} else {
+-		found = zend_lookup_class(class_name, class_name_len, &ce TSRMLS_CC);
+-	}
+ 	if (found == SUCCESS) {
+ 		if ((*ce)->type == ZEND_USER_CLASS) { 
+ 			if (zend_register_class_alias_ex(alias_name, alias_name_len, *ce TSRMLS_CC) == SUCCESS) {
