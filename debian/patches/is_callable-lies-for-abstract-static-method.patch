@@ -1,0 +1,63 @@
+commit 4db74b7f1981bf19805e815f983c50d93df2c26a
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Fri Sep 21 13:07:14 2012 +0400
+
+    Fixed bug #63111 (is_callable() lies for abstract static method)
+
+--- /dev/null
++++ b/Zend/tests/bug63111.phpt
+@@ -0,0 +1,36 @@
++--TEST--
++Bug #63111 (is_callable() lies for abstract static method)
++--FILE--
++<?php
++abstract class Foo {
++        abstract static function bar();
++}
++interface MyInterface {
++    static function bar();
++}
++abstract class Bar {
++	static function foo() {
++		echo "ok\n";
++	}
++}
++var_dump(is_callable(array("Foo", "bar")));
++var_dump(is_callable("Foo::bar"));
++var_dump(is_callable(array("MyInterface", "bar")));
++var_dump(is_callable("MyInterface::bar"));
++var_dump(is_callable(array("Bar", "foo")));
++var_dump(is_callable("Bar::foo"));
++Bar::foo();
++Foo::bar();
++?>
++--EXPECTF--
++Strict Standards: Static function Foo::bar() should not be abstract in %sbug63111.php on line 3
++bool(false)
++bool(false)
++bool(false)
++bool(false)
++bool(true)
++bool(true)
++ok
++
++Fatal error: Cannot call abstract method Foo::bar() in %sbug63111.php on line 20
++
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -2811,7 +2811,14 @@
+ 
+ 	if (retval) {
+ 		if (fcc->calling_scope && !call_via_handler) {
+-			if (!fcc->object_ptr && !(fcc->function_handler->common.fn_flags & ZEND_ACC_STATIC)) {
++			if (!fcc->object_ptr && (fcc->function_handler->common.fn_flags & ZEND_ACC_ABSTRACT)) {
++				if (error) {
++					zend_spprintf(error, 0, "cannot call abstract method %s::%s()", fcc->calling_scope->name, fcc->function_handler->common.function_name);
++					retval = 0;
++				} else {
++					zend_error(E_ERROR, "Cannot call abstract method %s::%s()", fcc->calling_scope->name, fcc->function_handler->common.function_name);
++				}
++			} else if (!fcc->object_ptr && !(fcc->function_handler->common.fn_flags & ZEND_ACC_STATIC)) {
+ 				int severity;
+ 				char *verb;
+ 				if (fcc->function_handler->common.fn_flags & ZEND_ACC_ALLOW_STATIC) {
