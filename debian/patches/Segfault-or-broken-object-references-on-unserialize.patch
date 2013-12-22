@@ -1,0 +1,164 @@
+commit 0b23da1c74c52a819b728c78c66c182511223355
+Author: Xinchen Hui <laruence@php.net>
+Date:   Fri Aug 17 18:28:32 2012 +0800
+
+    Fixed bug #62836 (Seg fault or broken object references on unserialize())
+
+--- a/NEWS
++++ b/NEWS
+@@ -886,6 +886,10 @@
+   . Fixed bug #43200 (Interface implementation / inheritence not possible in
+     abstract classes). (Felipe)
+ 
++- Standard:
++  . Fixed bug #62836 (Seg fault or broken object references on unserialize()).
++    (Laruence)
++
+ 
+ - BCmath:
+   . Fixed bug #60377 (bcscale related crashes on 64bits platforms). (shm)
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug62836_1.phpt
+@@ -0,0 +1,34 @@
++--TEST--
++Bug #62836 (Seg fault or broken object references on unserialize())
++--FILE--
++<?php
++$serialized_object='O:1:"A":4:{s:1:"b";O:1:"B":0:{}s:2:"b1";r:2;s:1:"c";O:1:"B":0:{}s:2:"c1";r:4;}';
++function __autoload($name) {
++    unserialize("i:4;");
++    eval("class $name {} ");
++}
++
++print_r(unserialize($serialized_object));
++echo "okey";
++?>
++--EXPECT--
++A Object
++(
++    [b] => B Object
++        (
++        )
++
++    [b1] => B Object
++        (
++        )
++
++    [c] => B Object
++        (
++        )
++
++    [c1] => B Object
++        (
++        )
++
++)
++okey
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug62836_2.phpt
+@@ -0,0 +1,37 @@
++--TEST--
++Bug #62836 (Seg fault or broken object references on unserialize())
++--FILE--
++<?php
++$serialized_object='O:1:"A":4:{s:1:"b";O:1:"B":0:{}s:2:"b1";r:2;s:1:"c";O:1:"B":0:{}s:2:"c1";r:4;}';
++
++ini_set('unserialize_callback_func','mycallback');
++
++function mycallback($classname) {
++    unserialize("i:4;");
++    eval ("class $classname {} ");
++}
++
++print_r(unserialize($serialized_object));
++echo "okey";
++?>
++--EXPECT--
++A Object
++(
++    [b] => B Object
++        (
++        )
++
++    [b1] => B Object
++        (
++        )
++
++    [c] => B Object
++        (
++        )
++
++    [c1] => B Object
++        (
++        )
++
++)
++okey
+--- a/ext/standard/var_unserializer.c
++++ b/ext/standard/var_unserializer.c
+@@ -612,10 +612,13 @@
+ 
+ 	do {
+ 		/* Try to find class directly */
++		BG(serialize_lock) = 1;
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
++			BG(serialize_lock) = 0;
+ 			ce = *pce;
+ 			break;
+ 		}
++		BG(serialize_lock) = 0;
+ 		
+ 		/* Check for unserialize callback */
+ 		if ((PG(unserialize_callback_func) == NULL) || (PG(unserialize_callback_func)[0] == '\0')) {
+@@ -630,7 +633,9 @@
+ 		args[0] = &arg_func_name;
+ 		MAKE_STD_ZVAL(arg_func_name);
+ 		ZVAL_STRING(arg_func_name, class_name, 1);
++		BG(serialize_lock) = 1;
+ 		if (call_user_function_ex(CG(function_table), NULL, user_func, &retval_ptr, 1, args, 0, NULL TSRMLS_CC) != SUCCESS) {
++			BG(serialize_lock) = 0;
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "defined (%s) but not found", user_func->value.str.val);
+ 			incomplete_class = 1;
+ 			ce = PHP_IC_ENTRY;
+@@ -638,6 +643,7 @@
+ 			zval_ptr_dtor(&arg_func_name);
+ 			break;
+ 		}
++		BG(serialize_lock) = 0;
+ 		if (retval_ptr) {
+ 			zval_ptr_dtor(&retval_ptr);
+ 		}
+--- a/ext/standard/var_unserializer.re
++++ b/ext/standard/var_unserializer.re
+@@ -678,10 +678,13 @@
+ 
+ 	do {
+ 		/* Try to find class directly */
++		BG(serialize_lock) = 1;
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
++			BG(serialize_lock) = 0;
+ 			ce = *pce;
+ 			break;
+ 		}
++		BG(serialize_lock) = 0;
+ 		
+ 		/* Check for unserialize callback */
+ 		if ((PG(unserialize_callback_func) == NULL) || (PG(unserialize_callback_func)[0] == '\0')) {
+@@ -696,7 +699,9 @@
+ 		args[0] = &arg_func_name;
+ 		MAKE_STD_ZVAL(arg_func_name);
+ 		ZVAL_STRING(arg_func_name, class_name, 1);
++		BG(serialize_lock) = 1;
+ 		if (call_user_function_ex(CG(function_table), NULL, user_func, &retval_ptr, 1, args, 0, NULL TSRMLS_CC) != SUCCESS) {
++			BG(serialize_lock) = 0;
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "defined (%s) but not found", user_func->value.str.val);
+ 			incomplete_class = 1;
+ 			ce = PHP_IC_ENTRY;
+@@ -704,6 +709,7 @@
+ 			zval_ptr_dtor(&arg_func_name);
+ 			break;
+ 		}
++		BG(serialize_lock) = 0;
+ 		if (retval_ptr) {
+ 			zval_ptr_dtor(&retval_ptr);
+ 		}

@@ -1,0 +1,275 @@
+commit f52b2e6a6572018eb61ad830206ed172b033232a
+Author: Xinchen Hui <laruence@php.net>
+Date:   Sat Mar 9 23:00:58 2013 +0800
+
+    Fixed bug #64354 (Unserialize array of objects whose class can't be autoloaded fail)
+    
+    about the __sleep one, since php_serialize_* are all void function,
+    so,,only check exception at the very begining
+
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug64354_1.phpt
+@@ -0,0 +1,25 @@
++--TEST--
++Bug #64354 (Unserialize array of objects whose class can't be autoloaded fail)
++--FILE--
++<?php
++spl_autoload_register(
++    function($class) {
++        throw new Exception("Failed");
++    }
++);
++
++try {
++    var_dump(unserialize('O:1:"A":0:{}'));
++} catch (Exception $e) { 
++    var_dump($e->getMessage());
++}
++
++try {
++    var_dump(unserialize('a:2:{i:0;O:1:"A":0:{}i:1;O:1:"A":0:{}}'));
++} catch (Exception $e) { 
++    var_dump($e->getMessage());
++}
++?>
++--EXPECTF--
++string(6) "Failed"
++string(6) "Failed"
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug64354_2.phpt
+@@ -0,0 +1,24 @@
++--TEST--
++Bug #64354 (Unserialize array of objects whose class can't be autoloaded fail)
++--FILE--
++<?php
++class A {
++    public function __wakeup() {
++        throw new Exception("Failed");
++    }
++}
++
++spl_autoload_register(
++    function($class) {
++        throw new Exception("Failed");
++    }
++);
++
++try {
++    var_dump(unserialize('a:2:{i:0;O:1:"A":0:{}i:1;O:1:"B":0:{}}'));
++} catch (Exception $e) { 
++    var_dump($e->getMessage());
++}
++?>
++--EXPECTF--
++string(6) "Failed"
+--- /dev/null
++++ b/ext/standard/tests/serialize/bug64354_3.phpt
+@@ -0,0 +1,29 @@
++--TEST--
++Bug #64354 (Unserialize array of objects whose class can't be autoloaded fail)
++--FILE--
++<?php
++class A {
++    public function __sleep() {
++        throw new Exception("Failed");
++    }
++}
++
++class B implements Serializable {
++    public function serialize() {
++        return NULL;
++    }
++
++    public function unserialize($data) {
++    }
++}
++
++$data = array(new A, new B);
++
++try {
++    serialize($data);
++} catch (Exception $e) { 
++    var_dump($e->getMessage());
++}
++?>
++--EXPECTF--
++string(6) "Failed"
+--- a/ext/standard/var.c
++++ b/ext/standard/var.c
+@@ -702,6 +702,10 @@
+ 	ulong *var_already;
+ 	HashTable *myht;
+ 
++	if (EG(exception)) {
++		return;
++	}
++
+ 	if (var_hash && php_add_var_hash(var_hash, struc, (void *) &var_already TSRMLS_CC) == FAILURE) {
+ 		if (Z_ISREF_P(struc)) {
+ 			smart_str_appendl(buf, "R:", 2);
+@@ -788,8 +792,15 @@
+ 					BG(serialize_lock)++;
+ 					res = call_user_function_ex(CG(function_table), &struc, &fname, &retval_ptr, 0, 0, 1, NULL TSRMLS_CC);
+ 					BG(serialize_lock)--;
++                    
++					if (EG(exception)) {
++						if (retval_ptr) {
++							zval_ptr_dtor(&retval_ptr);
++						}
++						return;
++					}
+ 
+-					if (res == SUCCESS && !EG(exception)) {
++					if (res == SUCCESS) {
+ 						if (retval_ptr) {
+ 							if (HASH_OF(retval_ptr)) {
+ 								php_var_serialize_class(buf, struc, retval_ptr, var_hash TSRMLS_CC);
+@@ -909,6 +920,11 @@
+ 	php_var_serialize(&buf, struc, &var_hash TSRMLS_CC);
+ 	PHP_VAR_SERIALIZE_DESTROY(var_hash);
+ 
++	if (EG(exception)) {
++		smart_str_free(&buf);
++		RETURN_FALSE;
++	}
++
+ 	if (buf.c) {
+ 		RETURN_STRINGL(buf.c, buf.len, 0);
+ 	} else {
+@@ -939,7 +955,9 @@
+ 	if (!php_var_unserialize(&return_value, &p, p + buf_len, &var_hash TSRMLS_CC)) {
+ 		PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
+ 		zval_dtor(return_value);
+-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Error at offset %ld of %d bytes", (long)((char*)p - buf), buf_len);
++		if (!EG(exception)) {
++			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Error at offset %ld of %d bytes", (long)((char*)p - buf), buf_len);
++		}
+ 		RETURN_FALSE;
+ 	}
+ 	PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
+--- a/ext/standard/var_unserializer.c
++++ b/ext/standard/var_unserializer.c
+@@ -394,8 +394,13 @@
+ 		BG(serialize_lock)--;
+ 	}
+ 
+-	if (retval_ptr)
++	if (retval_ptr) {
+ 		zval_ptr_dtor(&retval_ptr);
++	}
++
++	if (EG(exception)) {
++		return 0;
++	}
+ 
+ 	return finish_nested_data(UNSERIALIZE_PASSTHRU);
+ 
+@@ -615,10 +620,19 @@
+ 		BG(serialize_lock) = 1;
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
+ 			BG(serialize_lock) = 0;
++			if (EG(exception)) {
++				efree(class_name);
++				return 0;
++			}
+ 			ce = *pce;
+ 			break;
+ 		}
+ 		BG(serialize_lock) = 0;
++
++		if (EG(exception)) {
++			efree(class_name);
++			return 0;
++		}
+ 		
+ 		/* Check for unserialize callback */
+ 		if ((PG(unserialize_callback_func) == NULL) || (PG(unserialize_callback_func)[0] == '\0')) {
+@@ -636,6 +650,12 @@
+ 		BG(serialize_lock) = 1;
+ 		if (call_user_function_ex(CG(function_table), NULL, user_func, &retval_ptr, 1, args, 0, NULL TSRMLS_CC) != SUCCESS) {
+ 			BG(serialize_lock) = 0;
++			if (EG(exception)) {
++				efree(class_name);
++				zval_ptr_dtor(&user_func);
++				zval_ptr_dtor(&arg_func_name);
++				return 0;
++			}
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "defined (%s) but not found", user_func->value.str.val);
+ 			incomplete_class = 1;
+ 			ce = PHP_IC_ENTRY;
+@@ -647,6 +667,12 @@
+ 		if (retval_ptr) {
+ 			zval_ptr_dtor(&retval_ptr);
+ 		}
++		if (EG(exception)) {
++			efree(class_name);
++			zval_ptr_dtor(&user_func);
++			zval_ptr_dtor(&arg_func_name);
++			return 0;
++		}
+ 		
+ 		/* The callback function may have defined the class */
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
+--- a/ext/standard/var_unserializer.re
++++ b/ext/standard/var_unserializer.re
+@@ -400,8 +400,13 @@
+ 		BG(serialize_lock)--;
+ 	}
+ 
+-	if (retval_ptr)
++	if (retval_ptr) {
+ 		zval_ptr_dtor(&retval_ptr);
++	}
++
++	if (EG(exception)) {
++		return 0;
++	}
+ 
+ 	return finish_nested_data(UNSERIALIZE_PASSTHRU);
+ 
+@@ -681,10 +686,19 @@
+ 		BG(serialize_lock) = 1;
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
+ 			BG(serialize_lock) = 0;
++			if (EG(exception)) {
++				efree(class_name);
++				return 0;
++			}
+ 			ce = *pce;
+ 			break;
+ 		}
+ 		BG(serialize_lock) = 0;
++
++		if (EG(exception)) {
++			efree(class_name);
++			return 0;
++		}
+ 		
+ 		/* Check for unserialize callback */
+ 		if ((PG(unserialize_callback_func) == NULL) || (PG(unserialize_callback_func)[0] == '\0')) {
+@@ -702,6 +716,12 @@
+ 		BG(serialize_lock) = 1;
+ 		if (call_user_function_ex(CG(function_table), NULL, user_func, &retval_ptr, 1, args, 0, NULL TSRMLS_CC) != SUCCESS) {
+ 			BG(serialize_lock) = 0;
++			if (EG(exception)) {
++				efree(class_name);
++				zval_ptr_dtor(&user_func);
++				zval_ptr_dtor(&arg_func_name);
++				return 0;
++			}
+ 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "defined (%s) but not found", user_func->value.str.val);
+ 			incomplete_class = 1;
+ 			ce = PHP_IC_ENTRY;
+@@ -713,6 +733,12 @@
+ 		if (retval_ptr) {
+ 			zval_ptr_dtor(&retval_ptr);
+ 		}
++		if (EG(exception)) {
++			efree(class_name);
++			zval_ptr_dtor(&user_func);
++			zval_ptr_dtor(&arg_func_name);
++			return 0;
++		}
+ 		
+ 		/* The callback function may have defined the class */
+ 		if (zend_lookup_class(class_name, len2, &pce TSRMLS_CC) == SUCCESS) {
