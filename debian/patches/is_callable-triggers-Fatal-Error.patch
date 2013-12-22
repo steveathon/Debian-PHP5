@@ -1,0 +1,52 @@
+commit 9cf3e65391d6aa637e5471449499e957cff6ee89
+Author: Xinchen Hui <laruence@php.net>
+Date:   Mon Jun 24 23:45:08 2013 +0800
+
+    Fixed bug (is_callable() triggers Fatal Error)
+    
+    This bug is also exists in 5.4, and previous fix by dsp is not complete
+    for __callStatic stituation, see test script
+
+--- /dev/null
++++ b/Zend/tests/bug65108.phpt
+@@ -0,0 +1,27 @@
++--TEST--
++Bug #65108 (is_callable() triggers Fatal Error)
++--FILE--
++<?php
++class C {
++	private function f() {}
++	static function __callStatic($name, $args) {}
++}
++
++class B {
++	public function B() {
++		$isCallable = is_callable(array(new C, 'f'));
++		var_dump($isCallable);
++	}
++}
++
++new B();
++
++Class E {
++   private function f() {}
++   function __call($name, $args) {}
++}
++$isCallable = is_callable(array('E', 'f'));
++var_dump($isCallable);
++--EXPECT--
++bool(false)
++bool(false)
+--- a/Zend/zend_API.c
++++ b/Zend/zend_API.c
+@@ -2742,8 +2742,8 @@
+ 		}
+ 		if ((check_flags & IS_CALLABLE_CHECK_NO_ACCESS) == 0 &&
+ 		    (fcc->calling_scope &&
+-		     (fcc->calling_scope->__call ||
+-		      fcc->calling_scope->__callstatic))) {
++		     ((fcc->object_ptr && fcc->calling_scope->__call) ||
++		      (!fcc->object_ptr && fcc->calling_scope->__callstatic)))) {
+ 			if (fcc->function_handler->op_array.fn_flags & ZEND_ACC_PRIVATE) {
+ 				if (!zend_check_private(fcc->function_handler, fcc->object_ptr ? Z_OBJCE_P(fcc->object_ptr) : EG(scope), lmname, mlen TSRMLS_CC)) {
+ 					retval = 0;
