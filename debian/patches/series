@@ -105,3 +105,6 @@ Segfault-calling-bind_param-on-mysqli.patch
 fix-bug-65808-the-socket_connect-won-t-work-with-IPv.patch
 zend_std_compare_objects-crash-on-recursion.patch
 Segfault-with-built-in-webserver-and-chunked-transfer-encoding.patch
+Segfault-or-broken-object-references-on-unserialize.patch
+Unserialize-array-of-objects-whose-class-cant-be-autoloaded-fail.patch
+shutdown-segfault-due-to-serialize.patch
