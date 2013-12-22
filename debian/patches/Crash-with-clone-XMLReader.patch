@@ -1,0 +1,47 @@
+commit fc3f8a8f54d8b3c864125bf32028d4550882839c
+Author: Michael Wallner <mike@php.net>
+Date:   Thu Oct 3 13:28:41 2013 +0200
+
+    fix bug #59613 (Crash with clone XMLReader)
+
+commit dc3d360a0ff8c17cb2ce2030813d30b578249be9
+Author: Michael Wallner <mike@php.net>
+Date:   Thu Oct 3 13:34:31 2013 +0200
+
+    typo: really fix bug #51936 	Crash with clone xmlreader
+
+--- a/ext/xmlreader/php_xmlreader.c
++++ b/ext/xmlreader/php_xmlreader.c
+@@ -1320,6 +1320,7 @@
+ 	xmlreader_object_handlers.read_property = xmlreader_read_property;
+ 	xmlreader_object_handlers.write_property = xmlreader_write_property;
+ 	xmlreader_object_handlers.get_property_ptr_ptr = xmlreader_get_property_ptr_ptr;
++	xmlreader_object_handlers.clone_obj = NULL;
+ 
+ 	INIT_CLASS_ENTRY(ce, "XMLReader", xmlreader_functions);
+ 	ce.create_object = xmlreader_objects_new;
+--- /dev/null
++++ b/ext/xmlreader/tests/bug51936.phpt
+@@ -0,0 +1,22 @@
++--TEST--
++Bug #51936 (Crash with clone XMLReader)
++--SKIPIF--
++<?php
++extension_loaded("xmlreader") or die("skip requires xmlreader");
++?>
++--FILE--
++<?php
++echo "Test\n";
++
++$xmlreader = new XMLReader();
++$xmlreader->xml("<a><b/></a>");
++
++$xmlreader->next();
++$xmlreader2 = clone $xmlreader;
++$xmlreader2->next();
++?>
++Done
++--EXPECTF--
++Test
++
++Fatal error: Trying to clone an uncloneable object of class XMLReader in %s on line %d
