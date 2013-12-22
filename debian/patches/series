@@ -118,3 +118,4 @@ Using-traits-with-get_class_methods-causes-segfault.patch
 class_alias-should-accept-classes-with-leading-backslashes.patch
 Segfault-in-gc_zval_possible_root-when-return-reference-fails.patch
 Use-of-max-int-in-array_sum.patch
+Unable-to-send-vary-header-user-agent.patch
