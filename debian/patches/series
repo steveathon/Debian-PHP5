@@ -123,3 +123,4 @@ ZipArchive-addFile-has-to-check-for-file-existence.patch
 chroot-does-not-get-enabled.patch
 variant_functions-causes-crash-when-null-given-as-an-argument.patch
 Segfault-on-memory-exhaustion-within-function-definition.patch
+segfault-in-zend_do_fcall_common_helper_SPEC.patch
