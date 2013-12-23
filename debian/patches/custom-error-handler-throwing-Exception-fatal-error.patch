@@ -1,0 +1,150 @@
+commit b29dc146b9311c14186c14bcb1c8ae5288b65d73
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Thu Sep 6 11:26:40 2012 +0400
+
+    - Fixed bug #61767 (Shutdown functions not called in certain error situation)
+    - Fixed bug #60909 (custom error handler throwing Exception + fatal error = no shutdown function)
+
+--- a/Zend/tests/bug51394.phpt
++++ b/Zend/tests/bug51394.phpt
+@@ -13,4 +13,10 @@
+ set_error_handler("eh");
+ $a = $empty($b);
+ --EXPECTF--
++Warning: Uncaught exception 'Exception' with message 'error!' in %sbug51394.php:4
++Stack trace:
++#0 %sbug51394.php(9): eh(8, 'Undefined varia...', '%s', 9, Array)
++#1 {main}
++  thrown in %sbug51394.php on line 4
++
+ Fatal error: Function name must be a string in %sbug51394.php on line 9
+\ No newline at end of file
+--- /dev/null
++++ b/Zend/tests/bug60909_1.phpt
+@@ -0,0 +1,24 @@
++--TEST--
++Bug #60909 (custom error handler throwing Exception + fatal error = no shutdown function).
++--FILE--
++<?php
++register_shutdown_function(function(){echo("\n\n!!!shutdown!!!\n\n");});
++set_error_handler(function($errno, $errstr, $errfile, $errline){
++ echo "error($errstr)";
++ throw new Exception("Foo");
++});
++
++require 'notfound.php';
++--EXPECTF--
++error(require(notfound.php): failed to open stream: No such file or directory)
++Warning: Uncaught exception 'Exception' with message 'Foo' in %sbug60909_1.php:5
++Stack trace:
++#0 %sbug60909_1.php(8): {closure}(2, 'require(notfoun...', '%s', 8, Array)
++#1 %sbug60909_1.php(8): require()
++#2 {main}
++  thrown in %sbug60909_1.php on line 5
++
++Fatal error: main(): Failed opening required 'notfound.php' (include_path='%s') in %sbug60909_1.php on line 8
++
++
++!!!shutdown!!!
+--- /dev/null
++++ b/Zend/tests/bug60909_2.phpt
+@@ -0,0 +1,20 @@
++--TEST--
++Bug #60909 (custom error handler throwing Exception + fatal error = no shutdown function).
++--FILE--
++<?php
++register_shutdown_function(function(){echo("\n\n!!!shutdown!!!\n\n");});
++set_error_handler(function($errno, $errstr, $errfile, $errline){throw new Exception("Foo");});
++
++class Bad {
++    public function __toString() {
++        throw new Exception('Oops, I cannot do this');
++    }
++}
++
++$bad = new Bad();
++echo "$bad";
++--EXPECTF--
++Fatal error: Method Bad::__toString() must not throw an exception in %sbug60909_2.php on line 0
++
++
++!!!shutdown!!!
+--- /dev/null
++++ b/Zend/tests/bug61767.phpt
+@@ -0,0 +1,34 @@
++--TEST--
++Bug #61767 (Shutdown functions not called in certain error situation)
++--FILE--
++<?php
++set_error_handler(function($code, $msg, $file = null, $line = null) {
++    echo "Error handler called ($msg)\n";
++    throw new \ErrorException($msg, $code, 0, $file, $line);
++});
++
++register_shutdown_function(function(){
++    echo "Shutting down\n";
++    print_r(error_get_last());
++});
++
++//$undefined = null; // defined variable does not cause problems
++$undefined->foo();
++--EXPECTF--
++Error handler called (Undefined variable: undefined)
++
++Warning: Uncaught exception 'ErrorException' with message 'Undefined variable: undefined' in %sbug61767.php:13
++Stack trace:
++#0 %sbug61767.php(13): {closure}(8, 'Undefined varia...', '%s', 13, Array)
++#1 {main}
++  thrown in %sbug61767.php on line 13
++
++Fatal error: Call to a member function foo() on a non-object in %sbug61767.php on line 13
++Shutting down
++Array
++(
++    [type] => 1
++    [message] => Call to a member function foo() on a non-object
++    [file] => %sbug61767.php
++    [line] => 13
++)
+--- a/Zend/zend.c
++++ b/Zend/zend.c
+@@ -1031,6 +1031,29 @@
+ 	zend_stack context_stack;
+ 	TSRMLS_FETCH();
+ 
++	/* Report about uncaught exception in case of fatal errors */
++	if (EG(exception)) {
++		switch (type) {
++			case E_CORE_ERROR:
++			case E_ERROR:
++			case E_RECOVERABLE_ERROR:
++			case E_PARSE:
++			case E_COMPILE_ERROR:
++			case E_USER_ERROR:
++				if (zend_is_executing(TSRMLS_C)) {
++					error_lineno = zend_get_executed_lineno(TSRMLS_C);
++				}
++				zend_exception_error(EG(exception), E_WARNING TSRMLS_CC);
++				EG(exception) = NULL;
++				if (zend_is_executing(TSRMLS_C) && EG(opline_ptr)) {
++					active_opline->lineno = error_lineno;
++				}
++				break;
++			default:
++				break;
++		}
++	}
++
+ 	/* Obtain relevant filename and lineno */
+ 	switch (type) {
+ 		case E_CORE_ERROR:
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -1526,6 +1526,7 @@
+ 					if (retval) {
+ 						zval_ptr_dtor(&retval);
+ 					}
++					EG(exception) = NULL;
+ 					zend_error_noreturn(E_ERROR, "Method %s::__toString() must not throw an exception", ce->name);
+ 					return FAILURE;
+ 				}
