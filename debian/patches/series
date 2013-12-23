@@ -126,3 +126,4 @@ variant_functions-causes-crash-when-null-given-as-an-argument.patch
 Segfault-on-memory-exhaustion-within-function-definition.patch
 Possible-XSS-on-Registered-stream-filters-info.patch
 Error-on-serialize-of-ArrayObject.patch
+isset-inconsistently-produces-a-fatal-error-on-protected-property.patch
