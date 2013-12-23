@@ -1,0 +1,226 @@
+commit 331540d20cb5b17964e6b2901c343df58bc8a0c9
+Author: Remi Collet <remi@php.net>
+Date:   Thu May 2 13:27:16 2013 +0200
+
+    From code coverity scan
+    - fix some memory leak
+    - fix some resources leak (fd)
+    - create fpm_worker_pool_free (shared use)
+    - possible null dref (wp->user and wp->home can be null)
+
+commit eeba67914ebe02de279f0188be739b78c7a76958
+Author: Jerome Loyet <fat@php.net>
+Date:   Fri May 25 21:23:39 2012 +0200
+
+    - Fixed bug #62153 (when using unix sockets, multiples FPM instances can be launched without errors)
+
+commit 444e59eb2071e8c2d2bcb61bb1e2404dd3b780cf
+Author: Remi Collet <remi@php.net>
+Date:   Thu May 2 13:47:24 2013 +0200
+
+    fix more resource leaks
+
+commit 5799ebdb0cafb2de1dbb18cfe780976c98dbaeac
+Author: Rasmus Lerdorf <rasmus@php.net>
+Date:   Tue Jul 24 16:28:49 2012 -0700
+
+    Fix bug #62654
+
+commit 812dfbc4315d38a4ee6669e8b7de50493a8bb3bd
+Author: Rasmus Lerdorf <rasmus@lerdorf.com>
+Date:   Thu Oct 31 03:18:07 2013 -0700
+
+    Fix bug #66008
+
+--- a/sapi/fpm/fpm/fpm_conf.c
++++ b/sapi/fpm/fpm/fpm_conf.c
+@@ -536,12 +536,17 @@
+ 	kv->key = strdup(Z_STRVAL_P(key));
+ 
+ 	if (!kv->key) {
++		free(kv);
+ 		return "fpm_conf_set_array: strdup(key) failed";
+ 	}
+ 
+ 	if (convert_to_bool) {
+ 		char *err = fpm_conf_set_boolean(value, &subconf, 0);
+-		if (err) return err;
++		if (err) {
++			free(kv->key);
++			free(kv);
++			return err;
++		}
+ 		kv->value = strdup(b ? "1" : "0");
+ 	} else {
+ 		kv->value = strdup(Z_STRVAL_P(value));
+@@ -552,6 +557,7 @@
+ 
+ 	if (!kv->value) {
+ 		free(kv->key);
++		free(kv);
+ 		return "fpm_conf_set_array: strdup(value) failed";
+ 	}
+ 
+@@ -574,6 +580,7 @@
+ 	wp->config = malloc(sizeof(struct fpm_worker_pool_config_s));
+ 
+ 	if (!wp->config) { 
++		fpm_worker_pool_free(wp);
+ 		return 0;
+ 	}
+ 
+@@ -1089,6 +1096,7 @@
+ 
+ 		if (len != write(fd, buf, len)) {
+ 			zlog(ZLOG_SYSERROR, "Unable to write to the PID file.");
++			close(fd);
+ 			return -1;
+ 		}
+ 		close(fd);
+@@ -1437,6 +1445,7 @@
+ 
+ 	if (ini_recursion++ > 4) {
+ 		zlog(ZLOG_ERROR, "failed to include more than 5 files recusively");
++		close(fd);
+ 		return -1;
+ 	}
+ 
+--- a/sapi/fpm/fpm/fpm_worker_pool.c
++++ b/sapi/fpm/fpm/fpm_worker_pool.c
+@@ -18,6 +18,21 @@
+ 
+ struct fpm_worker_pool_s *fpm_worker_all_pools;
+ 
++void fpm_worker_pool_free(struct fpm_worker_pool_s *wp) /* {{{ */
++{
++	if (wp->config) {
++		free(wp->config);
++	}
++	if (wp->user) {
++		free(wp->user);
++	}
++	if (wp->home) {
++		free(wp->home);
++	}
++	free(wp);
++}
++/* }}} */
++
+ static void fpm_worker_pool_cleanup(int which, void *arg) /* {{{ */
+ {
+ 	struct fpm_worker_pool_s *wp, *wp_next;
+@@ -29,10 +44,7 @@
+ 		if ((which & FPM_CLEANUP_CHILD) == 0 && fpm_globals.parent_pid == getpid()) {
+ 			fpm_scoreboard_free(wp->scoreboard);
+ 		}
+-		free(wp->config);
+-		free(wp->user);
+-		free(wp->home);
+-		free(wp);
++		fpm_worker_pool_free(wp);
+ 	}
+ 	fpm_worker_all_pools = NULL;
+ }
+--- a/sapi/fpm/fpm/fpm_worker_pool.h
++++ b/sapi/fpm/fpm/fpm_worker_pool.h
+@@ -45,6 +45,7 @@
+ };
+ 
+ struct fpm_worker_pool_s *fpm_worker_pool_alloc();
++void fpm_worker_pool_free(struct fpm_worker_pool_s *wp);
+ int fpm_worker_pool_init_main();
+ 
+ extern struct fpm_worker_pool_s *fpm_worker_all_pools;
+--- a/sapi/fpm/fpm/fpm_sockets.c
++++ b/sapi/fpm/fpm/fpm_sockets.c
+@@ -167,7 +167,7 @@
+ {
+ 	int flags = 1;
+ 	int sock;
+-	mode_t saved_umask;
++	mode_t saved_umask = 0;
+ 
+ 	sock = socket(sa->sa_family, SOCK_STREAM, 0);
+ 
+@@ -179,6 +179,11 @@
+ 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof(flags));
+ 
+ 	if (wp->listen_address_domain == FPM_AF_UNIX) {
++		if (fpm_socket_unix_test_connect((struct sockaddr_un *)sa, socklen) == 0) {
++			zlog(ZLOG_ERROR, "An another FPM instance seems to already listen on %s", ((struct sockaddr_un *) sa)->sun_path);
++			close(sock);
++			return -1;
++		}
+ 		unlink( ((struct sockaddr_un *) sa)->sun_path);
+ 		saved_umask = umask(0777 ^ wp->socket_mode);
+ 	}
+@@ -188,6 +193,7 @@
+ 		if (wp->listen_address_domain == FPM_AF_UNIX) {
+ 			umask(saved_umask);
+ 		}
++		close(sock);
+ 		return -1;
+ 	}
+ 
+@@ -199,6 +205,7 @@
+ 		if (wp->socket_uid != -1 || wp->socket_gid != -1) {
+ 			if (0 > chown(path, wp->socket_uid, wp->socket_gid)) {
+ 				zlog(ZLOG_SYSERROR, "failed to chown() the socket '%s'", wp->config->listen_address);
++				close(sock);
+ 				return -1;
+ 			}
+ 		}
+@@ -206,6 +213,7 @@
+ 
+ 	if (0 > listen(sock, wp->config->listen_backlog)) {
+ 		zlog(ZLOG_SYSERROR, "failed to listen to address '%s'", wp->config->listen_address);
++		close(sock);
+ 		return -1;
+ 	}
+ 
+@@ -450,3 +458,25 @@
+ }
+ 
+ #endif
++
++int fpm_socket_unix_test_connect(struct sockaddr_un *sock, size_t socklen) /* {{{ */
++{
++	int fd;
++
++	if (!sock || sock->sun_family != AF_UNIX) {
++		return -1;
++	}
++
++	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
++		return -1;
++	}
++
++	if (connect(fd, (struct sockaddr *)sock, socklen) == -1) {
++		close(fd);
++		return -1;
++	}
++
++	close(fd);
++	return 0;
++}
++/* }}} */
+--- a/sapi/fpm/fpm/fpm_sockets.h
++++ b/sapi/fpm/fpm/fpm_sockets.h
+@@ -22,6 +22,7 @@
+ enum fpm_address_domain fpm_sockets_domain_from_address(char *addr);
+ int fpm_sockets_init_main();
+ int fpm_socket_get_listening_queue(int sock, unsigned *cur_lq, unsigned *max_lq);
++int fpm_socket_unix_test_connect(struct sockaddr_un *sun, size_t socklen);
+ 
+ 
+ static inline int fd_set_blocked(int fd, int blocked) /* {{{ */
+--- a/sapi/fpm/fpm/fpm_stdio.c
++++ b/sapi/fpm/fpm/fpm_stdio.c
+@@ -34,6 +34,7 @@
+ 
+ 	if (0 > dup2(fd, STDIN_FILENO) || 0 > dup2(fd, STDOUT_FILENO)) {
+ 		zlog(ZLOG_SYSERROR, "failed to init stdio: dup2()");
++		close(fd);
+ 		return -1;
+ 	}
+ 	close(fd);
