@@ -1,0 +1,47 @@
+commit f55bed9dad0ffbec170b857c0b3b1b33426fe9d5
+Author: Remi Collet <remi@php.net>
+Date:   Sat Nov 24 15:00:03 2012 +0100
+
+    Fixed Bug #63126 DISABLE_AUTHENTICATOR ignores array
+
+commit 60dcc5851f0dd7cf387270d6ba243f9ac46bc396
+Author: Felipe Pena <felipensp@gmail.com>
+Date:   Wed Jun 26 19:15:19 2013 -0300
+
+    - Fixed bug #64467 (Segmentation fault after imap_reopen failure) patch by: askalski at gmail dot com
+
+--- a/ext/imap/php_imap.c
++++ b/ext/imap/php_imap.c
+@@ -1191,7 +1191,7 @@
+ 							if (zend_hash_index_find(Z_ARRVAL_PP(disabled_auth_method), i, (void **) &z_auth_method) == SUCCESS) {
+ 								if (Z_TYPE_PP(z_auth_method) == IS_STRING) {
+ 									if (Z_STRLEN_PP(z_auth_method) > 1) {
+-										mail_parameters (NIL, DISABLE_AUTHENTICATOR, (void *)Z_STRVAL_PP(disabled_auth_method));
++										mail_parameters (NIL, DISABLE_AUTHENTICATOR, (void *)Z_STRVAL_PP(z_auth_method));
+ 									}
+ 								} else {
+ 									php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid argument, expect string or array of strings");
+@@ -1270,7 +1270,6 @@
+ 	int mailbox_len;
+ 	long options = 0, retries = 0;
+ 	pils *imap_le_struct;
+-	MAILSTREAM *imap_stream;
+ 	long flags=NIL;
+ 	long cl_flags=NIL;
+ 
+@@ -1298,12 +1297,12 @@
+ 		RETURN_FALSE;
+ 	}
+ 
+-	imap_stream = mail_open(imap_le_struct->imap_stream, mailbox, flags);
+-	if (imap_stream == NIL) {
++	imap_le_struct->imap_stream = mail_open(imap_le_struct->imap_stream, mailbox, flags);
++	if (imap_le_struct->imap_stream == NIL) {
++		zend_list_delete(Z_RESVAL_P(streamind));
+ 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Couldn't re-open stream");
+ 		RETURN_FALSE;
+ 	}
+-	imap_le_struct->imap_stream = imap_stream;
+ 	RETURN_TRUE;
+ }
+ /* }}} */

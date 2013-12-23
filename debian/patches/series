@@ -127,3 +127,4 @@ Possible-XSS-on-Registered-stream-filters-info.patch
 Error-on-serialize-of-ArrayObject.patch
 isset-inconsistently-produces-a-fatal-error-on-protected-property.patch
 custom-error-handler-throwing-Exception-fatal-error.patch
+Segmentation-fault-after-imap_reopen-failure.patch
