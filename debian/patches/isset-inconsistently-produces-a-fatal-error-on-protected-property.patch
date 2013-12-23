@@ -1,0 +1,35 @@
+commit 1a96fe0b3260b4b63627cf69d71a5b350ad3163f
+Author: Stanislav Malyshev <stas@php.net>
+Date:   Sun Jan 13 17:08:52 2013 -0800
+
+    fix bug #63982: isset() inconsistently produces a fatal error on protected property
+
+--- /dev/null
++++ b/Zend/tests/bug63982.phpt
+@@ -0,0 +1,15 @@
++--TEST--
++Bug #63982 (isset() inconsistently produces a fatal error on protected property)
++--FILE--
++<?php
++class Test {
++        protected $protectedProperty;
++}
++
++$test = new Test();
++
++var_dump(isset($test->protectedProperty));
++var_dump(isset($test->protectedProperty->foo));
++--EXPECTF--
++bool(false)
++bool(false)
+--- a/Zend/zend_object_handlers.c
++++ b/Zend/zend_object_handlers.c
+@@ -435,7 +435,7 @@
+ #endif
+ 
+ 	/* make zend_get_property_info silent if we have getter - we may want to use it */
+-	property_info = zend_get_property_info_quick(zobj->ce, member, (zobj->ce->__get != NULL), key TSRMLS_CC);
++	property_info = zend_get_property_info_quick(zobj->ce, member, silent || (zobj->ce->__get != NULL), key TSRMLS_CC);
+ 
+ 	if (UNEXPECTED(!property_info) ||
+ 	    ((EXPECTED((property_info->flags & ZEND_ACC_STATIC) == 0) &&
