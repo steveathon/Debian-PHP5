@@ -1,0 +1,59 @@
+commit c96a5bc6be99ff8a4c5dbc1ea3c04d8144bc47a9
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Apr 4 14:34:11 2013 +0800
+
+    Fixed bug #64578 (debug_backtrace in set_error_handler corrupts zend heap: segfault)
+
+--- a/NEWS
++++ b/NEWS
+@@ -890,6 +890,9 @@
+   . Fixed bug #62836 (Seg fault or broken object references on unserialize()).
+     (Laruence)
+ 
++- Core:
++  . Fixed bug #64578 (debug_backtrace in set_error_handler corrupts zend heap: 
++	segfault). (Laruence)
+ 
+ - BCmath:
+   . Fixed bug #60377 (bcscale related crashes on 64bits platforms). (shm)
+--- /dev/null
++++ b/Zend/tests/bug64578.phpt
+@@ -0,0 +1,15 @@
++--TEST--
++Bug #64578 (debug_backtrace in set_error_handler corrupts zend heap: segfault)
++--FILE--
++<?php
++function x($s) { 
++	$resource = fopen("php://input", "r"); 
++	$s[$resource] = '2';
++}
++$y = "1";
++x($y);
++var_dump($y);
++?>
++--EXPECTF--
++Warning: Illegal offset type in %sbug64578.php on line %d
++string(1) "1"
+--- a/Zend/zend_execute.c
++++ b/Zend/zend_execute.c
+@@ -1145,6 +1145,10 @@
+ 					zend_error_noreturn(E_ERROR, "[] operator not supported for strings");
+ 				}
+ 
++				if (type != BP_VAR_UNSET) {
++					SEPARATE_ZVAL_IF_NOT_REF(container_ptr);
++				}
++
+ 				if (Z_TYPE_P(dim) != IS_LONG) {
+ 
+ 					switch(Z_TYPE_P(dim)) {
+@@ -1173,9 +1177,6 @@
+ 					convert_to_long(&tmp);
+ 					dim = &tmp;
+ 				}
+-				if (type != BP_VAR_UNSET) {
+-					SEPARATE_ZVAL_IF_NOT_REF(container_ptr);
+-				}
+ 				container = *container_ptr;
+ 				result->str_offset.str = container;
+ 				PZVAL_LOCK(container);
