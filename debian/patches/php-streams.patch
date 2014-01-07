@@ -1,0 +1,109 @@
+commit 76601c4fd1052bd46e8db4addb1bb9dd3b001f98
+Author: Gustavo Lopes <glopes@nebm.ist.utl.pt>
+Date:   Fri Oct 12 20:00:37 2012 +0200
+
+    Fix bug #63240 on stream_get_line()
+    
+    stream_get_line() could contain the delimiter string if that string
+    had more than one character. The bug manifested itself when a read on
+    the stream ended with part of the delimiter string and the read after
+    would start with the rest of the delimiter string; provided that
+    the data of first read did not complete the max length result of the
+    call to stream_get_line() with the partial delimiter used in that max
+    length return. In that case, the delimiter will still appear in
+    the result, divided in two subsequent return values. That is not a bug.
+    
+    See <http://www.mail-archive.com/internals@lists.php.net/msg61325.html>
+
+commit 6b4148bc9705d2668dd8589009215a8eb3076f31
+Author: Remi Collet <remi@php.net>
+Date:   Tue Apr 2 16:18:26 2013 +0200
+
+    Fixed Bug #64565 copy doesn't report failure on partial copy
+    
+    _php_stream_copy_to_stream_ex, when mmap is possible, doesn't check
+    if actually written bytes match read bytes.
+    
+    Fix this (paranoid check) to be consistent with non mmap mode
+    
+    Seems hard to add a unit test, as this rely on a full filesystem.
+
+--- /dev/null
++++ b/ext/standard/tests/streams/bug63240.phpt
+@@ -0,0 +1,17 @@
++--TEST--
++Bug #63240: stream_get_line() return contains delimiter string
++--FILE--
++<?php
++$fd = fopen('php://temp', 'r+');
++$delimiter = 'MM';
++$str = str_repeat('.', 8191) . $delimiter . "rest";
++fwrite($fd, $str);
++rewind($fd);
++$line = stream_get_line($fd, 9000, $delimiter);
++var_dump(strlen($line));
++$line = stream_get_line($fd, 9000, $delimiter);
++var_dump($line);
++?>
++--EXPECT--
++int(8191)
++string(4) "rest"
+--- a/main/streams/streams.c
++++ b/main/streams/streams.c
+@@ -1059,9 +1059,17 @@
+ 		if (has_delim) {
+ 			/* search for delimiter, but skip buffered_len (the number of bytes
+ 			 * buffered before this loop iteration), as they have already been
+-			 * searched for the delimiter */
++			 * searched for the delimiter.
++			 * The left part of the delimiter may still remain in the buffer,
++			 * so subtract up to <delim_len - 1> from buffered_len, which is
++			 * the ammount of data we skip on this search  as an optimization
++			 */
+ 			found_delim = _php_stream_search_delim(
+-				stream, maxlen, buffered_len, delim, delim_len TSRMLS_CC);
++				stream, maxlen,
++				buffered_len >= (delim_len - 1)
++						? buffered_len - (delim_len - 1)
++						: 0,
++				delim, delim_len TSRMLS_CC);
+ 			if (found_delim) {
+ 				break;
+ 			}
+@@ -1485,7 +1493,7 @@
+ 	char buf[CHUNK_SIZE];
+ 	size_t readchunk;
+ 	size_t haveread = 0;
+-	size_t didread;
++	size_t didread, didwrite, towrite;
+ 	size_t dummy;
+ 	php_stream_statbuf ssbuf;
+ 
+@@ -1520,16 +1528,16 @@
+ 		p = php_stream_mmap_range(src, php_stream_tell(src), maxlen, PHP_STREAM_MAP_MODE_SHARED_READONLY, &mapped);
+ 
+ 		if (p) {
+-			mapped = php_stream_write(dest, p, mapped);
++			didwrite = php_stream_write(dest, p, mapped);
+ 
+ 			php_stream_mmap_unmap_ex(src, mapped);
+ 
+-			*len = mapped;
++			*len = didwrite;
+ 
+ 			/* we've got at least 1 byte to read.
+ 			 * less than 1 is an error */
+ 
+-			if (mapped > 0) {
++			if (mapped == didwrite) {
+ 				return SUCCESS;
+ 			}
+ 			return FAILURE;
+@@ -1547,7 +1555,6 @@
+ 
+ 		if (didread) {
+ 			/* extra paranoid */
+-			size_t didwrite, towrite;
+ 			char *writeptr;
+ 
+ 			towrite = didread;
