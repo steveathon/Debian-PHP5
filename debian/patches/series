@@ -139,3 +139,4 @@ Magic-methods-called-twice-for-unset-protected-properties.patch
 Use-after-scope-error-in-zend_compile.patch
 cli-apache-sapi-segfault-on-objects-manipulation.patch
 fix-possible-resource-leak-and-make-sure-theres-something-to-qsort.patch
+php-streams.patch
