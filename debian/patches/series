@@ -135,6 +135,5 @@ Custom-Exceptions-crash-when-internal-properties-overridden.patch
 debug_backtrace-in-set_error_handler-corrupts-zend-heap-segfault.patch
 Parent-class-incorrectly-using-child-constant-in-class-property.patch
 ArrayAccess-offsetGet-in-a-trait-causes-fatal-error.patch
-Exceptions-from-set_error_handler-are-not-always-propagated.patch
 Magic-methods-called-twice-for-unset-protected-properties.patch
 Use-after-scope-error-in-zend_compile.patch
