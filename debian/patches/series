@@ -135,3 +135,4 @@ Custom-Exceptions-crash-when-internal-properties-overridden.patch
 execution-operator-stealing-surrounding-arguments.patch
 debug_backtrace-in-set_error_handler-corrupts-zend-heap-segfault.patch
 Parent-class-incorrectly-using-child-constant-in-class-property.patch
+ArrayAccess-offsetGet-in-a-trait-causes-fatal-error.patch
