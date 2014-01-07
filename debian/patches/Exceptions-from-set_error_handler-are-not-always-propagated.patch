@@ -1,0 +1,823 @@
+commit 290509755ac4a3279b2b31b899aa9f2dd780f5f4
+Author: Xinchen Hui <laruence@php.net>
+Date:   Thu Feb 7 23:44:46 2013 +0800
+
+    Fixed bug #64135 (Exceptions from set_error_handler are not always propagated)
+
+commit 75742d57eb34c2c1c4d23d55f9b9ee44939b32c2
+Author: Xinchen Hui <laruence@php.net>
+Date:   Sat Feb 16 22:22:22 2013 +0800
+
+    Exceptions triggered by undefined variable should be handled before FATAL error
+    
+    this is a enhancement of the fix for bug #64135
+
+--- a/Zend/tests/bug61767.phpt
++++ b/Zend/tests/bug61767.phpt
+@@ -17,18 +17,16 @@
+ --EXPECTF--
+ Error handler called (Undefined variable: undefined)
+ 
+-Warning: Uncaught exception 'ErrorException' with message 'Undefined variable: undefined' in %sbug61767.php:13
++Fatal error: Uncaught exception 'ErrorException' with message 'Undefined variable: undefined' in %sbug61767.php:%d
+ Stack trace:
+-#0 %sbug61767.php(13): {closure}(8, 'Undefined varia...', '%s', 13, Array)
++#0 %sbug61767.php(%d): {closure}(%s, 'Undefined varia...', '%s', %d, Array)
+ #1 {main}
+-  thrown in %sbug61767.php on line 13
+-
+-Fatal error: Call to a member function foo() on a non-object in %sbug61767.php on line 13
++  thrown in %sbug61767.php on line %d
+ Shutting down
+ Array
+ (
+     [type] => 1
+-    [message] => Call to a member function foo() on a non-object
++    [message] => %a
+     [file] => %sbug61767.php
+-    [line] => 13
++    [line] => %d
+ )
+--- a/Zend/zend_vm_def.h
++++ b/Zend/zend_vm_def.h
+@@ -2145,6 +2145,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -2169,6 +2172,9 @@
+ 
+ 	if (OP2_TYPE != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -2202,6 +2208,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			FREE_OP2();
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -2278,6 +2288,9 @@
+ 			function_name = GET_OP2_ZVAL_PTR(BP_VAR_R);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -2465,6 +2478,9 @@
+ 			CHECK_EXCEPTION();
+ 			ZEND_VM_NEXT_OPCODE();
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 		}
+ 	}
+@@ -2944,8 +2960,12 @@
+ 	value = GET_OP1_ZVAL_PTR(BP_VAR_R);
+ 
+ 	if (OP1_TYPE == IS_CONST || UNEXPECTED(Z_TYPE_P(value) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Can only throw objects");
+ 	}
++
+ 	zend_exception_save(TSRMLS_C);
+ 	/* Not sure if a complete copy is what we want here */
+ 	ALLOC_ZVAL(exception);
+@@ -3405,6 +3425,9 @@
+ 
+ 	if (OP1_TYPE == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+--- a/Zend/zend_vm_execute.h
++++ b/Zend/zend_vm_execute.h
+@@ -1178,6 +1178,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -1309,6 +1312,9 @@
+ 			CHECK_EXCEPTION();
+ 			ZEND_VM_NEXT_OPCODE();
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 		}
+ 	}
+@@ -1479,6 +1485,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -1611,6 +1620,9 @@
+ 			CHECK_EXCEPTION();
+ 			ZEND_VM_NEXT_OPCODE();
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 		}
+ 	}
+@@ -1643,6 +1655,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -1775,6 +1790,9 @@
+ 			CHECK_EXCEPTION();
+ 			ZEND_VM_NEXT_OPCODE();
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 		}
+ 	}
+@@ -1807,6 +1825,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -1841,6 +1862,9 @@
+ 		} else if (Z_TYPE_P(class_name) == IS_STRING) {
+ 			EX_T(opline->result.var).class_entry = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), opline->extended_value TSRMLS_CC);
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Class name must be a valid object or a string");
+ 		}
+ 
+@@ -1972,6 +1996,9 @@
+ 			CHECK_EXCEPTION();
+ 			ZEND_VM_NEXT_OPCODE();
+ 		} else {
++			if (UNEXPECTED(EG(exception) != NULL)) {
++				HANDLE_EXCEPTION();
++			}
+ 			zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 		}
+ 	}
+@@ -2343,8 +2370,12 @@
+ 	value = opline->op1.zv;
+ 
+ 	if (IS_CONST == IS_CONST || UNEXPECTED(Z_TYPE_P(value) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Can only throw objects");
+ 	}
++
+ 	zend_exception_save(TSRMLS_C);
+ 	/* Not sure if a complete copy is what we want here */
+ 	ALLOC_ZVAL(exception);
+@@ -2415,6 +2446,9 @@
+ 
+ 	if (IS_CONST == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+@@ -3453,6 +3487,9 @@
+ 			function_name = opline->op2.zv;
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -4255,6 +4292,9 @@
+ 			function_name = _get_zval_ptr_tmp(opline->op2.var, EX_Ts(), &free_op2 TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -4929,6 +4969,9 @@
+ 			function_name = _get_zval_ptr_var(opline->op2.var, EX_Ts(), &free_op2 TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -5488,6 +5531,9 @@
+ 			function_name = NULL;
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -6159,6 +6205,9 @@
+ 			function_name = _get_zval_ptr_cv_BP_VAR_R(EX_CVs(), opline->op2.var TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -6759,8 +6808,12 @@
+ 	value = _get_zval_ptr_tmp(opline->op1.var, EX_Ts(), &free_op1 TSRMLS_CC);
+ 
+ 	if (IS_TMP_VAR == IS_CONST || UNEXPECTED(Z_TYPE_P(value) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Can only throw objects");
+ 	}
++
+ 	zend_exception_save(TSRMLS_C);
+ 	/* Not sure if a complete copy is what we want here */
+ 	ALLOC_ZVAL(exception);
+@@ -6832,6 +6885,9 @@
+ 
+ 	if (IS_TMP_VAR == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+@@ -7931,6 +7987,9 @@
+ 
+ 	if (IS_CONST != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -8600,6 +8659,9 @@
+ 
+ 	if (IS_TMP_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -8633,6 +8695,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -9274,6 +9340,9 @@
+ 
+ 	if (IS_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -9307,6 +9376,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			zval_dtor(free_op2.var);
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -10369,6 +10442,9 @@
+ 
+ 	if (IS_CV != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -10402,6 +10478,14 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			if (free_op2.var) {zval_ptr_dtor(&free_op2.var);};
++			HANDLE_EXCEPTION();
++		}
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -11081,8 +11165,12 @@
+ 	value = _get_zval_ptr_var(opline->op1.var, EX_Ts(), &free_op1 TSRMLS_CC);
+ 
+ 	if (IS_VAR == IS_CONST || UNEXPECTED(Z_TYPE_P(value) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Can only throw objects");
+ 	}
++
+ 	zend_exception_save(TSRMLS_C);
+ 	/* Not sure if a complete copy is what we want here */
+ 	ALLOC_ZVAL(exception);
+@@ -11263,6 +11351,9 @@
+ 
+ 	if (IS_VAR == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+@@ -13446,6 +13537,9 @@
+ 
+ 	if (IS_CONST != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -13479,6 +13573,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -13554,6 +13652,9 @@
+ 			function_name = opline->op2.zv;
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -15615,6 +15716,9 @@
+ 
+ 	if (IS_TMP_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -15648,6 +15752,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			zval_dtor(free_op2.var);
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -15724,6 +15832,9 @@
+ 			function_name = _get_zval_ptr_tmp(opline->op2.var, EX_Ts(), &free_op2 TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -17752,6 +17863,9 @@
+ 
+ 	if (IS_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -17785,6 +17899,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			if (free_op2.var) {zval_ptr_dtor(&free_op2.var);};
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -17861,6 +17979,9 @@
+ 			function_name = _get_zval_ptr_var(opline->op2.var, EX_Ts(), &free_op2 TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -19137,6 +19258,9 @@
+ 			function_name = NULL;
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -20866,6 +20990,9 @@
+ 
+ 	if (IS_CV != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -20899,6 +21026,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -20974,6 +21105,9 @@
+ 			function_name = _get_zval_ptr_cv_BP_VAR_R(EX_CVs(), opline->op2.var TSRMLS_CC);
+ 
+ 			if (UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++				if (UNEXPECTED(EG(exception) != NULL)) {
++					HANDLE_EXCEPTION();
++				}
+ 				zend_error_noreturn(E_ERROR, "Function name must be a string");
+ 			} else {
+ 				function_name_strval = Z_STRVAL_P(function_name);
+@@ -21464,6 +21598,9 @@
+ 
+ 	if (IS_UNUSED == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+@@ -22333,6 +22470,9 @@
+ 
+ 	if (IS_CONST != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -22366,6 +22506,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -23583,6 +23727,9 @@
+ 
+ 	if (IS_TMP_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -23616,6 +23763,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			zval_dtor(free_op2.var);
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -24742,6 +24893,9 @@
+ 
+ 	if (IS_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -24775,6 +24929,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			if (free_op2.var) {zval_ptr_dtor(&free_op2.var);};
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -26168,6 +26326,9 @@
+ 
+ 	if (IS_CV != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -26201,6 +26362,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -27048,8 +27213,12 @@
+ 	value = _get_zval_ptr_cv_BP_VAR_R(EX_CVs(), opline->op1.var TSRMLS_CC);
+ 
+ 	if (IS_CV == IS_CONST || UNEXPECTED(Z_TYPE_P(value) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Can only throw objects");
+ 	}
++
+ 	zend_exception_save(TSRMLS_C);
+ 	/* Not sure if a complete copy is what we want here */
+ 	ALLOC_ZVAL(exception);
+@@ -27218,6 +27387,9 @@
+ 
+ 	if (IS_CV == IS_CONST ||
+ 	    UNEXPECTED(Z_TYPE_P(obj) != IS_OBJECT)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "__clone method called on non-object");
+ 	}
+ 
+@@ -29247,6 +29419,9 @@
+ 
+ 	if (IS_CONST != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -29280,6 +29455,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -31195,6 +31374,9 @@
+ 
+ 	if (IS_TMP_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -31228,6 +31410,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			zval_dtor(free_op2.var);
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -33202,6 +33388,9 @@
+ 
+ 	if (IS_VAR != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -33235,6 +33424,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			if (free_op2.var) {zval_ptr_dtor(&free_op2.var);};
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+@@ -36047,6 +36240,9 @@
+ 
+ 	if (IS_CV != IS_CONST &&
+ 	    UNEXPECTED(Z_TYPE_P(function_name) != IS_STRING)) {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Method name must be a string");
+ 	}
+ 
+@@ -36080,6 +36276,10 @@
+ 			}
+ 		}
+ 	} else {
++		if (UNEXPECTED(EG(exception) != NULL)) {
++
++			HANDLE_EXCEPTION();
++		}
+ 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", function_name_strval);
+ 	}
+ 
+--- a/Zend/tests/bug51394.phpt
++++ b/Zend/tests/bug51394.phpt
+@@ -13,10 +13,8 @@
+ set_error_handler("eh");
+ $a = $empty($b);
+ --EXPECTF--
+-Warning: Uncaught exception 'Exception' with message 'error!' in %sbug51394.php:4
++Fatal error: Uncaught exception 'Exception' with message 'error!' in %sbug51394.php:%d
+ Stack trace:
+-#0 %sbug51394.php(9): eh(8, 'Undefined varia...', '%s', 9, Array)
++#0 %sbug51394.php(%d): eh(8, 'Undefined varia%s', '%s', %d, Array)
+ #1 {main}
+-  thrown in %sbug51394.php on line 4
+-
+-Fatal error: Function name must be a string in %sbug51394.php on line 9
+\ No newline at end of file
++  thrown in %sbug51394.php on line %d
+--- /dev/null
++++ b/Zend/tests/exception_before_fatal.phpt
+@@ -0,0 +1,64 @@
++--TEST--
++Exceptions before fatal error
++--FILE--
++<?php
++function exception_error_handler($code, $msg) {
++    throw new Exception($msg);
++}
++
++set_error_handler("exception_error_handler");
++
++try {
++    $foo->a();
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++try {
++    new $foo();
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++try {
++    throw $foo;
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++try {
++    $foo();
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++try {
++    $foo::b();
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++
++try {
++    $b = clone $foo;
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++
++class b {
++}
++
++try {
++    b::$foo();
++} catch(Exception $e) {
++    var_dump($e->getMessage());
++}
++?>
++--EXPECT--
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
++string(23) "Undefined variable: foo"
