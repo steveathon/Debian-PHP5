@@ -32,6 +32,12 @@ Date:   Thu Oct 31 03:18:07 2013 -0700
 
     Fix bug #66008
 
+commit a911fbc80a8e29aa1d58d8e8a86c4fa3f6c7bf92
+Author: Dylan Arnold <dylan.arnold@gmail.com>
+Date:   Mon Sep 9 13:06:38 2013 +1200
+
+    Call php_module_shutdown() for php-fpm child processes
+
 --- a/sapi/fpm/fpm/fpm_conf.c
 +++ b/sapi/fpm/fpm/fpm_conf.c
 @@ -536,12 +536,17 @@
@@ -224,3 +230,16 @@ Date:   Thu Oct 31 03:18:07 2013 -0700
  		return -1;
  	}
  	close(fd);
+--- a/sapi/fpm/fpm/fpm_main.c
++++ b/sapi/fpm/fpm/fpm_main.c
+@@ -1950,8 +1950,9 @@
+ out:
+ 
+ 	SG(server_context) = NULL;
++	php_module_shutdown(TSRMLS_C);
++
+ 	if (parent) {
+-		php_module_shutdown(TSRMLS_C);
+ 		sapi_shutdown();
+ 	}
+ 
