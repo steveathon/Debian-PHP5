@@ -1,0 +1,33 @@
+commit 29ac511b8afabaee27133bb3582142a49154eab5
+Author: Anatol Belski <ab@php.net>
+Date:   Wed Jul 10 13:00:47 2013 +0200
+
+    fix possible resource leak and make sure there's something to qsort()
+
+--- a/main/streams/streams.c
++++ b/main/streams/streams.c
+@@ -2350,6 +2350,7 @@
+ 			} else {
+ 				if(vector_size*2 < vector_size) {
+ 					/* overflow */
++					php_stream_closedir(stream);
+ 					efree(vector);
+ 					return FAILURE;
+ 				}
+@@ -2363,6 +2364,7 @@
+ 		nfiles++;
+ 		if(vector_size < 10 || nfiles == 0) {
+ 			/* overflow */
++			php_stream_closedir(stream);
+ 			efree(vector);
+ 			return FAILURE;
+ 		}
+@@ -2371,7 +2373,7 @@
+ 
+ 	*namelist = vector;
+ 
+-	if (compare) {
++	if (nfiles > 0 && compare) {
+ 		qsort(*namelist, nfiles, sizeof(char *), (int(*)(const void *, const void *))compare);
+ 	}
+ 	return nfiles;
