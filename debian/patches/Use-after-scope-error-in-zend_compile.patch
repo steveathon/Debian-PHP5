@@ -1,0 +1,17 @@
+commit c3e6de2227f0200b9db318e181603ffba7991489
+Author: Xinchen Hui <laruence@php.net>
+Date:   Fri Jan 4 11:02:21 2013 +0800
+
+    Fixed bug #63899 (Use after scope error in zend_compile)
+
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -4960,7 +4960,7 @@
+ 		tmp.u.constant = *CG(current_namespace);
+ 		zval_copy_ctor(&tmp.u.constant);
+ 		zend_do_build_namespace_name(&tmp, &tmp, class_name TSRMLS_CC);
+-		class_name = &tmp;
++		*class_name = tmp;
+ 		efree(lcname);
+ 		lcname = zend_str_tolower_dup(Z_STRVAL(class_name->u.constant), Z_STRLEN(class_name->u.constant));
+ 	}
