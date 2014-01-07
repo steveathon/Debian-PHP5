@@ -1,0 +1,63 @@
+commit e62bb0325763d9847847dd198e05c9b3147caf05
+Author: Dmitry Stogov <dmitry@zend.com>
+Date:   Tue Mar 19 12:48:23 2013 +0400
+
+    Fixed bug #64417 (ArrayAccess::&offsetGet() in a trait causes fatal error)
+
+--- /dev/null
++++ b/Zend/tests/bug64417.phpt
+@@ -0,0 +1,39 @@
++--TEST--
++Bug #64417 (BC break: ArrayAccess::&offsetGet() in a trait causes fatal error)
++--FILE--
++<?php
++trait aa {
++    private $container = array();
++    public function offsetSet($offset, $value) {
++        if (is_null($offset)) {
++            $this->container[] = $value;
++        } else {
++            $this->container[$offset] = $value;
++        }
++    }
++    public function offsetExists($offset) {
++        return isset($this->container[$offset]);
++    }
++    public function offsetUnset($offset) {
++        unset($this->container[$offset]);
++    }
++    public function &offsetGet($offset) {
++	$result = null;
++        if (isset($this->container[$offset])) {
++            $result = &$this->container[$offset];
++        }
++        return $result;
++    }
++}
++
++class obj implements ArrayAccess {
++    use aa;
++}
++
++$o = new obj;
++$o['x'] = 1;
++++$o['x'];
++echo $o['x'], "\n";
++--EXPECT--
++2
++
+--- a/Zend/zend_compile.c
++++ b/Zend/zend_compile.c
+@@ -3630,9 +3630,9 @@
+ 	zend_uint other_flags = other_fn->common.scope->ce_flags;
+ 	
+ 	return zend_do_perform_implementation_check(fn, other_fn TSRMLS_CC)
+-		&& zend_do_perform_implementation_check(other_fn, fn TSRMLS_CC)
+-		&& ((fn_flags & ZEND_ACC_FINAL) == (other_flags & ZEND_ACC_FINAL))   /* equal final qualifier */
+-		&& ((fn_flags & ZEND_ACC_STATIC)== (other_flags & ZEND_ACC_STATIC)); /* equal static qualifier */
++		&& ((other_fn->common.scope->ce_flags & ZEND_ACC_INTERFACE) || zend_do_perform_implementation_check(other_fn, fn TSRMLS_CC))
++		&& ((fn_flags & (ZEND_ACC_FINAL|ZEND_ACC_STATIC)) == 
++		    (other_flags & (ZEND_ACC_FINAL|ZEND_ACC_STATIC))); /* equal final and static qualifier */
+ }
+ /* }}} */
+ 
