@@ -130,3 +130,4 @@ custom-error-handler-throwing-Exception-fatal-error.patch
 Segmentation-fault-after-imap_reopen-failure.patch
 fpm-resource-leaks.patch
 fpm-fix-possible-null-deref.patch
+Custom-Exceptions-crash-when-internal-properties-overridden.patch

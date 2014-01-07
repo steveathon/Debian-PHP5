@@ -1,0 +1,106 @@
+commit d6505acbf5ff6db0e9e19cdba121183d9563bad5
+Author: Anatol Belski <ab@php.net>
+Date:   Sun May 12 14:00:32 2013 +0200
+
+    Fixed bug #64821 Custom Exceptions crash when internal properties overridden
+    
+    If user inherits Exception and overrides the properties to arbitrary data types,
+    or simply doesn't run parent::__construct(), here we go. Just convert everything
+    to the appropriate data type, like Exception::__toString() does.
+
+--- /dev/null
++++ b/Zend/tests/bug64821.1.phpt
+@@ -0,0 +1,22 @@
++--TEST--
++Bug #64821 Custom Exceptions crash when internal properties overridden (variation 1)
++--FILE--
++<?php
++
++class a extends exception {
++	public function __construct() {
++		$this->message = NULL;
++		$this->string  = NULL;
++		$this->code    = array();
++		$this->line = "hello";
++	}
++}
++
++throw new a;
++
++?>
++--EXPECTF--
++Fatal error: Uncaught exception 'a' in %s:0
++Stack trace:
++#0 {main}
++  thrown in %s on line %d
+--- /dev/null
++++ b/Zend/tests/bug64821.2.phpt
+@@ -0,0 +1,19 @@
++--TEST--
++Bug #64821 Custom Exceptions crash when internal properties overridden (variation 2)
++--FILE--
++<?php
++
++class a extends exception {
++	public function __construct() {
++		$this->line = array();
++	}
++}
++
++throw new a;
++
++?>
++--EXPECTF--
++Fatal error: Uncaught exception 'a' in %s:0
++Stack trace:
++#0 {main}
++  thrown in %s on line %d
+--- /dev/null
++++ b/Zend/tests/bug64821.3.phpt
+@@ -0,0 +1,20 @@
++--TEST--
++Bug #64821 Custom Exceptions crash when internal properties overridden (variation 3)
++--FILE--
++<?php
++
++class a extends exception {
++	public function __construct() {
++		$this->line = array();
++		$this->file = NULL;
++	}
++}
++
++throw new a;
++
++?>
++--EXPECTF--
++Fatal error: Uncaught exception 'a' in :0
++Stack trace:
++#0 {main}
++  thrown in Unknown on line %d
+--- a/Zend/zend_exceptions.c
++++ b/Zend/zend_exceptions.c
+@@ -793,6 +793,10 @@
+ 			if (instanceof_function(ce_exception, default_exception_ce TSRMLS_CC)) {
+ 				file = zend_read_property(default_exception_ce, EG(exception), "file", sizeof("file")-1, 1 TSRMLS_CC);
+ 				line = zend_read_property(default_exception_ce, EG(exception), "line", sizeof("line")-1, 1 TSRMLS_CC);
++
++				convert_to_string(file);
++				file = (Z_STRLEN_P(file) > 0) ? file : NULL;
++				line = (Z_TYPE_P(line) == IS_LONG) ? line : NULL;
+ 			} else {
+ 				file = NULL;
+ 				line = NULL;
+@@ -804,7 +808,11 @@
+ 		file = zend_read_property(default_exception_ce, exception, "file", sizeof("file")-1, 1 TSRMLS_CC);
+ 		line = zend_read_property(default_exception_ce, exception, "line", sizeof("line")-1, 1 TSRMLS_CC);
+ 
+-		zend_error_va(severity, Z_STRVAL_P(file), Z_LVAL_P(line), "Uncaught %s\n  thrown", Z_STRVAL_P(str));
++		convert_to_string(str);
++		convert_to_string(file);
++		convert_to_long(line);
++
++		zend_error_va(severity, (Z_STRLEN_P(file) > 0) ? Z_STRVAL_P(file) : NULL, Z_LVAL_P(line), "Uncaught %s\n  thrown", Z_STRVAL_P(str));
+ 	} else {
+ 		zend_error(severity, "Uncaught exception '%s'", ce_exception->name);
+ 	}
