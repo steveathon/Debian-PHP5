@@ -1,0 +1,53 @@
+commit 7da6498342d76c34892bfa247bc1779d8f5ee1e6
+Author: Xinchen Hui <laruence@php.net>
+Date:   Fri Aug 30 11:20:24 2013 +0800
+
+    Fixed bug #60598 (cli/apache sapi segfault on objects manipulation)
+
+--- /dev/null
++++ b/Zend/tests/bug60598.phpt
+@@ -0,0 +1,30 @@
++--TEST--
++Bug #60598 (cli/apache sapi segfault on objects manipulation)
++--FILE--
++<?php
++define('OBJECT_COUNT', 10000);
++
++$containers = array();
++
++class Object {
++    protected $_guid = 0;
++    public function __construct() {
++		global $containers;
++		$this->guid = 1;
++        $containers[spl_object_hash($this)] = $this;
++    }
++    public function __destruct() {
++		global $containers;
++        $containers[spl_object_hash($this)] = NULL;
++    }
++}
++
++for ($i = 0; $i < OBJECT_COUNT; ++$i) {
++    new Object();
++}
++
++// You probably won't see this because of the "zend_mm_heap corrupted"
++?>
++If you see this, try to increase OBJECT_COUNT to 100,000
++--EXPECT--
++If you see this, try to increase OBJECT_COUNT to 100,000
+--- a/Zend/zend_objects_API.c
++++ b/Zend/zend_objects_API.c
+@@ -57,6 +57,11 @@
+ 					obj->dtor(obj->object, i TSRMLS_CC);
+ 					obj = &objects->object_buckets[i].bucket.obj;
+ 					obj->refcount--;
++
++					if (obj->refcount == 0) {
++						/* in case gc_collect_cycle is triggered before free_storage */
++						GC_REMOVE_ZOBJ_FROM_BUFFER(obj);
++					}
+ 				}
+ 			}
+ 		}
