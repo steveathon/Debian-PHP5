@@ -131,3 +131,4 @@ Segmentation-fault-after-imap_reopen-failure.patch
 fpm-resource-leaks.patch
 fpm-fix-possible-null-deref.patch
 Custom-Exceptions-crash-when-internal-properties-overridden.patch
+execution-operator-stealing-surrounding-arguments.patch
