@@ -1,3 +1,47 @@
+php5 (5.4.4-14+deb7u8) stable; urgency=low
+
+  [ William Dauchy ]
+  * cleaning series
+  * upstream fix: Segfault calling bind_param() on mysqli
+  * upstream fix: the socket_connect() won't work with IPv6 address
+  * upstream fix: zend_std_compare_objects crash on recursion
+  * upstream fix: Segfault with built-in webserver and chunked transfer encoding
+  * upstream fix: apply 3 patches to fix segfaults on (un)serialization
+  * upstream fix: Crash with clone XMLReader
+  * upstream fix: PHP_BINARY incorrectly set
+  * upstream fix: Memleak with static properties and internal/user classes
+  * upstream fix: wrong called method as callback with inheritance
+  * upstream fix: is_callable() lies for abstract static method
+  * upstream fix: is_callable() triggers Fatal Error
+  * upstream fix: Using traits with get_class_methods causes segfault
+  * upstream fix: class_alias() should accept classes with leading backslashes
+  * upstream fix: Segfault in gc_zval_possible_root when return reference fails
+  * upstream fix: Use of max int in array_sum
+  * upstream fix: Unable to send vary header user-agent
+  * upstream fix: ZipArchive::addFile() has to check for file existence
+  * upstream fix: chroot() does not get enabled
+  * upstream fix: variant_* functions causes crash when null given as an argument
+  * upstream fix: Segfault on memory exhaustion within function definition
+  * upstream fix: Possible XSS on "Registered stream filters" info
+  * upstream fix: Error on serialize of ArrayObject
+  * upstream fix: isset() inconsistently produces a fatal error on protected property
+  * upstream fix: custom error handler throwing Exception + fatal error
+  * upstream fix: Segmentation fault after imap_reopen failure
+  * upstream fix: fix fpm resource leaks
+  * upstream fix: fix possible null deref in fpm
+  * upstream fix: Custom Exceptions crash when internal properties overridden
+  * upstream fix: debug_backtrace in set_error_handler corrupts zend heap: segfault
+  * upstream fix: Parent class incorrectly using child constant in class property
+  * upstream fix: ArrayAccess::&offsetGet() in a trait causes fatal error
+  * upstream fix: Magic methods called twice for unset protected properties
+  * upstream fix: Use after scope error in zend_compile
+  * upstream fix: cli/apache sapi segfault on objects manipulation
+  * upstream fix: fix possible resource leak and make sure there's something to qsort()
+  * upstream fix: fix various stream php fixes
+  * upstream fix: backport pdo lib patches
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 14 Jan 2014 11:01:16 +0100
+
 php5 (5.4.4-14+deb7u7) wheezy-security; urgency=low
 
   * [CVE-2013-6420]: Fix memory corruption in openssl_x509_parse (Closes: #731895)
