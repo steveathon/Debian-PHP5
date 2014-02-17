@@ -104,3 +104,4 @@ Segfault-while-load-extension-failed-in-zts-build.patch
 serialize-leaves-dangling-pointers-causes-crashes.patch
 CVE-2013-6420.patch
 CVE-2013-6712.patch
+CVE-2014-1943.patch
