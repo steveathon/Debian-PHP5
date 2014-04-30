@@ -1,3 +1,67 @@
+php5 (5.5.0~rc1+dfsg-1) experimental; urgency=low
+
+  * Starting from this version, the JSON module is no longer compiled in
+    due to licensing problems, and you need to install the JSON extension
+    as external php5-json package that is using json-c library.
+
+ -- Ondřej Surý <ondrej@debian.org>  Fri, 17 May 2013 14:43:04 +0200
+
+php5 (5.5.0~beta4-2) experimental; urgency=low
+
+  * short_open_tag configuration option now defaults to Off.  This means
+    that your PHP applications have to use '<?php' instead of just '<?'.
+    Please check and fix your applications (this is preferred solution) or
+    you can re-enable short_open_tag in /etc/php5/<sapi>/php.ini again.
+
+ -- Ondřej Surý <ondrej@debian.org>  Sun, 05 May 2013 23:37:54 +0200
+
+php5 (5.4.4-7) unstable; urgency=low
+
+  * As a side effect of the MIME-Type changes in the mime-support package,
+    the default Apache 2 configuration will no longer perform HTTP content
+    negotiation on the PHP file extensions, which was very questionable
+    anyway.  If you really want to re-enable this support then please read
+    /usr/share/doc/php5-common/README.Debian file for further
+    instructions.
+  
+ -- Ondřej Surý <ondrej@debian.org>  Wed, 29 Aug 2012 09:18:41 +0200
+
+php5 (5.4.4-5) unstable; urgency=low
+
+  * As a security measure the default configuration for Apache 2 has been
+    changed to a stricter model.  Only files which have the correct
+    rightmost extension, and at least one character in the filename before
+    that extension, are now interpreted by PHP.  For a full list of
+    handled extensions please see the Apache 2 configuration.  At the time
+    of writing this paragraph, the list includes the following regular
+    expressions:
+  
+      1. .+\.ph(p[345]?|t|tml)$ for PHP files (application/x-httpd-php)
+      2. .+\.phps$ for PHP source files (application/x-httpd-php-source)
+
+    Previously, as a side effect of system MIME type definitions, the
+    default configuration would allow the interpreting of files with a
+    double extension, where the second extension was either unrecognised
+    or a language or content encoding to be interpreted; e.g. an uploaded
+    file named blackhat.php.foobar or index.php.cs would be interpreted by
+    PHP.  These non-standard definitions have been removed from the
+    mime-support packages and all configuration of PHP handlers is now
+    defined in the Apache 2 configuration files.
+  
+    The standard configuration now also denies access to files with names
+    which consist of an extension and nothing more; e.g. accessing '/.php'
+    will now return Access Denied instead of the output of the PHP script.
+  
+    You can use the following command to find whether there are any files
+    on your system which would be affected by this change (change <base>
+    to the directory name where you store PHP files on your system):
+
+    # find <base> -name '*.ph[pt].*' -o -name '*.php[345s].*' -o \
+                  -name '*.phtml.*' -o -name '.ph[pt]' -o \
+                  -name '.php[345s]' -o -name '.phtml'
+
+ -- Ondřej Surý <ondrej@debian.org>  Tue, 21 Aug 2012 09:14:47 +0200
+
 php5 (5.4.0~rc8-1) unstable; urgency=low
 
   php5-fpm default www spool now listens on unix socket located

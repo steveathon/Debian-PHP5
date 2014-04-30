@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2009 The PHP Group                                |
+   | Copyright (c) 1997-2014 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -399,7 +399,7 @@ static inline int fcgi_param_get_eff_len( unsigned char *p, unsigned char *end, 
 {
 	int ret = 1;
 	int zero_found = 0;
-        *eff_len = 0;
+	*eff_len = 0;
 	for (; p != end; ++p) {
 		if (*p == '\0') {
 			zero_found = 1;
@@ -426,8 +426,9 @@ static int fcgi_get_params(fcgi_request *req, unsigned char *p, unsigned char *e
 	char buf[128];
 	char *tmp = buf;
 	size_t buf_size = sizeof(buf);
-	int name_len, val_len;
-	uint eff_name_len, eff_val_len;
+	int name_len = 0;
+	int val_len = 0;
+	uint eff_name_len = 0;
 	char *s;
 	int ret = 1;
 	size_t bytes_consumed;
@@ -453,8 +454,12 @@ static int fcgi_get_params(fcgi_request *req, unsigned char *p, unsigned char *e
 			ret = 0;
 			break;
 		}
-		if (!fcgi_param_get_eff_len(p, p+name_len, &eff_name_len) ||
-		    !fcgi_param_get_eff_len(p+name_len, p+name_len+val_len, &eff_val_len)) {
+
+		/*
+		 * get the effective length of the name in case it's not a valid string
+		 * don't do this on the value because it can be binary data
+		 */
+		if (!fcgi_param_get_eff_len(p, p+name_len, &eff_name_len)){
 			/* Malicious request */
 			ret = 0;
 			break;
@@ -473,7 +478,7 @@ static int fcgi_get_params(fcgi_request *req, unsigned char *p, unsigned char *e
 		}
 		memcpy(tmp, p, eff_name_len);
 		tmp[eff_name_len] = 0;
-		s = estrndup((char*)p + name_len, eff_val_len);
+		s = estrndup((char*)p + name_len, val_len);
 		if (s == NULL) {
 			ret = 0;
 			break;
@@ -606,7 +611,7 @@ static int fcgi_read_request(fcgi_request *req)
 		}
 
 		zend_hash_internal_pointer_reset_ex(req->env, &pos);
-		while ((key_type = zend_hash_get_current_key_ex(req->env, &str_index, &str_length, &num_index, 0, &pos)) != HASH_KEY_NON_EXISTANT) {
+		while ((key_type = zend_hash_get_current_key_ex(req->env, &str_index, &str_length, &num_index, 0, &pos)) != HASH_KEY_NON_EXISTENT) {
 			int zlen;
 			zend_hash_move_forward_ex(req->env, &pos);
 			if (key_type != HASH_KEY_IS_STRING) {

@@ -4,8 +4,8 @@ Origin: vendor
 Forwarded: not-needed
 Last-Update: 2010-01-18
 
---- a/configure.in
-+++ b/configure.in
+--- php5.orig/configure.in
++++ php5/configure.in
 @@ -1068,7 +1068,7 @@ if test "$PHP_CLI" = "no"; then
  fi
  
@@ -48,8 +48,8 @@ Last-Update: 2010-01-18
  
  exec_prefix=$old_exec_prefix
  libdir=$old_libdir
---- a/ext/ext_skel
-+++ b/ext/ext_skel
+--- php5.orig/ext/ext_skel
++++ php5/ext/ext_skel
 @@ -70,7 +70,7 @@ if test -d "$extname" ; then
  fi
  
@@ -59,9 +59,9 @@ Last-Update: 2010-01-18
  fi
  
  ## convert skel_dir to full path
---- a/php.ini-development
-+++ b/php.ini-development
-@@ -702,7 +702,7 @@ default_mimetype = "text/html"
+--- php5.orig/php.ini-development
++++ php5/php.ini-development
+@@ -693,7 +693,7 @@ default_mimetype = "text/html"
  ;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; UNIX: "/path1:/path2"
@@ -70,9 +70,9 @@ Last-Update: 2010-01-18
  ;
  ; Windows: "\path1;\path2"
  ;include_path = ".;c:\php\includes"
---- a/php.ini-production
-+++ b/php.ini-production
-@@ -702,7 +702,7 @@ default_mimetype = "text/html"
+--- php5.orig/php.ini-production
++++ php5/php.ini-production
+@@ -693,7 +693,7 @@ default_mimetype = "text/html"
  ;;;;;;;;;;;;;;;;;;;;;;;;;
  
  ; UNIX: "/path1:/path2"
@@ -81,7 +81,7 @@ Last-Update: 2010-01-18
  ;
  ; Windows: "\path1;\path2"
  ;include_path = ".;c:\php\includes"
-@@ -859,51 +859,6 @@ default_socket_timeout = 60
+@@ -854,50 +854,6 @@ default_socket_timeout = 60
  ; If you only provide the name of the extension, PHP will look for it in its
  ; default extension directory.
  ;
@@ -129,37 +129,12 @@ Last-Update: 2010-01-18
 -;extension=php_tidy.dll
 -;extension=php_xmlrpc.dll
 -;extension=php_xsl.dll
--;extension=php_zip.dll
  
  ;;;;;;;;;;;;;;;;;;;
  ; Module Settings ;
---- a/sapi/caudium/config.m4
-+++ b/sapi/caudium/config.m4
-@@ -26,8 +26,8 @@ if test "$PHP_CAUDIUM" != "no"; then
-     AC_MSG_ERROR([Could not find a pike in $PHP_CAUDIUM/bin/])
-   fi
-   if $PIKE -e 'float v; int rel;sscanf(version(), "Pike v%f release %d", v, rel);v += rel/10000.0; if(v < 7.0268) exit(1); exit(0);'; then
--    PIKE_MODULE_DIR=`$PIKE --show-paths 2>&1| grep '^Module' | sed -e 's/.*: //'`
--    PIKE_INCLUDE_DIR=`echo $PIKE_MODULE_DIR | sed -e 's,lib/pike/modules,include/pike,' -e 's,lib/modules,include/pike,' `
-+    PIKE_MODULE_DIR=`$PIKE --show-paths 2>&1| grep '^Master file' | sed -e 's/.*: //' -e 's/master.pike/modules/'`
-+    PIKE_INCLUDE_DIR=`echo $PIKE_MODULE_DIR | sed -e 's,lib/modules,,' -e 's,modules,include,' `
-     if test -z "$PIKE_INCLUDE_DIR" || test -z "$PIKE_MODULE_DIR"; then
-       AC_MSG_ERROR(Failed to figure out Pike module and include directories)
-     fi
-@@ -84,7 +84,9 @@ if test "$PHP_CAUDIUM" != "no"; then
-   PIKE_VERSION=`$PIKE -e 'string v; int rel;sscanf(version(), "Pike v%s release %d", v, rel); write(v+"."+rel);'`   
-   AC_DEFINE(HAVE_CAUDIUM,1,[Whether to compile with Caudium support])
-   PHP_SELECT_SAPI(caudium, shared, caudium.c)
--  INSTALL_IT="\$(INSTALL) -m 0755 $SAPI_SHARED $PHP_CAUDIUM/lib/$PIKE_VERSION/PHP5.so"
-+  dnl FIXME: This is the ugliest hack in the world!
-+  dnl INSTALL_IT="\$(mkinstalldirs) \$(INSTALL_ROOT)$PHP_CAUDIUM/lib/$PIKE_VERSION/ && \$(INSTALL) -m 0755 $SAPI_SHARED \$(INSTALL_ROOT)$PHP_CAUDIUM/lib/$PIKE_VERSION/php5.so"
-+  INSTALL_IT="\$(mkinstalldirs) \$(INSTALL_ROOT)$PHP_CAUDIUM/lib/$PIKE_VERSION/ && \$(INSTALL) -m 0755 .$SAPI_SHARED \$(INSTALL_ROOT)$PHP_CAUDIUM/lib/$PIKE_VERSION/PHP5.so"
-   RESULT="  *** Pike binary used:         $PIKE
-   *** Pike include dir(s) used: $PIKE_INCLUDE_DIR
-   *** Pike version:             $PIKE_VERSION"
---- a/sapi/cli/php.1.in
-+++ b/sapi/cli/php.1.in
-@@ -346,13 +346,14 @@ Shows configuration for extension
+--- php5.orig/sapi/cli/php.1.in
++++ php5/sapi/cli/php.1.in
+@@ -365,13 +365,14 @@ Shows configuration for extension
  Show configuration file names
  .SH FILES
  .TP 15
@@ -179,8 +154,8 @@ Last-Update: 2010-01-18
  .SH EXAMPLES
  .TP 5
  \fIphp \-r 'echo "Hello World\\n";'\fP
---- a/scripts/Makefile.frag
-+++ b/scripts/Makefile.frag
+--- php5.orig/scripts/Makefile.frag
++++ php5/scripts/Makefile.frag
 @@ -3,8 +3,8 @@
  # Build environment install
  #
@@ -192,21 +167,23 @@ Last-Update: 2010-01-18
  
  BUILD_FILES = \
  	scripts/phpize.m4 \
---- a/scripts/php-config.in
-+++ b/scripts/php-config.in
-@@ -6,8 +6,8 @@ datarootdir="@datarootdir@"
+--- php5.orig/scripts/php-config.in
++++ php5/scripts/php-config.in
+@@ -6,9 +6,9 @@ datarootdir="@datarootdir@"
  exec_prefix="@exec_prefix@"
  version="@PHP_VERSION@"
  vernum="@PHP_VERSION_ID@"
 -include_dir="@includedir@/php"
 -includes="-I$include_dir -I$include_dir/main -I$include_dir/TSRM -I$include_dir/Zend -I$include_dir/ext -I$include_dir/ext/date/lib"
+-ldflags="@PHP_LDFLAGS@"
 +include_dir="@includedir@/php5"
 +includes="-I$include_dir -I$include_dir/main -I$include_dir/TSRM -I$include_dir/Zend -I$include_dir/ext -I$include_dir/ext/date/lib $(getconf LFS_CFLAGS)"
- ldflags="@PHP_LDFLAGS@"
++ldflags="-L$prefix/lib/php5 @PHP_LDFLAGS@"
  libs="@EXTRA_LIBS@"
  extension_dir='@EXTENSION_DIR@'
---- a/scripts/phpize.in
-+++ b/scripts/phpize.in
+ man_dir=`eval echo @mandir@`
+--- php5.orig/scripts/phpize.in
++++ php5/scripts/phpize.in
 @@ -4,8 +4,8 @@
  prefix='@prefix@'
  datarootdir='@datarootdir@'

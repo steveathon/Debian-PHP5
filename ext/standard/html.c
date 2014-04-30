@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2012 The PHP Group                                |
+   | Copyright (c) 1997-2014 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -1221,8 +1221,8 @@ PHPAPI char *php_escape_html_entities_ex(unsigned char *old, size_t oldlen, size
 	const enc_to_uni *to_uni_table = NULL;
 	const entity_ht *inv_map = NULL; /* used for !double_encode */
 	/* only used if flags includes ENT_HTML_IGNORE_ERRORS or ENT_HTML_SUBSTITUTE_DISALLOWED_CHARS */
-	const unsigned char *replacement;
-	size_t replacement_len;
+	const unsigned char *replacement = NULL;
+	size_t replacement_len = 0;
 
 	if (all) { /* replace with all named entities */
 		if (CHARSET_PARTIAL_SUPPORT(charset)) {
@@ -1596,7 +1596,7 @@ PHP_FUNCTION(get_html_translation_table)
 		 flags = ENT_COMPAT;
 	int doctype;
 	entity_table_opt entity_table;
-	const enc_to_uni *to_uni_table;
+	const enc_to_uni *to_uni_table = NULL;
 	char *charset_hint = NULL;
 	int charset_hint_len;
 	enum entity_charset charset;
@@ -1628,8 +1628,8 @@ PHP_FUNCTION(get_html_translation_table)
 			unsigned i, j, k,
 					 max_i, max_j, max_k;
 			/* no mapping to unicode required */
-			if (CHARSET_SINGLE_BYTE(charset)) {
-				max_i = 1; max_j = 1; max_k = 64;
+			if (CHARSET_SINGLE_BYTE(charset)) { /* ISO-8859-1 */
+				max_i = 1; max_j = 4; max_k = 64;
 			} else {
 				max_i = 0x1E; max_j = 64; max_k = 64;
 			}

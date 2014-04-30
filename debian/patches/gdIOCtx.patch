@@ -1,5 +1,5 @@
---- a/ext/gd/gd_ctx.c
-+++ b/ext/gd/gd_ctx.c
+--- php5.orig/ext/gd/gd_ctx.c
++++ php5/ext/gd/gd_ctx.c
 @@ -46,33 +46,6 @@ static void _php_image_output_ctxfree(st
  	}
  }
@@ -105,20 +105,15 @@
  	switch(image_type) {
  		case PHP_GDIMG_CONVERT_WBM:
  			if(q<0||q>255) {
-@@ -189,11 +151,12 @@ static void _php_image_output_ctx(INTERN
- 			break;
- 	}
+@@ -191,6 +153,11 @@ static void _php_image_output_ctx(INTERN
  
--#if HAVE_LIBGD204
  	ctx->gd_free(ctx);
--#else
--	ctx->free(ctx);
--#endif
-+
+ 
 +	if(fp) {
 +		fflush(fp);
 +		fclose(fp);
 +	}
- 
++
  	RETURN_TRUE;
  }
+ /* }}} */
